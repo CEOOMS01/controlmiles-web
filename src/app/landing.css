@@ -1,0 +1,124 @@
+/* Landing page only -- scoped via the .landing wrapper class so it never
+   bleeds into the app's Geist-based login/portal/admin screens. */
+
+.landing {
+  --lg-bg: #0a0c11;
+  --lg-bg-raised: #12151d;
+  --lg-line: #3d4560;
+  --lg-ink: #eef1f7;
+  --lg-ink-dim: #8b93a6;
+  --lg-blue: #4f8cff;
+  --lg-amber: #f5a524;
+  background: var(--lg-bg);
+  color: var(--lg-ink);
+  position: relative;
+  overflow-x: clip;
+}
+
+.landing .display {
+  font-family: var(--font-display), "Arial Narrow", sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+}
+
+.landing .mono {
+  font-family: var(--font-mono-plex), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Asphalt texture: faint diagonal grain + a soft radial glow behind the
+   hero, instead of a flat solid ground. */
+.landing::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(60rem 30rem at 15% -10%, rgba(79, 140, 255, 0.16), transparent 60%),
+    radial-gradient(40rem 24rem at 110% 10%, rgba(245, 165, 36, 0.10), transparent 55%),
+    repeating-linear-gradient(
+      115deg,
+      rgba(255, 255, 255, 0.015) 0px,
+      rgba(255, 255, 255, 0.015) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+  z-index: 0;
+}
+
+.landing > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Route line draw-in */
+.route-path {
+  stroke-dasharray: 1400;
+  stroke-dashoffset: 1400;
+  animation: draw-route 2.2s cubic-bezier(0.65, 0, 0.35, 1) 0.15s forwards;
+}
+
+@keyframes draw-route {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.route-dot {
+  offset-path: path("M 8 210 C 120 210, 140 60, 260 60 S 420 210, 520 150 S 640 40, 740 90");
+  animation: travel 2.2s cubic-bezier(0.65, 0, 0.35, 1) 0.15s forwards,
+    pulse-glow 1.6s ease-in-out infinite 2.4s;
+  offset-distance: 0%;
+}
+
+@keyframes travel {
+  to {
+    offset-distance: 100%;
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { filter: drop-shadow(0 0 0px rgba(79, 140, 255, 0.9)); }
+  50% { filter: drop-shadow(0 0 8px rgba(79, 140, 255, 0.9)); }
+}
+
+.gauge-arc {
+  animation: sweep-in 1.4s cubic-bezier(0.22, 1, 0.36, 1) 0.4s backwards;
+}
+
+@keyframes sweep-in {
+  from {
+    stroke-dashoffset: 340;
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.rise {
+  animation: rise-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .route-path,
+  .route-dot,
+  .gauge-arc,
+  .rise {
+    animation: none !important;
+    stroke-dashoffset: 0 !important;
+    offset-distance: 100% !important;
+    opacity: 1 !important;
+  }
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

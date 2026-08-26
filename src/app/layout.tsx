@@ -13,9 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ControlMiles Report Portal",
+  title: "ControlMiles — Mileage tracking for gig drivers & fleets",
   description:
-    "Verify a driver's mileage report with a one-time access code.",
+    "GPS trip tracking, odometer verification, and a tamper-evident audit trail for gig drivers and the fleets managing them.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
