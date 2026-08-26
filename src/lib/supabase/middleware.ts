@@ -83,7 +83,8 @@ export async function updateSession(request: NextRequest) {
 
   const isProtectedRoute =
     request.nextUrl.pathname.startsWith("/portal/generate") ||
-    request.nextUrl.pathname.startsWith("/admin");
+    request.nextUrl.pathname.startsWith("/admin") ||
+    request.nextUrl.pathname.startsWith("/api/admin");
 
   if (isProtectedRoute && !user) {
     const url = request.nextUrl.clone();
