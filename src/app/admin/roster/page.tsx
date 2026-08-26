@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { InviteForm } from "./invite-form";
 import { RemoveButton } from "./remove-button";
+import { AddDriverSlotForm } from "./add-driver-slot-form";
+import { RemoveSlotButton } from "./remove-slot-button";
 
 export default async function RosterPage() {
   const supabase = await createClient();
@@ -17,14 +19,22 @@ export default async function RosterPage() {
   const orgId = profile?.default_org_id;
   if (!orgId) return null;
 
-  const { data: members } = await supabase
-    .from("organization_members")
-    .select(
-      "id, member_role, is_active, invited_at, joined_at, profiles(first_name, last_name, email, display_id)",
-    )
-    .eq("organization_id", orgId)
-    .order("is_active", { ascending: false })
-    .order("joined_at", { ascending: false });
+  const [{ data: members }, { data: slots }] = await Promise.all([
+    supabase
+      .from("organization_members")
+      .select(
+        "id, member_role, is_active, invited_at, joined_at, profiles(first_name, last_name, email, display_id)",
+      )
+      .eq("organization_id", orgId)
+      .order("is_active", { ascending: false })
+      .order("joined_at", { ascending: false }),
+    supabase
+      .from("fleet_driver_slots")
+      .select("id, first_name, last_name, display_id, created_at")
+      .eq("organization_id", orgId)
+      .is("claimed_by", null)
+      .order("created_at", { ascending: false }),
+  ]);
 
   return (
     <main className="px-6 py-10 sm:px-10">
@@ -35,8 +45,9 @@ export default async function RosterPage() {
         <h1 className="mt-1 text-2xl font-semibold">Drivers</h1>
       </div>
 
-      <div className="mb-6">
+      <div className="mb-6 grid gap-4 sm:grid-cols-2">
         <InviteForm orgId={orgId} />
+        <AddDriverSlotForm orgId={orgId} />
       </div>
 
       <div className="overflow-x-auto rounded-xl border border-border bg-surface">
@@ -68,7 +79,22 @@ export default async function RosterPage() {
                 </tr>
               );
             })}
-            {(members ?? []).length === 0 && (
+            {(slots ?? []).map((s) => (
+              <tr key={s.id} className="border-b border-border last:border-0">
+                <td className="px-4 py-3">{[s.first_name, s.last_name].join(" ")}</td>
+                <td className="px-4 py-3 font-mono text-xs text-muted">{s.display_id}</td>
+                <td className="px-4 py-3 capitalize text-muted">driver</td>
+                <td className="px-4 py-3">
+                  <span className="inline-flex items-center rounded-full bg-accent/15 px-2.5 py-0.5 text-xs font-medium text-accent">
+                    Unclaimed
+                  </span>
+                </td>
+                <td className="px-4 py-3 text-right">
+                  <RemoveSlotButton slotId={s.id} />
+                </td>
+              </tr>
+            ))}
+            {(members ?? []).length === 0 && (slots ?? []).length === 0 && (
               <tr>
                 <td colSpan={5} className="px-4 py-8 text-center text-muted">
                   No drivers yet.

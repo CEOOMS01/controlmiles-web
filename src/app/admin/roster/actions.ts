@@ -41,3 +41,48 @@ export async function removeMember(membershipId: string) {
   await supabase.from("organization_members").delete().eq("id", membershipId);
   revalidatePath("/admin/roster");
 }
+
+export type AddSlotState = {
+  error: string | null;
+  result: { displayId: string; claimCode: string } | null;
+};
+
+export async function addDriverSlot(
+  _prevState: AddSlotState,
+  formData: FormData,
+): Promise<AddSlotState> {
+  const orgId = String(formData.get("org_id") ?? "");
+  const firstName = String(formData.get("first_name") ?? "").trim();
+  const lastName = String(formData.get("last_name") ?? "").trim();
+
+  if (!orgId || !firstName || !lastName) {
+    return { error: "Enter a first and last name.", result: null };
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("create_driver_slot", {
+    p_org_id: orgId,
+    p_first_name: firstName,
+    p_last_name: lastName,
+  });
+
+  if (error) {
+    return { error: error.message, result: null };
+  }
+
+  const row = data?.[0];
+  if (!row) {
+    return { error: "Could not create the driver slot. Try again.", result: null };
+  }
+
+  revalidatePath("/admin/roster");
+  return { error: null, result: { displayId: row.display_id, claimCode: row.claim_code } };
+}
+
+export async function removeDriverSlot(slotId: string) {
+  const supabase = await createClient();
+  // RLS (fleet_driver_slots_delete_admin) enforces the caller is this
+  // org's admin/owner.
+  await supabase.from("fleet_driver_slots").delete().eq("id", slotId);
+  revalidatePath("/admin/roster");
+}

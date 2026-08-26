@@ -20,7 +20,7 @@ export default async function VehiclesPage() {
   const [{ data: vehicles }, { data: driverMembers }] = await Promise.all([
     supabase
       .from("vehicles")
-      .select("id, nickname, make, model, year, plate, assigned_driver_id")
+      .select("id, display_id, nickname, make, model, year, plate, assigned_driver_id")
       .eq("organization_id", orgId)
       .eq("is_archived", false)
       .order("created_at", { ascending: false }),
@@ -57,6 +57,7 @@ export default async function VehiclesPage() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border text-left text-muted">
+              <th className="px-4 py-3 font-medium">ID</th>
               <th className="px-4 py-3 font-medium">Vehicle</th>
               <th className="px-4 py-3 font-medium">Plate</th>
               <th className="px-4 py-3 font-medium">Assigned driver</th>
@@ -66,6 +67,7 @@ export default async function VehiclesPage() {
           <tbody>
             {(vehicles ?? []).map((v) => (
               <tr key={v.id} className="border-b border-border last:border-0">
+                <td className="px-4 py-3 font-mono text-xs text-muted">{v.display_id}</td>
                 <td className="px-4 py-3">
                   {[v.year, v.make, v.model].filter(Boolean).join(" ") || "—"}
                   {v.nickname ? ` "${v.nickname}"` : ""}
@@ -85,7 +87,7 @@ export default async function VehiclesPage() {
             ))}
             {(vehicles ?? []).length === 0 && (
               <tr>
-                <td colSpan={4} className="px-4 py-8 text-center text-muted">
+                <td colSpan={5} className="px-4 py-8 text-center text-muted">
                   No vehicles yet.
                 </td>
               </tr>

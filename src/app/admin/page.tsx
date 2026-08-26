@@ -22,24 +22,34 @@ export default async function AdminDashboardPage() {
     .eq("id", orgId)
     .maybeSingle();
 
-  const [{ count: memberCount }, { count: vehicleCount }, { count: pendingCount }] =
-    await Promise.all([
-      supabase
-        .from("organization_members")
-        .select("id", { count: "exact", head: true })
-        .eq("organization_id", orgId)
-        .eq("is_active", true),
-      supabase
-        .from("vehicles")
-        .select("id", { count: "exact", head: true })
-        .eq("organization_id", orgId)
-        .eq("is_archived", false),
-      supabase
-        .from("organization_members")
-        .select("id", { count: "exact", head: true })
-        .eq("organization_id", orgId)
-        .eq("is_active", false),
-    ]);
+  const [
+    { count: memberCount },
+    { count: vehicleCount },
+    { count: pendingInviteCount },
+    { count: unclaimedSlotCount },
+  ] = await Promise.all([
+    supabase
+      .from("organization_members")
+      .select("id", { count: "exact", head: true })
+      .eq("organization_id", orgId)
+      .eq("is_active", true),
+    supabase
+      .from("vehicles")
+      .select("id", { count: "exact", head: true })
+      .eq("organization_id", orgId)
+      .eq("is_archived", false),
+    supabase
+      .from("organization_members")
+      .select("id", { count: "exact", head: true })
+      .eq("organization_id", orgId)
+      .eq("is_active", false),
+    supabase
+      .from("fleet_driver_slots")
+      .select("id", { count: "exact", head: true })
+      .eq("organization_id", orgId)
+      .is("claimed_by", null),
+  ]);
+  const pendingCount = (pendingInviteCount ?? 0) + (unclaimedSlotCount ?? 0);
 
   return (
     <main className="px-6 py-10 sm:px-10">
@@ -53,7 +63,7 @@ export default async function AdminDashboardPage() {
       <div className="grid gap-4 sm:grid-cols-3">
         <StatCard label="Active drivers" value={memberCount ?? 0} />
         <StatCard label="Vehicles" value={vehicleCount ?? 0} />
-        <StatCard label="Pending invites" value={pendingCount ?? 0} />
+        <StatCard label="Pending drivers" value={pendingCount} />
       </div>
 
       <div className="mt-10 grid gap-4 sm:grid-cols-2">
