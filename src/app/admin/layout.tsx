@@ -79,6 +79,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
           <AdminNavLink href="/admin/roster">Roster</AdminNavLink>
           <AdminNavLink href="/admin/vehicles">Vehicles</AdminNavLink>
           <AdminNavLink href="/admin/ifta">IFTA</AdminNavLink>
+          <AdminNavLink href="/admin/reviews">Reviews</AdminNavLink>
         </nav>
 
         <div className="mt-8 border-t border-border pt-4">

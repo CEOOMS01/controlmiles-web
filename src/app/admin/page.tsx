@@ -27,6 +27,8 @@ export default async function AdminDashboardPage() {
     { count: vehicleCount },
     { count: pendingInviteCount },
     { count: unclaimedSlotCount },
+    { count: failedInspectionCount },
+    { count: incidentCount },
   ] = await Promise.all([
     supabase
       .from("organization_members")
@@ -48,8 +50,18 @@ export default async function AdminDashboardPage() {
       .select("id", { count: "exact", head: true })
       .eq("organization_id", orgId)
       .is("claimed_by", null),
+    supabase
+      .from("vehicle_inspections")
+      .select("id", { count: "exact", head: true })
+      .eq("organization_id", orgId)
+      .eq("overall_status", "fail"),
+    supabase
+      .from("trip_incidents")
+      .select("id", { count: "exact", head: true })
+      .eq("organization_id", orgId),
   ]);
   const pendingCount = (pendingInviteCount ?? 0) + (unclaimedSlotCount ?? 0);
+  const reviewCount = (failedInspectionCount ?? 0) + (incidentCount ?? 0);
 
   return (
     <main className="px-6 py-10 sm:px-10">
@@ -60,13 +72,14 @@ export default async function AdminDashboardPage() {
         <h1 className="mt-1 text-2xl font-semibold">Fleet dashboard</h1>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-4">
         <StatCard label="Active drivers" value={memberCount ?? 0} />
         <StatCard label="Vehicles" value={vehicleCount ?? 0} />
         <StatCard label="Pending drivers" value={pendingCount} />
+        <StatCard label="Needs review" value={reviewCount} accent={reviewCount > 0} />
       </div>
 
-      <div className="mt-10 grid gap-4 sm:grid-cols-3">
+      <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Link
           href="/admin/roster"
           className="rounded-xl border border-border bg-surface p-5 transition hover:border-accent"
@@ -88,22 +101,28 @@ export default async function AdminDashboardPage() {
           <p className="font-semibold">IFTA state mileage</p>
           <p className="mt-1 text-sm text-muted">Miles per state for the quarter.</p>
         </Link>
+        <Link
+          href="/admin/reviews"
+          className="rounded-xl border border-border bg-surface p-5 transition hover:border-accent"
+        >
+          <p className="font-semibold">Inspections & incidents</p>
+          <p className="mt-1 text-sm text-muted">DVIR checklists and mid-trip reports.</p>
+        </Link>
       </div>
 
       <p className="mt-10 text-xs text-muted">
-        Live map and DVIR review stay on the roadmap — the mobile app
-        still covers live map, inspections, and driver-side incident
-        reports today.
+        Live map stays mobile-only, by design — the admin&apos;s on-the-go
+        phone check.
       </p>
     </main>
   );
 }
 
-function StatCard({ label, value }: { label: string; value: number }) {
+function StatCard({ label, value, accent }: { label: string; value: number; accent?: boolean }) {
   return (
-    <div className="rounded-xl border border-border bg-surface p-5">
+    <div className={`rounded-xl border p-5 ${accent ? "border-danger/40 bg-danger/5" : "border-border bg-surface"}`}>
       <p className="text-xs text-muted">{label}</p>
-      <p className="mt-1 text-3xl font-semibold tabular-nums">{value}</p>
+      <p className={`mt-1 text-3xl font-semibold tabular-nums ${accent ? "text-danger" : ""}`}>{value}</p>
     </div>
   );
 }
