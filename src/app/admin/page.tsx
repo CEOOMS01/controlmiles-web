@@ -66,7 +66,7 @@ export default async function AdminDashboardPage() {
         <StatCard label="Pending drivers" value={pendingCount} />
       </div>
 
-      <div className="mt-10 grid gap-4 sm:grid-cols-2">
+      <div className="mt-10 grid gap-4 sm:grid-cols-3">
         <Link
           href="/admin/roster"
           className="rounded-xl border border-border bg-surface p-5 transition hover:border-accent"
@@ -81,11 +81,19 @@ export default async function AdminDashboardPage() {
           <p className="font-semibold">Manage vehicles</p>
           <p className="mt-1 text-sm text-muted">Add vehicles, assign drivers.</p>
         </Link>
+        <Link
+          href="/admin/ifta"
+          className="rounded-xl border border-border bg-surface p-5 transition hover:border-accent"
+        >
+          <p className="font-semibold">IFTA state mileage</p>
+          <p className="mt-1 text-sm text-muted">Miles per state for the quarter.</p>
+        </Link>
       </div>
 
       <p className="mt-10 text-xs text-muted">
-        Live map, DVIR review, and route creation stay on the roadmap —
-        the mobile app still covers live map and inspections today.
+        Live map and DVIR review stay on the roadmap — the mobile app
+        still covers live map, inspections, and driver-side incident
+        reports today.
       </p>
     </main>
   );
