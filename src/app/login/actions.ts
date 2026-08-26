@@ -15,7 +15,7 @@ export async function signIn(
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
     // Generic message on purpose -- never confirm/deny which part
@@ -23,5 +23,11 @@ export async function signIn(
     return { error: "Invalid email or password." };
   }
 
-  redirect("/portal/generate");
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("account_type")
+    .eq("id", data.user.id)
+    .maybeSingle();
+
+  redirect(profile?.account_type === "fleet_admin" ? "/admin" : "/portal/generate");
 }
