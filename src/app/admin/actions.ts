@@ -5,6 +5,15 @@ import { createClient } from "@/lib/supabase/server";
 
 export type CreateOrgState = { error: string | null };
 
+export async function switchOrganization(orgId: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("switch_default_organization", { p_org_id: orgId });
+  if (error) {
+    return { error: error.message };
+  }
+  redirect("/admin");
+}
+
 export async function createOrganization(
   _prevState: CreateOrgState,
   formData: FormData,

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { CreateOrgForm } from "./create-org-form";
 import { SignOutButton } from "./sign-out-button";
+import { OrgSwitcher } from "./org-switcher";
 
 export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   const supabase = await createClient();
@@ -44,6 +45,26 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
     .eq("id", profile.default_org_id)
     .maybeSingle();
 
+  // Real gap closed (explicit user ask, built for testing -- multi-org
+  // management is intended to become a paid extra later, see
+  // switch_default_organization's own migration comment): every org this
+  // account owns/admins, not just the current default_org_id one, so the
+  // sidebar can offer a switcher instead of being stuck on whichever org
+  // happened to be active last.
+  const { data: eligibleMemberships } = await supabase
+    .from("organization_members")
+    .select("organization_id, organizations(id, name)")
+    .eq("user_id", user.id)
+    .in("member_role", ["owner", "admin"])
+    .eq("is_active", true);
+
+  const eligibleOrgs = (eligibleMemberships ?? [])
+    .map((m) => {
+      const o = Array.isArray(m.organizations) ? m.organizations[0] : m.organizations;
+      return o ? { id: o.id, name: o.name } : null;
+    })
+    .filter((o): o is { id: string; name: string } => o !== null);
+
   if (!org) {
     // default_org_id pointed at something the caller can no longer
     // read (e.g. RLS scope changed, or the row was removed) -- fail
@@ -72,7 +93,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
         <p className="px-2 text-sm font-semibold tracking-wide text-accent uppercase">
           ControlMiles
         </p>
-        <p className="mt-1 truncate px-2 text-xs text-muted">{org.name}</p>
+        <OrgSwitcher currentOrgId={org.id} orgs={eligibleOrgs} />
 
         <nav className="mt-6 space-y-1">
           <AdminNavLink href="/admin">Dashboard</AdminNavLink>
