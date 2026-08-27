@@ -46,6 +46,32 @@ export async function addRoute(
   return { error: null, success: true };
 }
 
+export async function reassignRoute(
+  routeId: string,
+  driverId: string | null,
+  vehicleId: string | null,
+) {
+  const supabase = await createClient();
+  // Real gap closed (explicit user ask): admin can now change a route's
+  // driver/vehicle after creation, for an unforeseen event (driver out
+  // sick, truck breaks down) without having to close and recreate the
+  // route. routes_update_admin (RLS) already permitted this on any
+  // non-closed route -- fn_freeze_closed_route (trigger) is the real
+  // enforcement once status='closed', same defense-in-depth pattern as
+  // setRouteStatus below.
+  const { error } = await supabase
+    .from("routes")
+    .update({ assigned_driver_id: driverId, assigned_vehicle_id: vehicleId })
+    .eq("id", routeId);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath("/admin/routes");
+  return { error: null };
+}
+
 export async function setRouteStatus(routeId: string, status: "active" | "closed") {
   const supabase = await createClient();
   // fn_freeze_closed_route (trigger) is what actually enforces

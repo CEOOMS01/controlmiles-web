@@ -38,7 +38,7 @@ export default async function RoutesPage() {
     supabase
       .from("routes")
       .select(
-        "id, name, origin, destination, scheduled_date, status, closed_at, created_at, profiles!routes_assigned_driver_id_fkey(first_name, last_name), vehicles(nickname, make, model, display_id)",
+        "id, name, origin, destination, scheduled_date, status, closed_at, created_at, assigned_driver_id, assigned_vehicle_id, profiles!routes_assigned_driver_id_fkey(first_name, last_name), vehicles(nickname, make, model, display_id)",
       )
       .eq("organization_id", orgId)
       .order("created_at", { ascending: false }),
@@ -110,7 +110,14 @@ export default async function RoutesPage() {
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    <RouteRowActions routeId={r.id} status={r.status} />
+                    <RouteRowActions
+                      routeId={r.id}
+                      status={r.status}
+                      currentDriverId={r.assigned_driver_id}
+                      currentVehicleId={r.assigned_vehicle_id}
+                      drivers={drivers}
+                      vehicles={vehicleOptions}
+                    />
                   </td>
                 </tr>
               );
