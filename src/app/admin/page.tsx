@@ -22,6 +22,8 @@ export default async function AdminDashboardPage() {
     .eq("id", orgId)
     .maybeSingle();
 
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+
   const [
     { count: memberCount },
     { count: vehicleCount },
@@ -29,6 +31,7 @@ export default async function AdminDashboardPage() {
     { count: unclaimedSlotCount },
     { count: failedInspectionCount },
     { count: incidentCount },
+    { count: safetyEventCount },
   ] = await Promise.all([
     supabase
       .from("organization_members")
@@ -59,9 +62,15 @@ export default async function AdminDashboardPage() {
       .from("trip_incidents")
       .select("id", { count: "exact", head: true })
       .eq("organization_id", orgId),
+    supabase
+      .from("driver_safety_events")
+      .select("id", { count: "exact", head: true })
+      .eq("organization_id", orgId)
+      .gte("recorded_at", thirtyDaysAgo),
   ]);
   const pendingCount = (pendingInviteCount ?? 0) + (unclaimedSlotCount ?? 0);
   const reviewCount = (failedInspectionCount ?? 0) + (incidentCount ?? 0);
+  const safetyCount = safetyEventCount ?? 0;
 
   return (
     <main className="px-6 py-10 sm:px-10">
@@ -77,6 +86,7 @@ export default async function AdminDashboardPage() {
         <StatCard label="Vehicles" value={vehicleCount ?? 0} />
         <StatCard label="Pending drivers" value={pendingCount} />
         <StatCard label="Needs review" value={reviewCount} accent={reviewCount > 0} />
+        <StatCard label="Safety events (30d)" value={safetyCount} accent={safetyCount > 0} />
       </div>
 
       <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -107,6 +117,13 @@ export default async function AdminDashboardPage() {
         >
           <p className="font-semibold">Inspections & incidents</p>
           <p className="mt-1 text-sm text-muted">DVIR checklists and mid-trip reports.</p>
+        </Link>
+        <Link
+          href="/admin/safety"
+          className="rounded-xl border border-border bg-surface p-5 transition hover:border-accent"
+        >
+          <p className="font-semibold">Driver safety</p>
+          <p className="mt-1 text-sm text-muted">Harsh braking, hard acceleration, speeding.</p>
         </Link>
       </div>
 
