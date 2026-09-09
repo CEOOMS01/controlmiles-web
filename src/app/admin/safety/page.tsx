@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { daysAgoIso } from "@/lib/dates";
 
 // Driver safety events -- harsh braking / hard acceleration / speeding,
 // detected client-side in the ControlMiles mobile app from GPS ticks
@@ -46,7 +47,7 @@ export default async function SafetyPage() {
   const orgId = profile?.default_org_id;
   if (!orgId) return null;
 
-  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const thirtyDaysAgo = daysAgoIso(30);
 
   const { data: events } = await supabase
     .from("driver_safety_events")

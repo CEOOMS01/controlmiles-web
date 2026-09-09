@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { daysAgoIso } from "@/lib/dates";
 
 export default async function AdminDashboardPage() {
   const supabase = await createClient();
@@ -22,7 +23,7 @@ export default async function AdminDashboardPage() {
     .eq("id", orgId)
     .maybeSingle();
 
-  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const thirtyDaysAgo = daysAgoIso(30);
 
   const [
     { count: memberCount },
