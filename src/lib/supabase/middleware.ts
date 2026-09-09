@@ -16,7 +16,9 @@ function buildCsp(nonce: string) {
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data:",
     "font-src 'self'",
-    "connect-src 'self' https://*.supabase.co",
+    // photon.komoot.io: the free, keyless OpenStreetMap-based geocoder
+    // powering the route form's address autocomplete (admin/routes).
+    "connect-src 'self' https://*.supabase.co https://photon.komoot.io",
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "form-action 'self'",

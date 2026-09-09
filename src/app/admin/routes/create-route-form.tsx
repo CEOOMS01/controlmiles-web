@@ -2,6 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { addRoute } from "./actions";
+import { AddressAutocompleteInput } from "./address-autocomplete-input";
 
 type Driver = { id: string; label: string };
 type Vehicle = { id: string; label: string };
@@ -63,24 +64,12 @@ export function CreateRouteForm({
           className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
         />
       </div>
-      <div>
-        <label className="mb-1.5 block text-sm font-medium">Origin</label>
-        <input
-          name="origin"
-          type="text"
-          placeholder="Warehouse A"
-          className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
-        />
-      </div>
-      <div>
-        <label className="mb-1.5 block text-sm font-medium">Destination</label>
-        <input
-          name="destination"
-          type="text"
-          placeholder="Distribution center B"
-          className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
-        />
-      </div>
+      <AddressAutocompleteInput name="origin" label="Origin" placeholder="Warehouse A" />
+      <AddressAutocompleteInput
+        name="destination"
+        label="Destination"
+        placeholder="Distribution center B"
+      />
       <div>
         <label className="mb-1.5 block text-sm font-medium">Scheduled date</label>
         <input
