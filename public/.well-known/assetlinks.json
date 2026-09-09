@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.example.controlmiles",
+      "sha256_cert_fingerprints": [
+        "E8:43:C2:92:D3:27:AB:47:D3:EA:49:7D:16:0C:C0:23:16:19:72:8C:38:94:52:22:C5:E2:67:C8:10:59:7E:7E"
+      ]
+    }
+  }
+]

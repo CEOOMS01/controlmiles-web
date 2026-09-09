@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
 import { CreateOrgForm } from "./create-org-form";
 import { SignOutButton } from "./sign-out-button";
@@ -90,9 +91,18 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   return (
     <div className="flex flex-1">
       <aside className="hidden w-56 shrink-0 border-r border-border bg-surface px-4 py-6 sm:block">
-        <p className="px-2 text-sm font-semibold tracking-wide text-accent uppercase">
-          ControlMiles
-        </p>
+        <div className="flex items-center gap-2 px-2">
+          <Image
+            src="/logo_controlmiles.png"
+            alt="ControlMiles"
+            width={28}
+            height={28}
+            className="rounded"
+          />
+          <p className="text-sm font-semibold tracking-wide text-accent uppercase">
+            ControlMiles
+          </p>
+        </div>
         <OrgSwitcher currentOrgId={org.id} orgs={eligibleOrgs} />
 
         <nav className="mt-6 space-y-1">
