@@ -29,5 +29,11 @@ export async function signIn(
     .eq("id", data.user.id)
     .maybeSingle();
 
-  redirect(profile?.account_type === "fleet_admin" ? "/admin" : "/portal/generate");
+  // Explicit user requirement (2026-09-09): controlmiles.com is
+  // fleet-admin only going forward. Used to send everyone else to
+  // /portal/generate (the driver report-code flow) -- that moved to the
+  // mobile app's Settings screen, so this now sends a non-admin
+  // somewhere that actually tells them what to do instead of a stale
+  // destination whose whole reason to exist just relocated.
+  redirect(profile?.account_type === "fleet_admin" ? "/admin" : "/app-required");
 }

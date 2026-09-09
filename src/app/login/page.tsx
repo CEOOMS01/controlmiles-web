@@ -13,10 +13,11 @@ export default function LoginPage() {
           <p className="text-sm font-semibold tracking-wide text-accent uppercase">
             ControlMiles
           </p>
-          <h1 className="mt-1 text-2xl font-semibold">Driver sign in</h1>
+          <h1 className="mt-1 text-2xl font-semibold">Fleet admin sign in</h1>
           <p className="mt-2 text-sm text-muted">
-            Sign in with your ControlMiles account to generate a report
-            access code.
+            This dashboard is for fleet administrators. Driving for
+            yourself or for a fleet? Get the ControlMiles mobile app
+            instead.
           </p>
         </div>
 
