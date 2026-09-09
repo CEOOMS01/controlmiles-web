@@ -125,6 +125,14 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
           <div className="mt-2 px-2">
             <SignOutButton />
           </div>
+          <div className="mt-3 flex gap-3 px-2 text-xs text-muted">
+            <Link href="/privacy" className="hover:text-accent">
+              Privacy
+            </Link>
+            <Link href="/terms" className="hover:text-accent">
+              Terms
+            </Link>
+          </div>
         </div>
       </aside>
 

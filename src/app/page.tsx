@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Big_Shoulders, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
+import { LandingNav, LandingFooter } from "@/components/landing-chrome";
 import "./landing.css";
 
 const display = Big_Shoulders({
@@ -26,35 +27,14 @@ export default function Home() {
       className={`landing ${display.variable} ${plexSans.variable} ${plexMono.variable}`}
       style={{ fontFamily: "var(--font-plex-sans), system-ui, sans-serif" }}
     >
-      <Nav />
+      <LandingNav />
       <Hero />
       <StatsStrip />
       <Features />
       <HowItWorks />
       <PortalCta />
-      <Footer />
+      <LandingFooter />
     </main>
-  );
-}
-
-function Nav() {
-  return (
-    <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6 sm:px-10">
-      <span className="display text-xl font-bold tracking-widest">
-        CONTROL<span style={{ color: "var(--lg-blue)" }}>MILES</span>
-      </span>
-      <nav className="flex items-center gap-5 text-sm text-[var(--lg-ink-dim)]">
-        <Link href="/portal/verify" className="hidden transition hover:text-[var(--lg-ink)] sm:inline">
-          Verify a report
-        </Link>
-        <Link
-          href="/login"
-          className="rounded-full border border-[var(--lg-line)] px-4 py-2 font-medium text-[var(--lg-ink)] transition hover:border-[var(--lg-blue)]"
-        >
-          Sign in
-        </Link>
-      </nav>
-    </header>
   );
 }
 
@@ -248,16 +228,5 @@ function PortalCta() {
         </div>
       </div>
     </section>
-  );
-}
-
-function Footer() {
-  return (
-    <footer className="border-t border-[var(--lg-line)]">
-      <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-10 text-xs text-[var(--lg-ink-dim)] sm:flex-row sm:items-center sm:justify-between sm:px-10">
-        <span className="display tracking-widest">CONTROLMILES</span>
-        <span>An Olympus Mont Systems LLC product.</span>
-      </div>
-    </footer>
   );
 }
