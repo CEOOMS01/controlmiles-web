@@ -14,11 +14,18 @@ function buildCsp(nonce: string) {
     "default-src 'self'",
     `script-src ${scriptSrc}`,
     "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data:",
+    // *.tile.openstreetmap.org: map tiles for the fleet live-map
+    // (Leaflet + OSM, same keyless-map reasoning as the mobile app's
+    // flutter_map).
+    "img-src 'self' data: https://*.tile.openstreetmap.org",
     "font-src 'self'",
     // photon.komoot.io: the free, keyless OpenStreetMap-based geocoder
     // powering the route form's address autocomplete (admin/routes).
-    "connect-src 'self' https://*.supabase.co https://photon.komoot.io",
+    // wss://*.supabase.co: Realtime websocket for the live map's vehicle
+    // position updates -- connect-src doesn't implicitly cover a
+    // different scheme (wss vs https) on the same host, so this is
+    // listed explicitly alongside the https entry.
+    "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://photon.komoot.io",
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "form-action 'self'",

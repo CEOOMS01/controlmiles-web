@@ -1,6 +1,8 @@
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { daysAgoIso } from "@/lib/dates";
+import { FleetMap, type FleetVehicle } from "./fleet-map";
+import { RouteEfficiencyChart, type RouteStatusCount } from "./route-efficiency-chart";
+import { DriverStartTimesChart, type DriverStartSeries } from "./driver-start-times-chart";
 
 export default async function AdminDashboardPage() {
   const supabase = await createClient();
@@ -24,6 +26,7 @@ export default async function AdminDashboardPage() {
     .maybeSingle();
 
   const thirtyDaysAgo = daysAgoIso(30);
+  const fourteenDaysAgo = daysAgoIso(14);
 
   const [
     { count: memberCount },
@@ -33,6 +36,9 @@ export default async function AdminDashboardPage() {
     { count: failedInspectionCount },
     { count: incidentCount },
     { count: safetyEventCount },
+    { data: mapVehicles },
+    { data: routeRows },
+    { data: sessionRows },
   ] = await Promise.all([
     supabase
       .from("organization_members")
@@ -68,10 +74,79 @@ export default async function AdminDashboardPage() {
       .select("id", { count: "exact", head: true })
       .eq("organization_id", orgId)
       .gte("recorded_at", thirtyDaysAgo),
+    supabase
+      .from("vehicles")
+      .select("id, display_id, nickname, last_latitude, last_longitude, last_speed, last_location_at")
+      .eq("organization_id", orgId)
+      .eq("is_archived", false)
+      .not("last_latitude", "is", null)
+      .not("last_longitude", "is", null),
+    supabase.from("routes").select("status, created_at, closed_at").eq("organization_id", orgId),
+    supabase
+      .from("sessions")
+      .select("user_id, start_time, profiles(first_name, last_name)")
+      .eq("organization_id", orgId)
+      .gte("start_time", fourteenDaysAgo)
+      .order("start_time", { ascending: true }),
   ]);
+
   const pendingCount = (pendingInviteCount ?? 0) + (unclaimedSlotCount ?? 0);
   const reviewCount = (failedInspectionCount ?? 0) + (incidentCount ?? 0);
   const safetyCount = safetyEventCount ?? 0;
+
+  const vehicles: FleetVehicle[] = (mapVehicles ?? []).map((v) => ({
+    id: v.id,
+    displayId: v.display_id,
+    label: v.nickname || v.display_id || "Vehicle",
+    lat: v.last_latitude as number,
+    lon: v.last_longitude as number,
+    speed: v.last_speed,
+    lastLocationAt: v.last_location_at,
+  }));
+
+  const routeStatusOrder = ["draft", "active", "closed"];
+  const statusCounts: RouteStatusCount[] = routeStatusOrder.map((status) => ({
+    status,
+    count: (routeRows ?? []).filter((r) => r.status === status).length,
+  }));
+  const closedRoutes = (routeRows ?? []).filter((r) => r.status === "closed" && r.closed_at);
+  const avgCycleHours =
+    closedRoutes.length > 0
+      ? closedRoutes.reduce((sum, r) => {
+          const hours =
+            (new Date(r.closed_at as string).getTime() - new Date(r.created_at).getTime()) /
+            3_600_000;
+          return sum + hours;
+        }, 0) / closedRoutes.length
+      : null;
+
+  // First session start time, per driver per day -- see
+  // driver-start-times-chart.tsx's own header comment for why this (and
+  // not "minutes late vs. schedule") is the honest metric available.
+  const byDriverDay = new Map<string, { driverId: string; driverName: string; date: string; hour: number }>();
+  for (const row of sessionRows ?? []) {
+    if (!row.start_time) continue;
+    const p = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
+    const driverName = [p?.first_name, p?.last_name].filter(Boolean).join(" ") || "Driver";
+    const start = new Date(row.start_time);
+    const date = start.toISOString().slice(0, 10);
+    const hour = start.getUTCHours() + start.getUTCMinutes() / 60;
+    const key = `${row.user_id}|${date}`;
+    const existing = byDriverDay.get(key);
+    if (!existing || hour < existing.hour) {
+      byDriverDay.set(key, { driverId: row.user_id, driverName, date, hour });
+    }
+  }
+  const seriesMap = new Map<string, DriverStartSeries>();
+  for (const { driverId, driverName, date, hour } of byDriverDay.values()) {
+    if (!seriesMap.has(driverId)) {
+      seriesMap.set(driverId, { driverId, driverName, points: [] });
+    }
+    seriesMap.get(driverId)!.points.push({ date, hour });
+  }
+  const driverSeries = Array.from(seriesMap.values())
+    .map((s) => ({ ...s, points: s.points.sort((a, b) => a.date.localeCompare(b.date)) }))
+    .slice(0, 6); // keep the chart legible -- see Baymard-style "avoid dashboard fatigue" note in the chart's own header
 
   return (
     <main className="px-6 py-10 sm:px-10">
@@ -90,48 +165,14 @@ export default async function AdminDashboardPage() {
         <StatCard label="Safety events (30d)" value={safetyCount} accent={safetyCount > 0} />
       </div>
 
-      <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Link
-          href="/admin/roster"
-          className="rounded-xl border border-border bg-surface p-5 transition hover:border-accent"
-        >
-          <p className="font-semibold">Manage roster</p>
-          <p className="mt-1 text-sm text-muted">Invite drivers, review pending invites.</p>
-        </Link>
-        <Link
-          href="/admin/vehicles"
-          className="rounded-xl border border-border bg-surface p-5 transition hover:border-accent"
-        >
-          <p className="font-semibold">Manage vehicles</p>
-          <p className="mt-1 text-sm text-muted">Add vehicles, assign drivers.</p>
-        </Link>
-        <Link
-          href="/admin/ifta"
-          className="rounded-xl border border-border bg-surface p-5 transition hover:border-accent"
-        >
-          <p className="font-semibold">IFTA state mileage</p>
-          <p className="mt-1 text-sm text-muted">Miles per state for the quarter.</p>
-        </Link>
-        <Link
-          href="/admin/reviews"
-          className="rounded-xl border border-border bg-surface p-5 transition hover:border-accent"
-        >
-          <p className="font-semibold">Inspections & incidents</p>
-          <p className="mt-1 text-sm text-muted">DVIR checklists and mid-trip reports.</p>
-        </Link>
-        <Link
-          href="/admin/safety"
-          className="rounded-xl border border-border bg-surface p-5 transition hover:border-accent"
-        >
-          <p className="font-semibold">Driver safety</p>
-          <p className="mt-1 text-sm text-muted">Harsh braking, hard acceleration, speeding.</p>
-        </Link>
+      <div className="mt-10">
+        <FleetMap orgId={orgId} initialVehicles={vehicles} />
       </div>
 
-      <p className="mt-10 text-xs text-muted">
-        Live map stays mobile-only, by design — the admin&apos;s on-the-go
-        phone check.
-      </p>
+      <div className="mt-6 grid gap-4 lg:grid-cols-2">
+        <RouteEfficiencyChart statusCounts={statusCounts} avgCycleHours={avgCycleHours} />
+        <DriverStartTimesChart series={driverSeries} />
+      </div>
     </main>
   );
 }
