@@ -61,7 +61,7 @@ export function LandingFooter() {
             contact@controlmiles.com
           </a>
         </nav>
-        <span>An Olympus Mont Systems LLC product.</span>
+        <span>© 2026 ControlMiles. All rights reserved. Powered by Olimsys.</span>
       </div>
     </footer>
   );

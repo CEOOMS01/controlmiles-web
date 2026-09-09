@@ -2,11 +2,14 @@
 // src/app/privacy/page.tsx
 //
 // Ported verbatim from lib/legal/legal_documents.dart's privacyPolicyEn
-// (the individual/Gig-account version) -- same draft/pending-legal-review
-// status. The general audience of this public site (drivers signing up
-// AND fleet admins) makes this the right default for the public footer
-// link; the Fleet-specific variant (organization data-sharing framed
-// first) lives at /admin/legal for signed-in fleet admins specifically.
+// (the individual/Gig-account version) -- kept identical to that source,
+// same reasoning as legal-document.tsx's own header comment. The general
+// audience of this public site (drivers signing up AND fleet admins)
+// makes this the right default for the public footer link; the
+// Fleet-specific variant (organization data-sharing framed first) exists
+// only in the mobile app today (shown when AppState.isFleetAccount is
+// true) -- no separate web page for it yet, a real gap not addressed in
+// this pass.
 
 import type { Metadata } from "next";
 import { Fraunces, Public_Sans, IBM_Plex_Mono } from "next/font/google";
@@ -56,9 +59,9 @@ Service providers: we use Supabase (database, authentication, and file storage) 
 
 5. THIRD-PARTY GIG PLATFORMS -- NO AFFILIATION
 
-ControlMiles lets you label trips with the name of the gig platform you were working for (for example: Uber, Lyft, DoorDash, Instacart, Amazon Flex, Roadie, Shipt, Veho, Jitsu, Spark Driver, and others), and, if you enable Automatic Detection, can recognize when one of those apps is open on your device.
+ControlMiles lets you label trips with the name of the gig platform you were working for, and, if you enable Automatic Detection, can recognize when one of those apps is open on your device.
 
-ControlMiles is an independent, third-party tool. It is not affiliated with, endorsed by, sponsored by, or officially connected to Uber, Lyft, DoorDash, Instacart, Amazon, Walmart, Shipt, Roadie, or any other platform referenced in the app. All product names, logos, and brand names are trademarks of their respective owners, used here only to describe compatibility. ControlMiles does not access, read, or store any data from those platforms' own apps, accounts, or servers -- it only knows the name of whichever app is currently on your screen.
+ControlMiles is an independent, third-party tool. It is not affiliated with, endorsed by, sponsored by, or officially connected to any gig, delivery, or rideshare platform referenced in the app. All product names, logos, and brand names are trademarks of their respective owners, used here only to describe compatibility. ControlMiles does not access, read, or store any data from those platforms' own apps, accounts, or servers -- it only knows the name of whichever app is currently on your screen.
 
 6. DATA RETENTION
 
@@ -71,19 +74,31 @@ You can delete your account at any time from Settings -- this is permanent and c
 You can revoke location, camera, or Usage Access permissions at any time from your device's system settings; doing so will limit or disable the corresponding features.
 You can turn Automatic Detection off at any time.
 
-8. CHILDREN'S PRIVACY
+8. YOUR PRIVACY RIGHTS (CALIFORNIA AND OTHER U.S. STATES)
+
+If you are a California resident, the California Consumer Privacy Act (CCPA), as amended by the CPRA, gives you the right to: know what personal information we collect and how we use it; request deletion of your personal information; correct inaccurate personal information; and not be discriminated against for exercising these rights. We do not sell or share your personal information for cross-context behavioral advertising.
+
+Residents of other U.S. states with comparable privacy laws (for example Virginia, Colorado, Connecticut, and Utah) have similar rights, which we honor on the same basis.
+
+To exercise any of these rights, contact privacy@controlmiles.com. We may need to verify your identity before responding.
+
+9. INTERNATIONAL USERS
+
+If you access ControlMiles from outside the United States, your information will be transferred to and processed in the United States. If you are located in the European Economic Area, United Kingdom, or Switzerland, you may have additional rights under the GDPR or UK GDPR, including the right to access, correct, delete, or port your personal data, and the right to object to certain processing. Contact privacy@controlmiles.com to exercise these rights.
+
+10. CHILDREN'S PRIVACY
 
 ControlMiles is not directed at children and is not intended for use by anyone under the age of 18.
 
-9. SECURITY
+11. SECURITY
 
 We use industry-standard measures to protect your information, including encrypted network connections and access controls. No method of storage or transmission is 100% secure, and we cannot guarantee absolute security.
 
-10. CHANGES TO THIS POLICY
+12. CHANGES TO THIS POLICY
 
 We may update this Privacy Policy from time to time. Material changes will be reflected by updating the "Last updated" date above.
 
-11. CONTACT US
+13. CONTACT US
 
 Questions about this policy: privacy@controlmiles.com. General inquiries: info@controlmiles.com. Support: support@controlmiles.com.
 `;
@@ -95,12 +110,7 @@ export default function PrivacyPage() {
       style={{ fontFamily: "var(--font-plex-sans), system-ui, sans-serif" }}
     >
       <LandingNav />
-      <LegalDocument
-        title="Privacy Policy"
-        lastUpdated="August 27, 2026"
-        intro="This is a draft Privacy Policy, published for transparency while it undergoes legal review. If you have questions, contact privacy@controlmiles.com."
-        body={BODY}
-      />
+      <LegalDocument title="Privacy Policy" lastUpdated="September 9, 2026" body={BODY} />
       <LandingFooter />
     </main>
   );

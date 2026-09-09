@@ -42,7 +42,7 @@ You must be at least 18 years old to use ControlMiles. You are responsible for m
 
 5. THIRD-PARTY GIG PLATFORMS -- NO AFFILIATION
 
-ControlMiles is an independent tool that lets you label your own trips with the name of a gig platform (Uber, Lyft, DoorDash, Instacart, Amazon Flex, Roadie, Shipt, Veho, Jitsu, Spark Driver, and others) and, optionally, detect when one of those apps is open on your device. ControlMiles is not affiliated with, endorsed by, or sponsored by any of these companies, and does not access their apps' data, accounts, or servers. You are responsible for complying with the terms of service of any gig, delivery, or rideshare platform you work with; nothing in ControlMiles is intended to help you violate those terms.
+ControlMiles is an independent tool that lets you label your own trips with the name of a gig platform and, optionally, detect when one of those apps is open on your device. ControlMiles is not affiliated with, endorsed by, or sponsored by any gig, delivery, or rideshare company, and does not access their apps' data, accounts, or servers. You are responsible for complying with the terms of service of any gig, delivery, or rideshare platform you work with; nothing in ControlMiles is intended to help you violate those terms.
 
 6. PREMIUM FEATURES AND SUBSCRIPTIONS
 
@@ -62,25 +62,55 @@ ControlMiles, its logo, and its original content are the property of Olympus Mon
 
 10. DISCLAIMER OF WARRANTIES
 
-ControlMiles is provided "as is" and "as available," without warranties of any kind, express or implied. We do not guarantee that GPS tracking, mileage calculations, or OCR odometer readings will be error-free or uninterrupted. You are responsible for reviewing your trip data for accuracy before relying on it.
+ControlMiles is provided "as is" and "as available," without warranties of any kind, express or implied. We do not guarantee that GPS tracking, mileage calculations, or odometer readings will be error-free or uninterrupted. You are responsible for reviewing your trip data for accuracy before relying on it.
 
 11. LIMITATION OF LIABILITY
 
 To the maximum extent permitted by law, Olympus Mont Systems LLC will not be liable for any indirect, incidental, special, or consequential damages, including lost income or lost tax deductions, arising from your use of ControlMiles.
 
-12. TERMINATION
+12. INDEMNIFICATION
+
+You agree to indemnify, defend, and hold harmless Olympus Mont Systems LLC, its officers, employees, and agents from any claims, damages, losses, liabilities, and expenses (including reasonable attorneys' fees) arising out of or related to: your use of ControlMiles; your violation of these Terms; your violation of any law or the rights of a third party; or any data, mileage, odometer, or trip information you submit that is inaccurate or fraudulent.
+
+13. DISPUTE RESOLUTION; BINDING ARBITRATION; CLASS ACTION WAIVER
+
+Please read this section carefully. It affects your legal rights.
+
+Informal resolution first. Before filing a claim against ControlMiles, you agree to first contact us at legal@controlmiles.com and attempt in good faith to resolve the dispute informally for at least 30 days.
+
+Binding arbitration. If a dispute is not resolved informally, you and Olympus Mont Systems LLC agree that it will be resolved by binding, individual arbitration administered by the American Arbitration Association (AAA) under its Consumer Arbitration Rules, rather than in court, except that either party may bring an individual claim in small claims court if it qualifies.
+
+Class action waiver. You and Olympus Mont Systems LLC agree that any arbitration or claim will be conducted on an individual basis only, not as a class, collective, or representative action, and the arbitrator may not consolidate more than one person's claims.
+
+Opt-out. You may opt out of this arbitration agreement by emailing legal@controlmiles.com within 30 days of first agreeing to these Terms, stating your name and that you opt out of arbitration.
+
+This section survives termination of your account and these Terms.
+
+14. TERMINATION
 
 You may stop using ControlMiles and delete your account at any time. We may suspend or terminate accounts that violate these Terms.
 
-13. GOVERNING LAW
+15. GOVERNING LAW
 
-[Placeholder -- to be finalized with counsel: state/jurisdiction whose law governs these Terms.]
+These Terms are governed by the laws of the State of Maryland, without regard to its conflict-of-laws principles.
 
-14. CHANGES TO THESE TERMS
+16. SEVERABILITY
+
+If any provision of these Terms is found unenforceable or invalid, that provision will be limited or eliminated to the minimum extent necessary, and the remaining provisions will remain in full force and effect.
+
+17. ENTIRE AGREEMENT
+
+These Terms, together with the Privacy Policy, are the entire agreement between you and Olympus Mont Systems LLC regarding ControlMiles, and supersede any prior agreements or understandings, written or oral, regarding that subject matter.
+
+18. ASSIGNMENT
+
+You may not assign or transfer these Terms without our prior written consent. We may assign these Terms without restriction, including in connection with a merger, acquisition, or sale of assets.
+
+19. CHANGES TO THESE TERMS
 
 We may update these Terms from time to time. Continued use of ControlMiles after a change constitutes acceptance of the updated Terms.
 
-15. CONTACT US
+20. CONTACT US
 
 Questions about these Terms: legal@controlmiles.com. General inquiries: info@controlmiles.com. Support: support@controlmiles.com.
 `;
@@ -92,12 +122,7 @@ export default function TermsPage() {
       style={{ fontFamily: "var(--font-plex-sans), system-ui, sans-serif" }}
     >
       <LandingNav />
-      <LegalDocument
-        title="Terms of Service"
-        lastUpdated="August 27, 2026"
-        intro="This is a draft Terms of Service, published for transparency while it undergoes legal review. If you have questions, contact legal@controlmiles.com."
-        body={BODY}
-      />
+      <LegalDocument title="Terms of Service" lastUpdated="September 9, 2026" body={BODY} />
       <LandingFooter />
     </main>
   );
