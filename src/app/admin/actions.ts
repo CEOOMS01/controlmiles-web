@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { AppError } from "@/lib/errors";
 
 export type CreateOrgState = { error: string | null };
 
@@ -9,7 +10,7 @@ export async function switchOrganization(orgId: string) {
   const supabase = await createClient();
   const { error } = await supabase.rpc("switch_default_organization", { p_org_id: orgId });
   if (error) {
-    return { error: error.message };
+    return { error: AppError.from(error).display() };
   }
   redirect("/admin");
 }
@@ -27,7 +28,7 @@ export async function createOrganization(
   const { error } = await supabase.rpc("create_organization", { p_name: name });
 
   if (error) {
-    return { error: error.message };
+    return { error: AppError.from(error).display() };
   }
 
   redirect("/admin");

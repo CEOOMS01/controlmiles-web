@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { AppError } from "@/lib/errors";
 
 export type GenerateState = {
   error: string | null;
@@ -31,7 +32,7 @@ export async function generateCode(
   });
 
   if (error) {
-    return { error: error.message, code: null, expiresAt: null };
+    return { error: AppError.from(error).display(), code: null, expiresAt: null };
   }
 
   const row = data?.[0];

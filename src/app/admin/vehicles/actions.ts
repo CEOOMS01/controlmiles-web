@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { AppError } from "@/lib/errors";
 
 export type AddVehicleState = { error: string | null; success: boolean };
 
@@ -34,7 +35,7 @@ export async function addVehicle(
   });
 
   if (error) {
-    return { error: error.message, success: false };
+    return { error: AppError.from(error).display(), success: false };
   }
 
   revalidatePath("/admin/vehicles");
@@ -49,7 +50,7 @@ export async function assignDriver(vehicleId: string, driverUserId: string | nul
       p_vehicle_id: vehicleId,
       p_driver_user_id: driverUserId,
     });
-    if (error) throw new Error(error.message);
+    if (error) throw new Error(AppError.from(error).display());
   } else {
     // Unassigning has no side effects to guard, so it's a plain
     // RLS-gated update rather than a special RPC case.
@@ -57,7 +58,7 @@ export async function assignDriver(vehicleId: string, driverUserId: string | nul
       .from("vehicles")
       .update({ assigned_driver_id: null })
       .eq("id", vehicleId);
-    if (error) throw new Error(error.message);
+    if (error) throw new Error(AppError.from(error).display());
   }
 
   revalidatePath("/admin/vehicles");

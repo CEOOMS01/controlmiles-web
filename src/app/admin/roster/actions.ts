@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { AppError } from "@/lib/errors";
 
 export type InviteState = { error: string | null; success: boolean };
 
@@ -24,9 +25,11 @@ export async function inviteMember(
 
   if (error) {
     // The RPC's own exceptions are already user-facing sentences
-    // ("No ControlMiles account found for that email", etc.) -- safe
-    // to surface directly, unlike a raw Postgres error.
-    return { error: error.message, success: false };
+    // ("No ControlMiles account found for that email", etc.) --
+    // AppError.from recognizes these aren't raw Postgres internals and
+    // routes them to the 450 (business rule rejection) code instead of
+    // downgrading to a generic message.
+    return { error: AppError.from(error).display(), success: false };
   }
 
   revalidatePath("/admin/roster");
@@ -67,7 +70,7 @@ export async function addDriverSlot(
   });
 
   if (error) {
-    return { error: error.message, result: null };
+    return { error: AppError.from(error).display(), result: null };
   }
 
   const row = data?.[0];

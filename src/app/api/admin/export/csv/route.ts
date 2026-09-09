@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { loadFleetExportData, toCsv } from "@/lib/fleet-export";
+import { AppError } from "@/lib/errors";
 
 export async function GET(request: NextRequest) {
   const startDate = request.nextUrl.searchParams.get("start_date") ?? "";
@@ -17,7 +18,6 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (e) {
-    const message = e instanceof Error ? e.message : "Export failed.";
-    return NextResponse.json({ error: message }, { status: 400 });
+    return NextResponse.json({ error: AppError.from(e).display() }, { status: 400 });
   }
 }

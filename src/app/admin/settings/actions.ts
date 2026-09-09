@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { AppError } from "@/lib/errors";
 
 export type RenameOrgState = { error: string | null; success: boolean };
 
@@ -29,7 +30,7 @@ export async function renameOrganization(
     .eq("id", orgId);
 
   if (error) {
-    return { error: error.message, success: false };
+    return { error: AppError.from(error).display(), success: false };
   }
 
   revalidatePath("/admin", "layout");
@@ -68,7 +69,9 @@ export async function deleteOrganizationAction(
   const { error } = await supabase.rpc("delete_organization", { p_org_id: orgId });
 
   if (error) {
-    return { error: error.message };
+    // critical:true -- this is the org-deletion action, gets code 720
+    // instead of a generic 701 if something unexpected happens here.
+    return { error: AppError.from(error, { critical: true }).display() };
   }
 
   redirect("/admin");
@@ -102,7 +105,7 @@ export async function setVehicleAssignmentMode(
     .eq("id", orgId);
 
   if (error) {
-    return { error: error.message, success: false };
+    return { error: AppError.from(error).display(), success: false };
   }
 
   revalidatePath("/admin", "layout");

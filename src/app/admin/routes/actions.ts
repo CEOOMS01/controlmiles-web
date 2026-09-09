@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { AppError } from "@/lib/errors";
 
 export type AddRouteState = { error: string | null; success: boolean };
 
@@ -39,7 +40,7 @@ export async function addRoute(
   });
 
   if (error) {
-    return { error: error.message, success: false };
+    return { error: AppError.from(error).display(), success: false };
   }
 
   revalidatePath("/admin/routes");
@@ -65,7 +66,7 @@ export async function reassignRoute(
     .eq("id", routeId);
 
   if (error) {
-    return { error: error.message };
+    return { error: AppError.from(error).display() };
   }
 
   revalidatePath("/admin/routes");

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { AppError } from "@/lib/errors";
 
 type Vehicle = {
   id: string;
@@ -54,7 +55,7 @@ export function IftaReport({ orgId, vehicles }: { orgId: string; vehicles: Vehic
       });
       if (cancelled) return;
       if (error) {
-        setError(error.message);
+        setError(AppError.from(error).display());
         setResults([]);
       } else {
         setResults((data ?? []) as StateMileageRow[]);

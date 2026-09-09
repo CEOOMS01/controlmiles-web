@@ -52,6 +52,16 @@ export class AppError {
     "You already own a fleet organization. Creating more than one requires the multi-fleet add-on.",
   );
 
+  /** A hand-written RAISE EXCEPTION sentence from one of our own
+   * SECURITY DEFINER RPCs (e.g. "Only an org admin or owner can invite
+   * members") -- not raw Postgres/system internals, safe to show
+   * verbatim, but still routed through the registry so it carries a
+   * code. One shared code rather than one entry per RPC message -- the
+   * message text itself is already specific and safe (see
+   * isLikelyRawDbError's own doc comment for what disqualifies a
+   * message from landing here instead of the generic fallback). */
+  static readonly businessRuleRejection = (message: string) => new AppError(450, message);
+
   // ── PRODUCTION (7xx-9xx) -- catch-all, unclassified ──────────
   static readonly unexpectedClient = new AppError(700, "Something went wrong.");
   static readonly unexpectedServer = new AppError(701, "Something went wrong.");
@@ -61,13 +71,45 @@ export class AppError {
   static readonly unexpectedCritical = new AppError(720, "Something went wrong.");
 
   /**
+   * True when `text` looks like a raw Postgres/system error rather than
+   * one of our own hand-written RAISE EXCEPTION sentences -- schema
+   * internals (column/relation/constraint names), SQL syntax errors,
+   * or anything long enough to plausibly be a stack trace. This is what
+   * keeps AppError.from's fallback from accidentally showing real
+   * database internals to a user just because it didn't match one of
+   * the specifically-named codes above.
+   */
+  private static looksLikeRawDbError(text: string): boolean {
+    if (text.length > 160) return true;
+    const rawPatterns = [
+      /column "/i,
+      /relation "/i,
+      /constraint "/i,
+      /duplicate key value/i,
+      /violates/i,
+      /syntax error/i,
+      /permission denied for/i,
+      /null value in column/i,
+      /invalid input syntax/i,
+      /PGRST\d/,
+      /^\d{5}:/, // bare Postgres SQLSTATE prefix
+    ];
+    return rawPatterns.some((p) => p.test(text));
+  }
+
+  /**
    * Maps a caught error to the best-matching known AppError. Recognizes
    * this project's own real exception shapes (Postgres RAISE EXCEPTION
    * messages from the triggers/RPCs already in this codebase, and
-   * common Supabase Auth error text) rather than guessing. Falls
-   * through to the 7xx catch-all when nothing matches -- that's the
-   * honest outcome for a truly unanticipated error, not a reason to
-   * fabricate a more specific code.
+   * common Supabase Auth error text) rather than guessing. A message
+   * that isn't one of the specifically-named codes but also doesn't
+   * look like raw Postgres/system internals is treated as one of our
+   * own safe hand-written RPC exceptions (code 450) rather than
+   * downgraded to the fully generic fallback -- that's what keeps
+   * "Only an org admin or owner can invite members"-style messages
+   * informative instead of flattening every RPC rejection to
+   * "Something went wrong". Only text that actually looks like a raw
+   * database/system error falls through to 701/720.
    */
   static from(error: unknown, opts: { critical?: boolean } = {}): AppError {
     const text = error instanceof Error ? error.message : String(error);
@@ -89,6 +131,10 @@ export class AppError {
       return AppError.rateLimited;
     }
     if (text.includes("duplicate key value")) return AppError.duplicateEntry;
+
+    if (text && !AppError.looksLikeRawDbError(text)) {
+      return AppError.businessRuleRejection(text);
+    }
 
     return opts.critical ? AppError.unexpectedCritical : AppError.unexpectedServer;
   }

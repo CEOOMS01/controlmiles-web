@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { loadFleetExportData, vehiclesLabel, type FleetExportResult } from "@/lib/fleet-export";
+import { AppError } from "@/lib/errors";
 
 export const runtime = "nodejs";
 
@@ -149,7 +150,6 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (e) {
-    const message = e instanceof Error ? e.message : "Export failed.";
-    return NextResponse.json({ error: message }, { status: 400 });
+    return NextResponse.json({ error: AppError.from(e).display() }, { status: 400 });
   }
 }

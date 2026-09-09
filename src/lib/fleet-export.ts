@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { AppError } from "@/lib/errors";
 
 export type FleetExportRow = {
   user_id: string;
@@ -55,7 +56,7 @@ export async function loadFleetExportData(startDate: string, endDate: string): P
   });
 
   if (error) {
-    throw new Error(error.message);
+    throw new Error(AppError.from(error).display());
   }
 
   return {
