@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { headers } from "next/headers";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -18,7 +19,17 @@ export const metadata: Metadata = {
     "GPS trip tracking, odometer verification, and automatic gig-app detection for gig drivers and the fleets managing them.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  // Reading the per-request nonce middleware set (src/lib/supabase/middleware.ts)
+  // is what makes Next.js stamp that same nonce onto its own generated <script>
+  // tags AND forces this route to render dynamically per-request instead of
+  // being prerendered/cached -- without it, a cached page ships script tags
+  // with a stale build-time nonce while the CSP header carries a fresh one on
+  // every request, so every <script> fails the nonce check and the whole site
+  // never hydrates (confirmed live: x-vercel-cache HIT pages had zero working
+  // JS, every click silently did nothing).
+  await headers();
+
   return (
     <html
       lang="en"
