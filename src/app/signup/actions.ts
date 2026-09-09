@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { AppError } from "@/lib/errors";
 
 export async function signUp(
   _prevState: { error: string | null },
@@ -37,7 +38,11 @@ export async function signUp(
   });
 
   if (error) {
-    return { error: error.message };
+    // BUG FIX (pedido explícito, 2026-09-09): mostraba error.message
+    // crudo de Supabase Auth directamente al usuario. Ahora usa el
+    // registro central de errores (ERROR_CODES.md) -- nunca texto
+    // crudo de la base de datos.
+    return { error: AppError.from(error).display() };
   }
 
   if (data.session) {

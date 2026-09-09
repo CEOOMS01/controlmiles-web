@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { AppError } from "@/lib/errors";
 
 export async function signIn(
   _prevState: { error: string | null },
@@ -19,8 +20,10 @@ export async function signIn(
 
   if (error) {
     // Generic message on purpose -- never confirm/deny which part
-    // (email vs password) was wrong.
-    return { error: "Invalid email or password." };
+    // (email vs password) was wrong. Now routed through the coded
+    // registry (ERROR_CODES.md) for consistency with the rest of the
+    // app -- this one was already safe text, just gains the code.
+    return { error: AppError.invalidCredentials.display() };
   }
 
   // Real bug found live (2026-09-09): this used to gate on
