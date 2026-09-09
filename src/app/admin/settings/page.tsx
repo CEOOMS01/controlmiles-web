@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { RenameOrgForm } from "./rename-org-form";
+import { VehicleAssignmentModeForm } from "./vehicle-assignment-mode-form";
 
 export default async function SettingsPage() {
   const supabase = await createClient();
@@ -18,7 +19,7 @@ export default async function SettingsPage() {
 
   const { data: org } = await supabase
     .from("organizations")
-    .select("name, compliance_mode, created_at")
+    .select("name, compliance_mode, created_at, vehicle_assignment_mode")
     .eq("id", orgId)
     .maybeSingle();
 
@@ -35,6 +36,13 @@ export default async function SettingsPage() {
 
       <div className="max-w-xl">
         <RenameOrgForm orgId={orgId} currentName={org.name} />
+
+        <div className="mt-6">
+          <VehicleAssignmentModeForm
+            orgId={orgId}
+            currentMode={org.vehicle_assignment_mode === "open" ? "open" : "fixed"}
+          />
+        </div>
 
         <div className="mt-8 rounded-xl border border-border bg-surface p-5">
           <p className="text-sm font-semibold">What can&apos;t be changed here</p>
