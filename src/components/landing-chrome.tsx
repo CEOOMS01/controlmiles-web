@@ -2,7 +2,7 @@
 // src/components/landing-chrome.tsx
 //
 // Shared Nav/Footer for the landing page AND any other page that uses the
-// same dark landing.css aesthetic (legal pages) -- extracted out of
+// same warm/light landing.css aesthetic (legal pages) -- extracted out of
 // page.tsx rather than duplicated, so the two never drift.
 
 import Link from "next/link";
@@ -20,8 +20,8 @@ export function LandingNav() {
           className="rounded"
           priority
         />
-        <span className="display text-xl font-bold tracking-widest">
-          CONTROL<span style={{ color: "var(--lg-blue)" }}>MILES</span>
+        <span className="display text-xl font-semibold">
+          Control<span style={{ color: "var(--lg-blue-deep)" }}>Miles</span>
         </span>
       </Link>
       <nav className="flex items-center gap-5 text-sm text-[var(--lg-ink-dim)]">
@@ -43,7 +43,7 @@ export function LandingFooter() {
   return (
     <footer className="border-t border-[var(--lg-line)]">
       <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-10 text-xs text-[var(--lg-ink-dim)] sm:flex-row sm:items-center sm:justify-between sm:px-10">
-        <span className="display tracking-widest">CONTROLMILES</span>
+        <span className="display font-medium">ControlMiles</span>
         <nav className="flex flex-wrap items-center gap-x-5 gap-y-2">
           <Link href="/privacy" className="transition hover:text-[var(--lg-ink)]">
             Privacy Policy

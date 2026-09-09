@@ -1,14 +1,30 @@
 /* Landing page only -- scoped via the .landing wrapper class so it never
-   bleeds into the app's Geist-based login/portal/admin screens. */
+   bleeds into the app's Geist-based login/portal/admin screens.
+
+   Redesign (2026-09-09, explicit user request): the previous dark
+   "instrument-cluster" theme read as generic/AI-styled rather than
+   professional. Researched real competitors first (MileIQ, Everlance) --
+   both use light/warm backgrounds, restrained color, real typographic
+   hierarchy, no gradients-on-black. This rebuild commits to a distinct
+   but credible direction instead: a warm paper/ledger feel (this IS a
+   mileage LOG, the metaphor is earned, not decorative) -- cream ground,
+   a confident serif for display type (a deliberate typographic choice
+   for a product whose entire value proposition is "the official record"
+   -- a serif reads as authoritative/documentary the way a sans headline
+   doesn't), ControlMiles' real brand blue (matches lib/theme/app_colors.dart's
+   kBrandSeed in the Flutter app, not a separately invented web-only
+   blue), and a warm rust/amber secondary accent (the odometer-tick
+   color). No Inter/Roboto/Arial, no purple-gradient-on-white cliché. */
 
 .landing {
-  --lg-bg: #0a0c11;
-  --lg-bg-raised: #12151d;
-  --lg-line: #3d4560;
-  --lg-ink: #eef1f7;
-  --lg-ink-dim: #8b93a6;
-  --lg-blue: #4f8cff;
-  --lg-amber: #f5a524;
+  --lg-bg: #faf6ee;
+  --lg-bg-raised: #ffffff;
+  --lg-line: #e3d9c4;
+  --lg-ink: #211c14;
+  --lg-ink-dim: #6b6250;
+  --lg-blue: #3e93ca;
+  --lg-blue-deep: #2c6c99;
+  --lg-amber: #bd5b26;
   background: var(--lg-bg);
   color: var(--lg-ink);
   position: relative;
@@ -16,9 +32,8 @@
 }
 
 .landing .display {
-  font-family: var(--font-display), "Arial Narrow", sans-serif;
-  text-transform: uppercase;
-  letter-spacing: 0.01em;
+  font-family: var(--font-display), Georgia, serif;
+  letter-spacing: -0.01em;
 }
 
 .landing .mono {
@@ -26,23 +41,18 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* Asphalt texture: faint diagonal grain + a soft radial glow behind the
-   hero, instead of a flat solid ground. */
+/* Ledger texture: a faint dot-grid (graph-paper ruling, the mileage-log
+   metaphor made literal but quiet) plus one soft warm glow behind the
+   hero -- no diagonal grain, no neon radial-on-black. */
 .landing::before {
   content: "";
   position: absolute;
   inset: 0;
   pointer-events: none;
   background-image:
-    radial-gradient(60rem 30rem at 15% -10%, rgba(79, 140, 255, 0.16), transparent 60%),
-    radial-gradient(40rem 24rem at 110% 10%, rgba(245, 165, 36, 0.10), transparent 55%),
-    repeating-linear-gradient(
-      115deg,
-      rgba(255, 255, 255, 0.015) 0px,
-      rgba(255, 255, 255, 0.015) 1px,
-      transparent 1px,
-      transparent 3px
-    );
+    radial-gradient(50rem 26rem at 12% -8%, rgba(62, 147, 202, 0.08), transparent 60%),
+    radial-gradient(1.5px 1.5px at center, rgba(33, 28, 20, 0.14) 100%, transparent 100%);
+  background-size: auto, 22px 22px;
   z-index: 0;
 }
 
@@ -51,11 +61,12 @@
   z-index: 1;
 }
 
-/* Route line draw-in */
+/* Route line draw-in -- ink-on-paper, not a glowing digital trace: a
+   thin dark line with one solid blue waypoint dot, no drop-shadow glow. */
 .route-path {
   stroke-dasharray: 1400;
   stroke-dashoffset: 1400;
-  animation: draw-route 2.2s cubic-bezier(0.65, 0, 0.35, 1) 0.15s forwards;
+  animation: draw-route 1.8s cubic-bezier(0.65, 0, 0.35, 1) 0.15s forwards;
 }
 
 @keyframes draw-route {
@@ -66,33 +77,13 @@
 
 .route-dot {
   offset-path: path("M 8 210 C 120 210, 140 60, 260 60 S 420 210, 520 150 S 640 40, 740 90");
-  animation: travel 2.2s cubic-bezier(0.65, 0, 0.35, 1) 0.15s forwards,
-    pulse-glow 1.6s ease-in-out infinite 2.4s;
+  animation: travel 1.8s cubic-bezier(0.65, 0, 0.35, 1) 0.15s forwards;
   offset-distance: 0%;
 }
 
 @keyframes travel {
   to {
     offset-distance: 100%;
-  }
-}
-
-@keyframes pulse-glow {
-  0%, 100% { filter: drop-shadow(0 0 0px rgba(79, 140, 255, 0.9)); }
-  50% { filter: drop-shadow(0 0 8px rgba(79, 140, 255, 0.9)); }
-}
-
-.gauge-arc {
-  animation: sweep-in 1.4s cubic-bezier(0.22, 1, 0.36, 1) 0.4s backwards;
-}
-
-@keyframes sweep-in {
-  from {
-    stroke-dashoffset: 340;
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
   }
 }
 
@@ -103,7 +94,6 @@
 @media (prefers-reduced-motion: reduce) {
   .route-path,
   .route-dot,
-  .gauge-arc,
   .rise {
     animation: none !important;
     stroke-dashoffset: 0 !important;

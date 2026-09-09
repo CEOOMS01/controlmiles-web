@@ -1,14 +1,15 @@
 import Link from "next/link";
-import { Big_Shoulders, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
+import { Fraunces, Public_Sans, IBM_Plex_Mono } from "next/font/google";
 import { LandingNav, LandingFooter } from "@/components/landing-chrome";
 import "./landing.css";
 
-const display = Big_Shoulders({
+const display = Fraunces({
   subsets: ["latin"],
-  weight: ["600", "700", "800"],
+  weight: ["500", "600", "700"],
+  style: ["normal", "italic"],
   variable: "--font-display",
 });
-const plexSans = IBM_Plex_Sans({
+const body = Public_Sans({
   subsets: ["latin"],
   weight: ["400", "500", "600"],
   variable: "--font-plex-sans",
@@ -24,7 +25,7 @@ const ROUTE_D = "M 8 210 C 120 210, 140 60, 260 60 S 420 210, 520 150 S 640 40, 
 export default function Home() {
   return (
     <main
-      className={`landing ${display.variable} ${plexSans.variable} ${plexMono.variable}`}
+      className={`landing ${display.variable} ${body.variable} ${plexMono.variable}`}
       style={{ fontFamily: "var(--font-plex-sans), system-ui, sans-serif" }}
     >
       <LandingNav />
@@ -40,65 +41,86 @@ export default function Home() {
 
 function Hero() {
   return (
-    <section className="mx-auto grid max-w-6xl gap-10 px-6 pb-20 pt-8 sm:px-10 md:grid-cols-2 md:items-center md:pt-16">
+    <section className="mx-auto grid max-w-6xl gap-14 px-6 pb-20 pt-10 sm:px-10 md:grid-cols-[1.1fr_0.9fr] md:items-center md:pt-20">
       <div>
         <p
-          className="rise mono text-xs tracking-[0.25em]"
-          style={{ color: "var(--lg-amber)", animationDelay: "0.05s" }}
+          className="rise mono text-xs font-medium tracking-[0.2em] text-[var(--lg-amber)]"
+          style={{ animationDelay: "0.05s" }}
         >
-          GIG &amp; FLEET MILEAGE, TRACKED
+          GIG &amp; FLEET MILEAGE, LOGGED
         </p>
         <h1
-          className="display rise mt-4 text-[15vw] font-extrabold leading-[0.85] sm:text-6xl md:text-7xl"
+          className="display rise mt-5 text-5xl leading-[1.02] font-semibold sm:text-6xl md:text-[4.2rem]"
           style={{ animationDelay: "0.15s" }}
         >
           Every mile,
           <br />
-          <span style={{ color: "var(--lg-blue)" }}>on the record.</span>
+          <span className="italic" style={{ color: "var(--lg-blue-deep)" }}>
+            on the record.
+          </span>
         </h1>
         <p
-          className="rise mt-6 max-w-md text-base text-[var(--lg-ink-dim)]"
+          className="rise mt-6 max-w-md text-base leading-relaxed text-[var(--lg-ink-dim)]"
           style={{ animationDelay: "0.3s" }}
         >
           GPS trip tracking, odometer verification, and a tamper-evident
           audit trail — built for gig drivers running Uber, DoorDash,
-          Instacart and more, and for fleets managing them.
+          Instacart and more, and for the fleets managing them.
         </p>
-        <div className="rise mt-8 flex flex-wrap gap-3" style={{ animationDelay: "0.42s" }}>
+        <div className="rise mt-9 flex flex-wrap gap-3" style={{ animationDelay: "0.42s" }}>
           <Link
             href="/login"
-            className="rounded-full px-6 py-3 text-sm font-semibold text-[#0a0c11] transition hover:opacity-90"
-            style={{ background: "var(--lg-blue)" }}
+            className="rounded-full px-6 py-3 text-sm font-semibold text-white shadow-[0_8px_20px_-8px_rgba(44,108,153,0.55)] transition hover:opacity-90"
+            style={{ background: "var(--lg-blue-deep)" }}
           >
             Driver sign in
           </Link>
           <Link
             href="/portal/verify"
-            className="rounded-full border border-[var(--lg-line)] px-6 py-3 text-sm font-semibold text-[var(--lg-ink)] transition hover:border-[var(--lg-blue)]"
+            className="rounded-full border border-[var(--lg-line)] bg-white px-6 py-3 text-sm font-semibold text-[var(--lg-ink)] transition hover:border-[var(--lg-blue)]"
           >
             Verify a report
           </Link>
         </div>
       </div>
 
-      <div className="relative">
-        <svg viewBox="0 0 760 240" className="w-full" role="img" aria-label="An animated route line">
-          <path
-            d={ROUTE_D}
-            fill="none"
-            stroke="var(--lg-line)"
-            strokeWidth="2"
-          />
-          <path
-            className="route-path"
-            d={ROUTE_D}
-            fill="none"
-            stroke="var(--lg-blue)"
-            strokeWidth="3"
-            strokeLinecap="round"
-          />
-          <circle className="route-dot" r="7" fill="var(--lg-amber)" />
-        </svg>
+      <div className="rise" style={{ animationDelay: "0.2s" }}>
+        <div className="rounded-2xl border border-[var(--lg-line)] bg-white p-6 shadow-[0_20px_50px_-24px_rgba(33,28,20,0.25)]">
+          <div className="flex items-center justify-between">
+            <p className="mono text-[11px] font-medium tracking-[0.15em] text-[var(--lg-ink-dim)]">
+              TODAY&apos;S ROUTE
+            </p>
+            <p className="mono text-[11px] font-medium tracking-[0.15em] text-[var(--lg-blue-deep)]">
+              VERIFIED
+            </p>
+          </div>
+          <svg viewBox="0 0 760 240" className="mt-4 w-full" role="img" aria-label="An animated route line">
+            <path d={ROUTE_D} fill="none" stroke="var(--lg-line)" strokeWidth="2" />
+            <path
+              className="route-path"
+              d={ROUTE_D}
+              fill="none"
+              stroke="var(--lg-ink)"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+            />
+            <circle className="route-dot" r="6" fill="var(--lg-blue-deep)" />
+          </svg>
+          <div className="mt-2 grid grid-cols-3 divide-x divide-[var(--lg-line)] border-t border-[var(--lg-line)] pt-4">
+            <div>
+              <p className="display text-2xl font-semibold">18.4</p>
+              <p className="text-xs text-[var(--lg-ink-dim)]">miles</p>
+            </div>
+            <div className="pl-4">
+              <p className="display text-2xl font-semibold">3</p>
+              <p className="text-xs text-[var(--lg-ink-dim)]">trips</p>
+            </div>
+            <div className="pl-4">
+              <p className="display text-2xl font-semibold">$0</p>
+              <p className="text-xs text-[var(--lg-ink-dim)]">guesswork</p>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
   );
@@ -111,17 +133,17 @@ function StatsStrip() {
     { value: "0", unit: "guesswork", label: "Every trip is GPS-logged, hash-chained" },
   ];
   return (
-    <section className="border-y border-[var(--lg-line)]">
+    <section className="border-y border-[var(--lg-line)] bg-white/60">
       <div className="mx-auto grid max-w-6xl divide-y divide-[var(--lg-line)] px-6 sm:grid-cols-3 sm:divide-x sm:divide-y-0 sm:px-10">
         {stats.map((s) => (
           <div key={s.label} className="py-8 sm:px-8">
-            <p className="mono display text-4xl font-bold" style={{ color: "var(--lg-blue)" }}>
-              {s.value}
-              <span className="ml-2 text-sm font-normal tracking-wide text-[var(--lg-ink-dim)] normal-case">
-                {s.unit}
-              </span>
-            </p>
-            <p className="mt-1 text-sm text-[var(--lg-ink-dim)]">{s.label}</p>
+            <div className="flex items-baseline gap-2">
+              <p className="mono display text-4xl leading-none font-semibold" style={{ color: "var(--lg-blue-deep)" }}>
+                {s.value}
+              </p>
+              <p className="text-sm leading-tight text-[var(--lg-ink-dim)]">{s.unit}</p>
+            </div>
+            <p className="mt-2 text-sm leading-relaxed text-[var(--lg-ink-dim)]">{s.label}</p>
           </div>
         ))}
       </div>
@@ -151,17 +173,20 @@ const FEATURES = [
 function Features() {
   return (
     <section className="mx-auto max-w-6xl px-6 py-20 sm:px-10">
-      <p className="mono text-xs tracking-[0.25em]" style={{ color: "var(--lg-amber)" }}>
+      <p className="mono text-xs font-medium tracking-[0.2em] text-[var(--lg-amber)]">
         WHAT&apos;S UNDER THE HOOD
       </p>
-      <h2 className="display mt-3 max-w-lg text-4xl font-bold leading-[0.95] sm:text-5xl">
+      <h2 className="display mt-3 max-w-lg text-4xl font-semibold leading-[1.05] sm:text-5xl">
         Built to survive an audit, not just a glance.
       </h2>
 
-      <div className="mt-12 grid gap-px overflow-hidden rounded-2xl border border-[var(--lg-line)] bg-[var(--lg-line)] sm:grid-cols-2">
+      <div className="mt-12 grid gap-5 sm:grid-cols-2">
         {FEATURES.map((f) => (
-          <div key={f.title} className="bg-[var(--lg-bg-raised)] p-7">
-            <h3 className="display text-xl font-bold">{f.title}</h3>
+          <div
+            key={f.title}
+            className="rounded-xl border border-[var(--lg-line)] bg-white p-7 shadow-[0_10px_30px_-20px_rgba(33,28,20,0.3)]"
+          >
+            <h3 className="display text-xl font-semibold">{f.title}</h3>
             <p className="mt-2 text-sm leading-relaxed text-[var(--lg-ink-dim)]">{f.body}</p>
           </div>
         ))}
@@ -178,17 +203,17 @@ const STEPS = [
 
 function HowItWorks() {
   return (
-    <section className="border-y border-[var(--lg-line)] bg-[var(--lg-bg-raised)]">
+    <section className="border-y border-[var(--lg-line)] bg-white/60">
       <div className="mx-auto max-w-6xl px-6 py-20 sm:px-10">
-        <h2 className="display text-3xl font-bold sm:text-4xl">How it works</h2>
-        <div className="mt-10 grid gap-8 sm:grid-cols-3">
+        <h2 className="display text-3xl font-semibold sm:text-4xl">How it works</h2>
+        <div className="mt-10 grid gap-10 sm:grid-cols-3">
           {STEPS.map((s) => (
             <div key={s.n}>
-              <p className="mono text-3xl font-medium" style={{ color: "var(--lg-blue)" }}>
+              <p className="mono text-3xl font-medium" style={{ color: "var(--lg-blue-deep)" }}>
                 {s.n}
               </p>
-              <h3 className="display mt-2 text-2xl font-bold">{s.title}</h3>
-              <p className="mt-2 text-sm text-[var(--lg-ink-dim)]">{s.body}</p>
+              <h3 className="display mt-2 text-2xl font-semibold">{s.title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-[var(--lg-ink-dim)]">{s.body}</p>
             </div>
           ))}
         </div>
@@ -200,15 +225,15 @@ function HowItWorks() {
 function PortalCta() {
   return (
     <section className="mx-auto max-w-6xl px-6 py-20 sm:px-10">
-      <div className="grid gap-8 rounded-2xl border border-[var(--lg-line)] bg-[var(--lg-bg-raised)] p-8 sm:grid-cols-2 sm:p-12">
+      <div className="grid gap-8 rounded-2xl border border-[var(--lg-line)] bg-white p-8 shadow-[0_20px_50px_-30px_rgba(33,28,20,0.35)] sm:grid-cols-2 sm:p-12">
         <div>
-          <p className="mono text-xs tracking-[0.25em]" style={{ color: "var(--lg-amber)" }}>
+          <p className="mono text-xs font-medium tracking-[0.2em] text-[var(--lg-amber)]">
             REPORT PORTAL
           </p>
-          <h2 className="display mt-3 text-3xl font-bold leading-[0.95] sm:text-4xl">
+          <h2 className="display mt-3 text-3xl font-semibold leading-[1.05] sm:text-4xl">
             Preparing someone&apos;s taxes?
           </h2>
-          <p className="mt-4 text-sm text-[var(--lg-ink-dim)]">
+          <p className="mt-4 text-sm leading-relaxed text-[var(--lg-ink-dim)]">
             Your client generates a one-time access code from their
             ControlMiles account. Enter it here to view a read-only
             mileage summary — no login, no account, nothing installed.
@@ -217,7 +242,7 @@ function PortalCta() {
         <div className="flex flex-col justify-center gap-3">
           <Link
             href="/portal/verify"
-            className="rounded-full px-6 py-3 text-center text-sm font-semibold text-[#0a0c11] transition hover:opacity-90"
+            className="rounded-full px-6 py-3 text-center text-sm font-semibold text-white transition hover:opacity-90"
             style={{ background: "var(--lg-amber)" }}
           >
             Enter access code

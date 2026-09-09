@@ -9,13 +9,13 @@
 // first) lives at /admin/legal for signed-in fleet admins specifically.
 
 import type { Metadata } from "next";
-import { Big_Shoulders, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
+import { Fraunces, Public_Sans, IBM_Plex_Mono } from "next/font/google";
 import { LandingNav, LandingFooter } from "@/components/landing-chrome";
 import { LegalDocument } from "@/components/legal-document";
 import "../landing.css";
 
-const display = Big_Shoulders({ subsets: ["latin"], weight: ["600", "700", "800"], variable: "--font-display" });
-const plexSans = IBM_Plex_Sans({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-plex-sans" });
+const display = Fraunces({ subsets: ["latin"], weight: ["500", "600", "700"], variable: "--font-display" });
+const plexSans = Public_Sans({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-plex-sans" });
 const plexMono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-mono-plex" });
 
 export const metadata: Metadata = {
