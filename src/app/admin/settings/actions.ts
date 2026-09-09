@@ -1,5 +1,6 @@
 "use server";
 
+import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
@@ -33,6 +34,44 @@ export async function renameOrganization(
 
   revalidatePath("/admin", "layout");
   return { error: null, success: true };
+}
+
+export type DeleteOrgState = { error: string | null };
+
+// Danger zone (2026-09-09, explicit user request for a fleet-enterprise-
+// grade Settings page). delete_organization() already existed and was
+// fully implemented -- owner-only, cascades vehicles/routes/roster,
+// clears every affected driver's default_org_id back to a plain gig
+// account -- but had never been wired to any UI (a real bug in the RPC
+// itself was found and fixed the same day this got exposed: see
+// fix_delete_organization_odometer_checkpoints_fk, a missing cleanup
+// step that would have hard-failed this for any org with real usage
+// history). The type-the-org-name confirmation is the same pattern
+// GitHub/Vercel use for exactly this class of action -- a plain "are you
+// sure?" dialog is too easy to click through without reading.
+export async function deleteOrganizationAction(
+  _prevState: DeleteOrgState,
+  formData: FormData,
+): Promise<DeleteOrgState> {
+  const orgId = String(formData.get("org_id") ?? "");
+  const confirmedName = String(formData.get("confirm_name") ?? "").trim();
+  const actualName = String(formData.get("actual_name") ?? "").trim();
+
+  if (!orgId) {
+    return { error: "Missing organization." };
+  }
+  if (confirmedName !== actualName) {
+    return { error: "Type the fleet name exactly to confirm." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("delete_organization", { p_org_id: orgId });
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  redirect("/admin");
 }
 
 export type VehicleAssignmentModeState = { error: string | null; success: boolean };
