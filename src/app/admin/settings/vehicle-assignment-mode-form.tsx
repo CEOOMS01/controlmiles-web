@@ -39,6 +39,7 @@ export function VehicleAssignmentModeForm({
               name="vehicle_assignment_mode"
               value={mode}
               defaultChecked={currentMode === mode}
+              disabled={pending}
               className="mr-2"
               onChange={(e) => e.currentTarget.form?.requestSubmit()}
             />
