@@ -61,12 +61,16 @@
   z-index: 1;
 }
 
-/* Route line draw-in -- ink-on-paper, not a glowing digital trace: a
-   thin dark line with one solid blue waypoint dot, no drop-shadow glow. */
+/* Route line draw-in, once on page load -- ink-on-paper, not a glowing
+   digital trace: a thin dark line whose leading dot travels to the route's
+   end, then hands off to the real ControlMiles pin (2026-09-09, explicit
+   user concept: draw -> arrive -> morph to pin -> settle+glow, ~3.2s total,
+   no "VERIFIED" label -- the pin's own checkmark already says that). Plays
+   once on mount, never re-triggers on scroll, per explicit user request. */
 .route-path {
   stroke-dasharray: 1400;
   stroke-dashoffset: 1400;
-  animation: draw-route 1.8s cubic-bezier(0.65, 0, 0.35, 1) 0.15s forwards;
+  animation: draw-route 1.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
 @keyframes draw-route {
@@ -77,13 +81,93 @@
 
 .route-dot {
   offset-path: path("M 8 210 C 120 210, 140 60, 260 60 S 420 210, 520 150 S 640 40, 740 90");
-  animation: travel 1.8s cubic-bezier(0.65, 0, 0.35, 1) 0.15s forwards;
   offset-distance: 0%;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation:
+    travel 1.6s cubic-bezier(0.4, 0, 0.2, 1) forwards,
+    dot-out 0.4s ease-in 1.6s forwards;
 }
 
 @keyframes travel {
   to {
     offset-distance: 100%;
+  }
+}
+
+@keyframes dot-out {
+  to {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+}
+
+/* The pin itself -- appears where the dot arrives, with a small overshoot
+   bounce (stage 3, 1.6-2.4s). */
+.route-pin {
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+  transform: scale(0.3);
+  animation: pin-in 0.8s 1.75s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes pin-in {
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* A soft expanding ring behind the pin as it settles (stage 4, 2.4-3.2s) --
+   reads as a quiet "confirmed" pulse without spelling out the word. */
+.route-pin-glow {
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: pin-glow 0.9s 2.35s ease-out forwards;
+}
+
+@keyframes pin-glow {
+  0% {
+    opacity: 0.45;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.4);
+  }
+}
+
+/* Nav mark entrance -- logo fades in from the left, wordmark from the
+   right, once on load, then stay fixed (no replay, no hover re-trigger). */
+.nav-mark-in {
+  animation: nav-in-left 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.nav-word-in {
+  animation: nav-in-right 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes nav-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes nav-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
   }
 }
 
@@ -94,11 +178,29 @@
 @media (prefers-reduced-motion: reduce) {
   .route-path,
   .route-dot,
+  .route-pin,
+  .route-pin-glow,
+  .nav-mark-in,
+  .nav-word-in,
   .rise {
     animation: none !important;
+    transform: none !important;
+  }
+  .route-path {
     stroke-dashoffset: 0 !important;
+  }
+  .route-dot {
     offset-distance: 100% !important;
+    opacity: 0 !important;
+  }
+  .route-pin,
+  .nav-mark-in,
+  .nav-word-in,
+  .rise {
     opacity: 1 !important;
+  }
+  .route-pin-glow {
+    opacity: 0 !important;
   }
 }
 

@@ -17,10 +17,10 @@ export function LandingNav() {
           alt="ControlMiles"
           width={32}
           height={32}
-          className="rounded"
+          className="nav-mark-in rounded"
           priority
         />
-        <span className="display text-xl font-semibold">
+        <span className="nav-word-in display text-xl font-semibold">
           Control<span style={{ color: "var(--lg-blue-deep)" }}>Miles</span>
         </span>
       </Link>

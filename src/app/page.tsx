@@ -87,15 +87,10 @@ function Hero() {
 
       <div className="rise" style={{ animationDelay: "0.2s" }}>
         <div className="rounded-2xl border border-[var(--lg-line)] bg-white p-6 shadow-[0_20px_50px_-24px_rgba(33,28,20,0.25)]">
-          <div className="flex items-center justify-between">
-            <p className="mono text-[11px] font-medium tracking-[0.15em] text-[var(--lg-ink-dim)]">
-              TODAY&apos;S ROUTE
-            </p>
-            <p className="mono text-[11px] font-medium tracking-[0.15em] text-[var(--lg-blue-deep)]">
-              VERIFIED
-            </p>
-          </div>
-          <svg viewBox="0 0 760 240" className="mt-4 w-full" role="img" aria-label="An animated route line">
+          <p className="mono text-[11px] font-medium tracking-[0.15em] text-[var(--lg-ink-dim)]">
+            TODAY&apos;S ROUTE
+          </p>
+          <svg viewBox="0 0 760 240" className="mt-4 w-full" role="img" aria-label="An animated route line ending at a ControlMiles pin">
             <path d={ROUTE_D} fill="none" stroke="var(--lg-line)" strokeWidth="2" />
             <path
               className="route-path"
@@ -106,8 +101,13 @@ function Hero() {
               strokeLinecap="round"
             />
             <circle className="route-dot" r="6" fill="var(--lg-blue-deep)" />
+            <circle className="route-pin-glow" cx="740" cy="90" r="15" fill="var(--lg-blue-deep)" />
+            <image className="route-pin" href="/logo_controlmiles.png" x="723" y="73" width="34" height="34" />
           </svg>
-          <div className="mt-2 grid grid-cols-3 divide-x divide-[var(--lg-line)] border-t border-[var(--lg-line)] pt-4">
+          <div
+            className="rise mt-2 grid grid-cols-3 divide-x divide-[var(--lg-line)] border-t border-[var(--lg-line)] pt-4"
+            style={{ animationDelay: "2.4s" }}
+          >
             <div>
               <p className="display text-2xl font-semibold">18.4</p>
               <p className="text-xs text-[var(--lg-ink-dim)]">miles</p>
