@@ -35,6 +35,7 @@ type PhotonFeature = {
     city?: string;
     state?: string;
     country?: string;
+    countrycode?: string;
   };
 };
 
@@ -104,7 +105,12 @@ export function AddressAutocompleteInput({
     abortRef.current = controller;
 
     setLoading(true);
-    fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=5`, {
+    // Photon has no server-side country filter (confirmed against its own
+    // API -- komoot/photon#175 asks for exactly this and it was never
+    // added), so this over-fetches (limit=15) and filters client-side on
+    // properties.countrycode, then keeps the top 5 -- US-only results
+    // without switching geocoders.
+    fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=15`, {
       signal: controller.signal,
     })
       .then((res) => {
@@ -112,7 +118,8 @@ export function AddressAutocompleteInput({
         return res.json() as Promise<{ features: PhotonFeature[] }>;
       })
       .then((data) => {
-        setSuggestions(data.features.map(toSuggestion));
+        const usOnly = data.features.filter((f) => f.properties.countrycode === "US");
+        setSuggestions(usOnly.slice(0, 5).map(toSuggestion));
         setSearched(true);
         setOpen(true);
         setActiveIndex(-1);
