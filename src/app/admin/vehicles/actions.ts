@@ -42,7 +42,10 @@ export async function addVehicle(
   return { error: null, success: true };
 }
 
-export async function assignDriver(vehicleId: string, driverUserId: string | null) {
+export async function assignDriver(
+  vehicleId: string,
+  driverUserId: string | null,
+): Promise<{ error: string | null }> {
   const supabase = await createClient();
 
   if (driverUserId) {
@@ -50,7 +53,7 @@ export async function assignDriver(vehicleId: string, driverUserId: string | nul
       p_vehicle_id: vehicleId,
       p_driver_user_id: driverUserId,
     });
-    if (error) throw new Error(AppError.from(error).display());
+    if (error) return { error: AppError.from(error).display() };
   } else {
     // Unassigning has no side effects to guard, so it's a plain
     // RLS-gated update rather than a special RPC case.
@@ -58,16 +61,28 @@ export async function assignDriver(vehicleId: string, driverUserId: string | nul
       .from("vehicles")
       .update({ assigned_driver_id: null })
       .eq("id", vehicleId);
-    if (error) throw new Error(AppError.from(error).display());
+    if (error) return { error: AppError.from(error).display() };
   }
 
   revalidatePath("/admin/vehicles");
+  return { error: null };
 }
 
-export async function archiveVehicle(vehicleId: string) {
+export async function archiveVehicle(vehicleId: string): Promise<{ error: string | null }> {
   const supabase = await createClient();
   // Never hard-deleted (matches vehicles.is_archived's own column
   // comment) -- sessions.vehicle_id would dangle on a real delete.
-  await supabase.from("vehicles").update({ is_archived: true }).eq("id", vehicleId);
+  //
+  // BUG FIX (pedido explícito, 2026-09-09): nunca chequeaba el error de
+  // Supabase -- un rechazo silencioso de RLS dejaba el vehículo activo
+  // sin ningún aviso.
+  const { error } = await supabase
+    .from("vehicles")
+    .update({ is_archived: true })
+    .eq("id", vehicleId);
+  if (error) {
+    return { error: AppError.from(error).display() };
+  }
   revalidatePath("/admin/vehicles");
+  return { error: null };
 }

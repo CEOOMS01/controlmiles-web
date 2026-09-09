@@ -36,13 +36,22 @@ export async function inviteMember(
   return { error: null, success: true };
 }
 
-export async function removeMember(membershipId: string) {
+export async function removeMember(membershipId: string): Promise<{ error: string | null }> {
   const supabase = await createClient();
   // RLS (org_members_delete_admin_or_self) is what actually enforces
   // this -- the caller must be the org's admin/owner or the member
   // themselves. No extra check needed here.
-  await supabase.from("organization_members").delete().eq("id", membershipId);
+  //
+  // BUG FIX (pedido explícito, 2026-09-09): esta acción nunca chequeaba
+  // el error de Supabase -- si el delete fallaba (ej. rechazo de RLS),
+  // no pasaba nada visible: revalidatePath corría igual y la fila
+  // seguía ahí sin ninguna explicación de por qué.
+  const { error } = await supabase.from("organization_members").delete().eq("id", membershipId);
+  if (error) {
+    return { error: AppError.from(error).display() };
+  }
   revalidatePath("/admin/roster");
+  return { error: null };
 }
 
 export type AddSlotState = {
@@ -82,10 +91,14 @@ export async function addDriverSlot(
   return { error: null, result: { displayId: row.display_id, claimCode: row.claim_code } };
 }
 
-export async function removeDriverSlot(slotId: string) {
+export async function removeDriverSlot(slotId: string): Promise<{ error: string | null }> {
   const supabase = await createClient();
   // RLS (fleet_driver_slots_delete_admin) enforces the caller is this
   // org's admin/owner.
-  await supabase.from("fleet_driver_slots").delete().eq("id", slotId);
+  const { error } = await supabase.from("fleet_driver_slots").delete().eq("id", slotId);
+  if (error) {
+    return { error: AppError.from(error).display() };
+  }
   revalidatePath("/admin/roster");
+  return { error: null };
 }

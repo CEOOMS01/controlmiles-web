@@ -73,20 +73,36 @@ export async function reassignRoute(
   return { error: null };
 }
 
-export async function setRouteStatus(routeId: string, status: "active" | "closed") {
+export async function setRouteStatus(
+  routeId: string,
+  status: "active" | "closed",
+): Promise<{ error: string | null }> {
   const supabase = await createClient();
   // fn_freeze_closed_route (trigger) is what actually enforces
   // "closed means closed forever" -- this action can only ever move a
   // route toward closed, and once closed the underlying UPDATE itself
   // fails regardless of what this calls.
-  await supabase.from("routes").update({ status }).eq("id", routeId);
+  //
+  // BUG FIX (pedido explícito, 2026-09-09): nunca chequeaba el error --
+  // el propio comentario de arriba señalaba que el UPDATE "fails" en
+  // ese caso, pero esa falla se tragaba en silencio sin avisarle nada
+  // al admin.
+  const { error } = await supabase.from("routes").update({ status }).eq("id", routeId);
+  if (error) {
+    return { error: AppError.from(error).display() };
+  }
   revalidatePath("/admin/routes");
+  return { error: null };
 }
 
-export async function deleteDraftRoute(routeId: string) {
+export async function deleteDraftRoute(routeId: string): Promise<{ error: string | null }> {
   const supabase = await createClient();
   // routes_delete_admin (RLS) only allows this while status='draft' --
-  // a no-op for anything else.
-  await supabase.from("routes").delete().eq("id", routeId);
+  // a no-op for anything else, now surfaced instead of silently ignored.
+  const { error } = await supabase.from("routes").delete().eq("id", routeId);
+  if (error) {
+    return { error: AppError.from(error).display() };
+  }
   revalidatePath("/admin/routes");
+  return { error: null };
 }

@@ -42,6 +42,24 @@ export function RouteRowActions({
     });
   }
 
+  // BUG FIX (pedido explícito, 2026-09-09): Activate/Close/Delete
+  // llamaban a sus acciones dentro de startTransition sin capturar el
+  // resultado -- ahora esas tres acciones devuelven {error}, así que se
+  // muestra con el mismo estado `error` que ya usa Reassign.
+  function handleStatusChange(status: "active" | "closed") {
+    startTransition(async () => {
+      const result = await setRouteStatus(routeId, status);
+      setError(result.error);
+    });
+  }
+
+  function handleDelete() {
+    startTransition(async () => {
+      const result = await deleteDraftRoute(routeId);
+      setError(result.error);
+    });
+  }
+
   if (reassigning) {
     return (
       <div className="flex flex-col items-end gap-2 py-1">
@@ -101,38 +119,45 @@ export function RouteRowActions({
   }
 
   return (
-    <div className="flex justify-end gap-3">
-      <button
-        onClick={() => setReassigning(true)}
-        disabled={pending}
-        className="text-xs font-medium text-accent transition hover:underline disabled:opacity-60"
-      >
-        Reassign
-      </button>
-      {status === "draft" && (
+    <div className="flex flex-col items-end gap-1">
+      <div className="flex justify-end gap-3">
         <button
-          onClick={() => startTransition(() => setRouteStatus(routeId, "active"))}
+          onClick={() => setReassigning(true)}
           disabled={pending}
           className="text-xs font-medium text-accent transition hover:underline disabled:opacity-60"
         >
-          Activate
+          Reassign
         </button>
-      )}
-      <button
-        onClick={() => startTransition(() => setRouteStatus(routeId, "closed"))}
-        disabled={pending}
-        className="text-xs font-medium text-muted transition hover:text-foreground disabled:opacity-60"
-      >
-        Close
-      </button>
-      {status === "draft" && (
+        {status === "draft" && (
+          <button
+            onClick={() => handleStatusChange("active")}
+            disabled={pending}
+            className="text-xs font-medium text-accent transition hover:underline disabled:opacity-60"
+          >
+            Activate
+          </button>
+        )}
         <button
-          onClick={() => startTransition(() => deleteDraftRoute(routeId))}
+          onClick={() => handleStatusChange("closed")}
           disabled={pending}
-          className="text-xs font-medium text-danger transition hover:underline disabled:opacity-60"
+          className="text-xs font-medium text-muted transition hover:text-foreground disabled:opacity-60"
         >
-          Delete
+          Close
         </button>
+        {status === "draft" && (
+          <button
+            onClick={handleDelete}
+            disabled={pending}
+            className="text-xs font-medium text-danger transition hover:underline disabled:opacity-60"
+          >
+            Delete
+          </button>
+        )}
+      </div>
+      {error && (
+        <p role="alert" className="text-xs text-danger">
+          {error}
+        </p>
       )}
     </div>
   );
