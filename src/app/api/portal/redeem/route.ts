@@ -1,6 +1,7 @@
 import { createHmac } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { AppError } from "@/lib/errors";
 
 // Uses the plain supabase-js client (no cookies) with the publishable
 // key -- this endpoint is anonymous by design, and `anon` is the only
@@ -52,26 +53,51 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, message: "Invalid or expired code." });
   }
 
-  const ipHash = hashIp(requesterIp(request));
-  const supabase = anonClient();
+  // BUG FIX (real, found live 2026-09-09 -- reported as "verification
+  // fails both typing and submitting the code"): hashIp() throws when
+  // IP_HASH_PEPPER isn't configured, and that throw was outside any
+  // try/catch -- it crashed the whole route handler with an unhandled
+  // exception, which Next.js turns into a bare 500 with an EMPTY body
+  // (confirmed live: curl against the production endpoint returned
+  // `Content-Length: 0`). The frontend's `await res.json()` on that
+  // empty body throws too, so every single code entered -- valid or
+  // not -- surfaced as a generic "Network error" with zero indication
+  // this was a server misconfiguration, not a real network problem.
+  // Wrapping this in try/catch at minimum means a future
+  // misconfiguration returns a real, coded JSON error instead of an
+  // opaque crash -- but IP_HASH_PEPPER must actually be set in Vercel
+  // for this endpoint to work at all; this catch doesn't paper over
+  // that, it just stops it from crashing silently.
+  try {
+    const ipHash = hashIp(requesterIp(request));
+    const supabase = anonClient();
 
-  const { data, error } = await supabase.rpc("redeem_report_access_code", {
-    p_code: code.trim().toUpperCase(),
-    p_ip_hash: ipHash,
-  });
+    const { data, error } = await supabase.rpc("redeem_report_access_code", {
+      p_code: code.trim().toUpperCase(),
+      p_ip_hash: ipHash,
+    });
 
-  if (error) {
-    return NextResponse.json({ success: false, message: "Something went wrong. Try again." }, { status: 500 });
+    if (error) {
+      return NextResponse.json(
+        { success: false, message: AppError.from(error, { critical: true }).display() },
+        { status: 500 },
+      );
+    }
+
+    const row = data?.[0];
+    if (!row) {
+      return NextResponse.json({ success: false, message: "Invalid or expired code." });
+    }
+
+    return NextResponse.json({
+      success: row.success,
+      message: row.success ? "ok" : row.message,
+      report: row.success ? row.report : null,
+    });
+  } catch (e) {
+    return NextResponse.json(
+      { success: false, message: AppError.from(e, { critical: true }).display() },
+      { status: 500 },
+    );
   }
-
-  const row = data?.[0];
-  if (!row) {
-    return NextResponse.json({ success: false, message: "Invalid or expired code." });
-  }
-
-  return NextResponse.json({
-    success: row.success,
-    message: row.success ? "ok" : row.message,
-    report: row.success ? row.report : null,
-  });
 }
