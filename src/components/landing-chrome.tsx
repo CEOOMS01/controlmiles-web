@@ -24,16 +24,22 @@ export function LandingNav() {
           Control<span style={{ color: "var(--lg-blue-deep)" }}>Miles</span>
         </span>
       </Link>
-      <nav className="flex items-center gap-5 text-sm text-[var(--lg-ink-dim)]">
-        <Link href="/pricing" className="hidden transition hover:text-[var(--lg-ink)] sm:inline">
+      <nav className="flex items-center gap-3 text-sm">
+        <Link
+          href="/pricing"
+          className="hidden rounded-full border border-[var(--lg-line)] px-4 py-2 font-medium text-[var(--lg-ink-dim)] transition hover:border-[var(--lg-blue)] hover:text-[var(--lg-ink)] sm:inline"
+        >
           Pricing
         </Link>
-        <Link href="/portal/verify" className="hidden transition hover:text-[var(--lg-ink)] sm:inline">
+        <Link
+          href="/portal/verify"
+          className="hidden rounded-full border border-[var(--lg-line)] px-4 py-2 font-medium text-[var(--lg-ink-dim)] transition hover:border-[var(--lg-blue)] hover:text-[var(--lg-ink)] sm:inline"
+        >
           Verify a report
         </Link>
         <Link
           href="/login"
-          className="rounded-full border border-[var(--lg-line)] px-4 py-2 font-medium text-[var(--lg-ink)] transition hover:border-[var(--lg-blue)]"
+          className="rounded-full border border-[var(--lg-ink)] bg-[var(--lg-ink)] px-4 py-2 font-medium text-[var(--lg-bg)] transition hover:border-[var(--lg-blue-deep)] hover:bg-[var(--lg-blue-deep)]"
         >
           Sign in
         </Link>
