@@ -44,9 +44,9 @@ const GIG_PLANS: Plan[] = [
     name: "Basic",
     price: "$4.99",
     unit: "/ driver / month",
-    tagline: "Automatic mileage, logged and ready.",
+    tagline: "Mileage, logged and ready.",
     features: [
-      "Automatic GPS trip tracking",
+      "GPS trip tracking, start/stop from the gig-app carousel",
       "Per-gig-app trip tagging",
       "Monthly mileage summary",
       "PDF export",
@@ -60,6 +60,7 @@ const GIG_PLANS: Plan[] = [
     tagline: "Everything a real audit can lean on.",
     features: [
       "Everything in Basic",
+      "Automatic trip detection (auto-start, no tapping in)",
       "Odometer photo + on-device OCR verification",
       "SHA-256 hash-chained trip log",
       "Report Portal access codes (no login needed to verify)",
