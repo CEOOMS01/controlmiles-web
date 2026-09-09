@@ -155,7 +155,7 @@ function StatsStrip() {
 const FEATURES = [
   {
     title: "Automatic gig-app detection",
-    body: "Runs multiple gig apps at once and switches between them dynamically as you drive, flagging anything that looks faked or spoofed.",
+    body: "Runs multiple gig apps at once and switches between them dynamically as you drive, detecting and excluding anything that looks faked or spoofed.",
   },
   {
     title: "Odometer, verified",

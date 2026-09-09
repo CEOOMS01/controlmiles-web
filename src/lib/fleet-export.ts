@@ -37,6 +37,23 @@ export async function loadFleetExportData(startDate: string, endDate: string): P
     throw new Error("Not authenticated.");
   }
 
+  // BUG FIX (pre-launch security audit): this route did real DB + (for the
+  // PDF variant) in-process rendering work on every call with no rate
+  // limit at all -- authenticated + org-scoped, but nothing stopped a
+  // compromised session or a runaway client from hammering it. Reuses the
+  // project's existing check_rate_limit() RPC, keyed by user id since
+  // this route always requires a real session. 10 exports/5min is well
+  // above any legitimate admin workflow.
+  const { data: allowed } = await supabase.rpc("check_rate_limit", {
+    p_fn_name: "fleet_export",
+    p_client_key: user.id,
+    p_max_requests: 10,
+    p_window_seconds: 300,
+  });
+  if (allowed === false) {
+    throw new Error("Too many exports recently. Try again in a few minutes.");
+  }
+
   const { data: profile } = await supabase
     .from("profiles")
     .select("default_org_id")

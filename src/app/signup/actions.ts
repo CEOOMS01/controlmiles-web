@@ -18,8 +18,21 @@ export async function signUp(
   if (!email || !password) {
     return { error: "Enter your email and password." };
   }
+  // BUG FIX (pre-launch security audit): no email format validation
+  // existed anywhere -- only the browser's native type="email" (easily
+  // bypassed via devtools/direct POST) stood between this and any
+  // arbitrary string. Same regex used on mobile and in
+  // create_driver_invite, for consistency.
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+    return { error: "Enter a valid email address." };
+  }
   if (password.length < 8) {
     return { error: "Password must be at least 8 characters." };
+  }
+  // BUG FIX (pre-launch security audit): length was the only rule --
+  // "password"/"12345678" both passed.
+  if (!/[A-Za-z]/.test(password) || !/[0-9]/.test(password)) {
+    return { error: "Password must include at least one letter and one number." };
   }
 
   const supabase = await createClient();
