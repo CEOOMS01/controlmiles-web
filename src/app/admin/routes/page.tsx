@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getAuthedProfile } from "@/lib/supabase/org-context";
 import { CreateRouteForm } from "./create-route-form";
 import { RouteRowActions } from "./route-row-actions";
 
@@ -21,16 +22,8 @@ const STATUS_STYLES: Record<string, string> = {
 
 export default async function RoutesPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { user, profile } = await getAuthedProfile();
   if (!user) return null;
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("default_org_id")
-    .eq("id", user.id)
-    .maybeSingle();
   const orgId = profile?.default_org_id;
   if (!orgId) return null;
 

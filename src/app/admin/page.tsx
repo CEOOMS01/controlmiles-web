@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getAuthedProfile } from "@/lib/supabase/org-context";
 import { daysAgoIso } from "@/lib/dates";
 import { FleetMap, type FleetVehicle } from "./fleet-map";
 import { RouteEfficiencyChart, type RouteStatusCount } from "./route-efficiency-chart";
@@ -6,16 +7,8 @@ import { DriverStartTimesChart, type DriverStartSeries } from "./driver-start-ti
 
 export default async function AdminDashboardPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { user, profile } = await getAuthedProfile();
   if (!user) return null;
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("default_org_id")
-    .eq("id", user.id)
-    .maybeSingle();
   const orgId = profile?.default_org_id;
   if (!orgId) return null;
 

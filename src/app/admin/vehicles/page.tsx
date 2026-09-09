@@ -1,19 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
+import { getAuthedProfile } from "@/lib/supabase/org-context";
 import { AddVehicleForm } from "./add-vehicle-form";
 import { AssignDriverSelect, ArchiveButton } from "./vehicle-row-actions";
 
 export default async function VehiclesPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { user, profile } = await getAuthedProfile();
   if (!user) return null;
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("default_org_id")
-    .eq("id", user.id)
-    .maybeSingle();
   const orgId = profile?.default_org_id;
   if (!orgId) return null;
 

@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getAuthedProfile } from "@/lib/supabase/org-context";
 import { inspectionCategoryLabel, incidentCategoryLabel } from "@/lib/inspection-catalog";
 
 type InspectionItem = {
@@ -20,16 +21,8 @@ function vehicleLabel(v: { nickname: string | null; make: string | null; model: 
 
 export default async function ReviewsPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { user, profile } = await getAuthedProfile();
   if (!user) return null;
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("default_org_id")
-    .eq("id", user.id)
-    .maybeSingle();
   const orgId = profile?.default_org_id;
   if (!orgId) return null;
 

@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getAuthedProfile } from "@/lib/supabase/org-context";
 import { InviteForm } from "./invite-form";
 import { RemoveButton } from "./remove-button";
 import { AddDriverSlotForm } from "./add-driver-slot-form";
@@ -6,16 +7,8 @@ import { RemoveSlotButton } from "./remove-slot-button";
 
 export default async function RosterPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { user, profile } = await getAuthedProfile();
   if (!user) return null;
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("default_org_id")
-    .eq("id", user.id)
-    .maybeSingle();
   const orgId = profile?.default_org_id;
   if (!orgId) return null;
 
