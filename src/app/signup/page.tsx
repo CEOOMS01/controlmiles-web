@@ -2,10 +2,10 @@
 
 import { useActionState } from "react";
 import Link from "next/link";
-import { signIn } from "./actions";
+import { signUp } from "./actions";
 
-export default function LoginPage() {
-  const [state, formAction, pending] = useActionState(signIn, { error: null });
+export default function SignupPage() {
+  const [state, formAction, pending] = useActionState(signUp, { error: null });
 
   return (
     <main className="flex flex-1 items-center justify-center px-4 py-16">
@@ -14,15 +14,28 @@ export default function LoginPage() {
           <p className="text-sm font-semibold tracking-wide text-accent uppercase">
             ControlMiles
           </p>
-          <h1 className="mt-1 text-2xl font-semibold">Fleet admin sign in</h1>
+          <h1 className="mt-1 text-2xl font-semibold">Create your fleet account</h1>
           <p className="mt-2 text-sm text-muted">
-            This dashboard is for fleet administrators. Driving for
-            yourself or for a fleet? Get the ControlMiles mobile app
-            instead.
+            Set up your organization and start managing drivers and
+            vehicles from this dashboard.
           </p>
         </div>
 
         <form action={formAction} className="space-y-4">
+          <div>
+            <label htmlFor="orgName" className="mb-1.5 block text-sm font-medium">
+              Company / fleet name
+            </label>
+            <input
+              id="orgName"
+              name="orgName"
+              type="text"
+              required
+              autoComplete="organization"
+              className="w-full rounded-lg border border-border bg-surface px-3.5 py-2.5 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
+            />
+          </div>
+
           <div>
             <label htmlFor="email" className="mb-1.5 block text-sm font-medium">
               Email
@@ -46,9 +59,11 @@ export default function LoginPage() {
               name="password"
               type="password"
               required
-              autoComplete="current-password"
+              minLength={8}
+              autoComplete="new-password"
               className="w-full rounded-lg border border-border bg-surface px-3.5 py-2.5 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
             />
+            <p className="mt-1.5 text-xs text-muted">At least 8 characters.</p>
           </div>
 
           {state.error && (
@@ -62,14 +77,14 @@ export default function LoginPage() {
             disabled={pending}
             className="w-full rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground transition hover:opacity-90 disabled:opacity-60"
           >
-            {pending ? "Signing in…" : "Sign in"}
+            {pending ? "Creating account…" : "Create account"}
           </button>
         </form>
 
         <p className="mt-8 text-center text-xs text-muted">
-          Don&apos;t have an account?{" "}
-          <Link href="/signup" className="text-accent hover:underline">
-            Create one
+          Already have an account?{" "}
+          <Link href="/login" className="text-accent hover:underline">
+            Sign in
           </Link>
         </p>
       </div>
