@@ -76,6 +76,21 @@ export default async function SettingsPage() {
         </SettingsSection>
 
         <SettingsSection
+          title="Feedback"
+          description="Have an idea or run into something that isn't working?"
+        >
+          <div className="rounded-xl border border-border bg-surface p-5">
+            <p className="text-sm text-muted">
+              Send it to{" "}
+              <a href="mailto:contact@controlmiles.com" className="text-accent hover:underline">
+                contact@controlmiles.com
+              </a>
+              .
+            </p>
+          </div>
+        </SettingsSection>
+
+        <SettingsSection
           title="Danger zone"
           description="Irreversible, org-wide actions."
           accent

@@ -63,9 +63,10 @@ function Hero() {
           className="rise mt-6 max-w-md text-base leading-relaxed text-[var(--lg-ink-dim)]"
           style={{ animationDelay: "0.3s" }}
         >
-          GPS trip tracking, odometer verification, and a tamper-evident
-          audit trail — built for gig drivers running Uber, DoorDash,
-          Instacart and more, and for the fleets managing them.
+          Built for gig drivers and fleet companies alike — GPS trip
+          tracking, odometer verification, and automatic gig-app detection
+          that tracks multiple gig apps at once, switching between them
+          dynamically as you drive.
         </p>
         <div className="rise mt-9 flex flex-wrap gap-3" style={{ animationDelay: "0.42s" }}>
           <Link
@@ -130,7 +131,7 @@ function StatsStrip() {
   const stats = [
     { value: "10", unit: "languages", label: "Every driver reads their own" },
     { value: "51", unit: "states mapped", label: "Real boundary data for IFTA mileage" },
-    { value: "0", unit: "guesswork", label: "Every trip is GPS-logged, hash-chained" },
+    { value: "0", unit: "guesswork", label: "Every trip is GPS-logged and locked in" },
   ];
   return (
     <section className="border-y border-[var(--lg-line)] bg-white/60">
@@ -153,16 +154,16 @@ function StatsStrip() {
 
 const FEATURES = [
   {
-    title: "GPS trip tracking",
-    body: "Background location tracking through every gig-app switch, with client-side jump/speed/mock-location checks flagging anything that doesn't look real.",
+    title: "Automatic gig-app detection",
+    body: "Runs multiple gig apps at once and switches between them dynamically as you drive, flagging anything that looks faked or spoofed.",
   },
   {
     title: "Odometer, verified",
-    body: "Snap a photo at start and end — on-device OCR reads the number, so the mileage claim has a paper trail, not just a GPS estimate.",
+    body: "Snap a photo at start and end — we read the number automatically, so your mileage has real proof behind it, not just a GPS guess.",
   },
   {
-    title: "Tamper-evident log",
-    body: "Every trip event is written into a SHA-256 hash chain. Edit one record after the fact, and the chain shows exactly where it broke.",
+    title: "Your record, protected",
+    body: "Every trip is locked in the moment it's logged. If anything about it ever changes afterward, it shows up right away.",
   },
   {
     title: "Fleet, from one dashboard",

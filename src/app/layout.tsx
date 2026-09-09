@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "ControlMiles — Mileage tracking for gig drivers & fleets",
   description:
-    "GPS trip tracking, odometer verification, and a tamper-evident audit trail for gig drivers and the fleets managing them.",
+    "GPS trip tracking, odometer verification, and automatic gig-app detection for gig drivers and the fleets managing them.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
