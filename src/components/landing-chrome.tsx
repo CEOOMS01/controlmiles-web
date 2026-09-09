@@ -25,6 +25,9 @@ export function LandingNav() {
         </span>
       </Link>
       <nav className="flex items-center gap-5 text-sm text-[var(--lg-ink-dim)]">
+        <Link href="/pricing" className="hidden transition hover:text-[var(--lg-ink)] sm:inline">
+          Pricing
+        </Link>
         <Link href="/portal/verify" className="hidden transition hover:text-[var(--lg-ink)] sm:inline">
           Verify a report
         </Link>

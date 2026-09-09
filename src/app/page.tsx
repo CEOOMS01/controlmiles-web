@@ -73,13 +73,13 @@ function Hero() {
             className="rounded-full px-6 py-3 text-sm font-semibold text-white shadow-[0_8px_20px_-8px_rgba(44,108,153,0.55)] transition hover:opacity-90"
             style={{ background: "var(--lg-blue-deep)" }}
           >
-            Driver sign in
+            Fleet admin sign in
           </Link>
           <Link
-            href="/portal/verify"
+            href="/pricing"
             className="rounded-full border border-[var(--lg-line)] bg-white px-6 py-3 text-sm font-semibold text-[var(--lg-ink)] transition hover:border-[var(--lg-blue)]"
           >
-            Verify a report
+            See pricing
           </Link>
         </div>
       </div>
