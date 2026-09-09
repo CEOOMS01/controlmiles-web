@@ -110,27 +110,62 @@ export default function VerifyPage() {
   );
 }
 
+// "January 2026" when the period sits in one month, "January 2026 –
+// December 2026" when it spans more than one -- the mobile app has no
+// existing "collapse a date range into a month-year label" helper to
+// reuse (its DateFormat('MMMM yyyy') calls only ever label a single
+// month's session group), so this is new, purpose-built for the portal.
+function formatPeriod(startDate: string, endDate: string): string {
+  const start = new Date(`${startDate}T00:00:00Z`);
+  const end = new Date(`${endDate}T00:00:00Z`);
+  const opts: Intl.DateTimeFormatOptions = { month: "long", year: "numeric", timeZone: "UTC" };
+  const startLabel = start.toLocaleDateString("en-US", opts);
+  const endLabel = end.toLocaleDateString("en-US", opts);
+  return startLabel === endLabel ? startLabel : `${startLabel} – ${endLabel}`;
+}
+
+function formatWeekRange(startDate: string, endDate: string): string {
+  const opts: Intl.DateTimeFormatOptions = { month: "short", day: "numeric", timeZone: "UTC" };
+  const start = new Date(`${startDate}T00:00:00Z`).toLocaleDateString("en-US", opts);
+  const end = new Date(`${endDate}T00:00:00Z`).toLocaleDateString("en-US", opts);
+  return `${start} – ${end}`;
+}
+
 function ReportView({ report, onReset }: { report: PortalReport; onReset: () => void }) {
   return (
     <main className="flex flex-1 justify-center px-4 py-16">
       <div className="w-full max-w-xl">
-        <div className="mb-6">
-          <p className="text-sm font-semibold tracking-wide text-accent uppercase">
-            ControlMiles Report Portal
+        <div className="mb-6 flex items-start justify-between gap-4">
+          <div>
+            <p className="text-sm font-semibold tracking-wide text-accent uppercase">
+              ControlMiles Report Portal
+            </p>
+            <h1 className="mt-1 text-2xl font-semibold">
+              {report.driver_display_name || "Driver"}
+            </h1>
+            {report.driver_display_id && (
+              <p className="text-sm text-muted">ID: {report.driver_display_id}</p>
+            )}
+          </div>
+          <p className="shrink-0 pt-1 text-right text-xs text-muted">
+            Generated
+            <br />
+            {new Date(report.generated_at).toLocaleString()}
           </p>
-          <h1 className="mt-1 text-2xl font-semibold">
-            {report.driver_display_name || "Driver"}
-          </h1>
-          {report.driver_display_id && (
-            <p className="text-sm text-muted">ID: {report.driver_display_id}</p>
-          )}
         </div>
 
         <div className="rounded-xl border border-border bg-surface p-6">
           <div className="grid grid-cols-2 gap-4 border-b border-border pb-4 sm:grid-cols-3">
-            <Stat label="Period" value={`${report.start_date} — ${report.end_date}`} />
+            <Stat label="Period" value={formatPeriod(report.start_date, report.end_date)} />
             <Stat label="Total miles" value={report.total_miles.toFixed(1)} />
             <Stat label="Sessions" value={String(report.total_sessions)} />
+          </div>
+
+          <div className="border-b border-border py-4">
+            <p className="text-xs text-muted">Estimated deduction (IRS standard mileage rate)</p>
+            <p className="mt-0.5 text-xl font-semibold text-[#15803d]">
+              ${report.total_deduction_estimate.toFixed(2)}
+            </p>
           </div>
 
           {report.vehicles.length > 0 && (
@@ -145,6 +180,36 @@ function ReportView({ report, onReset }: { report: PortalReport; onReset: () => 
                   </li>
                 ))}
               </ul>
+            </div>
+          )}
+
+          {report.weekly_checkpoints.length > 0 && (
+            <div className="border-b border-border py-4">
+              <h2 className="mb-2 text-sm font-semibold">Weekly odometer photos</h2>
+              <div className="space-y-3">
+                {report.weekly_checkpoints.map((cp, i) => (
+                  <div key={i} className="rounded-lg border border-border p-3">
+                    <p className="mb-2 text-xs font-medium text-muted">
+                      Week of {formatWeekRange(cp.week_start_date, cp.week_end_date)}
+                      {cp.vehicle
+                        ? ` · ${[cp.vehicle.year, cp.vehicle.make, cp.vehicle.model].filter(Boolean).join(" ")}${cp.vehicle.nickname ? ` "${cp.vehicle.nickname}"` : ""}`
+                        : ""}
+                    </p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <OdometerTile
+                        label="Start"
+                        value={cp.start_odometer_value}
+                        photoUrl={cp.start_odometer_photo_url}
+                      />
+                      <OdometerTile
+                        label="End"
+                        value={cp.end_odometer_value}
+                        photoUrl={cp.end_odometer_photo_url}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
@@ -176,8 +241,11 @@ function ReportView({ report, onReset }: { report: PortalReport; onReset: () => 
         </div>
 
         <p className="mt-4 text-xs text-muted">
-          For deduction purposes — not guaranteed by this app. Generated{" "}
-          {new Date(report.generated_at).toLocaleString()}.
+          Estimated using the IRS 2026 standard mileage rates ($0.725/mile Jan 1 – Jun 30,
+          $0.76/mile Jul 1 – Dec 31 — each trip priced at the rate in effect on its own date).
+          ControlMiles is not affiliated with or endorsed by the IRS or any official agency.
+          This is an informational estimate only, not a guaranteed deduction — consult a tax
+          professional.
         </p>
 
         <button
@@ -196,6 +264,38 @@ function Stat({ label, value }: { label: string; value: string }) {
     <div>
       <p className="text-xs text-muted">{label}</p>
       <p className="font-medium">{value}</p>
+    </div>
+  );
+}
+
+function OdometerTile({
+  label,
+  value,
+  photoUrl,
+}: {
+  label: string;
+  value: number | null;
+  photoUrl: string | null;
+}) {
+  return (
+    <div>
+      <p className="mb-1 text-xs text-muted">{label}</p>
+      {photoUrl ? (
+        <a href={photoUrl} target="_blank" rel="noopener noreferrer">
+          <img
+            src={photoUrl}
+            alt={`${label} odometer photo`}
+            className="h-24 w-full rounded-md border border-border object-cover"
+          />
+        </a>
+      ) : (
+        <div className="flex h-24 w-full items-center justify-center rounded-md border border-dashed border-border text-xs text-muted">
+          No photo
+        </div>
+      )}
+      <p className="mt-1 text-sm font-medium">
+        {value != null ? `${value.toLocaleString()} mi` : "—"}
+      </p>
     </div>
   );
 }
