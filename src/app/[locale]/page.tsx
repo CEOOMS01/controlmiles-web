@@ -1,4 +1,6 @@
-import Link from "next/link";
+import { getTranslations, setRequestLocale } from "next-intl/server";
+import { alternatesFor } from "@/i18n/metadata";
+import { Link } from "@/i18n/routing";
 import { Fraunces, Public_Sans, IBM_Plex_Mono } from "next/font/google";
 import { LandingNav, LandingFooter } from "@/components/landing-chrome";
 import { Reveal } from "@/components/reveal";
@@ -23,7 +25,30 @@ const plexMono = IBM_Plex_Mono({
 
 const ROUTE_D = "M 8 210 C 120 210, 140 60, 260 60 S 420 210, 520 150 S 640 40, 740 90";
 
-export default function Home() {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "home" });
+  return {
+    title: t("metaTitle"),
+    description: t("metaDescription"),
+    alternates: alternatesFor("/", locale),
+  };
+}
+
+export default async function Home({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  // Sin esto la página se renderiza por request en vez de generarse
+  // estáticamente por idioma.
+  setRequestLocale(locale);
+
   return (
     <main
       className={`landing ${display.variable} ${body.variable} ${plexMono.variable}`}
@@ -40,7 +65,8 @@ export default function Home() {
   );
 }
 
-function Hero() {
+async function Hero() {
+  const t = await getTranslations("home");
   return (
     <section className="mx-auto grid max-w-6xl gap-14 px-6 pb-20 pt-10 sm:px-10 md:grid-cols-[1.1fr_0.9fr] md:items-center md:pt-20">
       <div>
@@ -48,26 +74,23 @@ function Hero() {
           className="rise mono text-xs font-medium tracking-[0.2em] text-[var(--lg-amber)]"
           style={{ animationDelay: "0.05s" }}
         >
-          GIG &amp; FLEET MILEAGE, LOGGED
+          {t("eyebrow")}
         </p>
         <h1
           className="display rise mt-5 text-5xl leading-[1.02] font-semibold sm:text-6xl md:text-[4.2rem]"
           style={{ animationDelay: "0.15s" }}
         >
-          Every mile,
+          {t("titleLine1")}
           <br />
           <span className="italic" style={{ color: "var(--lg-blue-deep)" }}>
-            on the record.
+            {t("titleLine2")}
           </span>
         </h1>
         <p
           className="rise mt-6 max-w-md text-base leading-relaxed text-[var(--lg-ink-dim)]"
           style={{ animationDelay: "0.3s" }}
         >
-          Built for gig drivers and fleet companies alike — GPS trip
-          tracking, odometer verification, and automatic gig-app detection
-          that tracks multiple gig apps at once, switching between them
-          dynamically as you drive.
+          {t("subtitle")}
         </p>
         <div className="rise mt-9 flex flex-wrap gap-3" style={{ animationDelay: "0.42s" }}>
           <Link
@@ -75,13 +98,13 @@ function Hero() {
             className="rounded-full px-6 py-3 text-sm font-semibold text-white shadow-[0_8px_20px_-8px_rgba(44,108,153,0.55)] transition hover:opacity-90"
             style={{ background: "var(--lg-blue-deep)" }}
           >
-            Fleet admin sign in
+            {t("ctaSignIn")}
           </Link>
           <Link
             href="/pricing"
             className="rounded-full border border-[var(--lg-line)] bg-white px-6 py-3 text-sm font-semibold text-[var(--lg-ink)] transition hover:border-[var(--lg-blue)]"
           >
-            See pricing
+            {t("ctaPricing")}
           </Link>
         </div>
       </div>
@@ -89,9 +112,9 @@ function Hero() {
       <div className="rise" style={{ animationDelay: "0.2s" }}>
         <div className="rounded-2xl border border-[var(--lg-line)] bg-white p-6 shadow-[0_20px_50px_-24px_rgba(33,28,20,0.25)]">
           <p className="mono text-[11px] font-medium tracking-[0.15em] text-[var(--lg-ink-dim)]">
-            TODAY&apos;S ROUTE
+            {t("todaysRoute")}
           </p>
-          <svg viewBox="0 0 760 240" className="mt-4 w-full" role="img" aria-label="An animated route line ending at a ControlMiles pin">
+          <svg viewBox="0 0 760 240" className="mt-4 w-full" role="img" aria-label={t("routeAlt")}>
             <path d={ROUTE_D} fill="none" stroke="var(--lg-line)" strokeWidth="2" />
             <path
               className="route-path"
@@ -111,15 +134,15 @@ function Hero() {
           >
             <div>
               <p className="display text-2xl font-semibold">18.4</p>
-              <p className="text-xs text-[var(--lg-ink-dim)]">miles</p>
+              <p className="text-xs text-[var(--lg-ink-dim)]">{t("miles")}</p>
             </div>
             <div className="pl-4">
               <p className="display text-2xl font-semibold">3</p>
-              <p className="text-xs text-[var(--lg-ink-dim)]">trips</p>
+              <p className="text-xs text-[var(--lg-ink-dim)]">{t("trips")}</p>
             </div>
             <div className="pl-4">
               <p className="display text-2xl font-semibold">$0</p>
-              <p className="text-xs text-[var(--lg-ink-dim)]">guesswork</p>
+              <p className="text-xs text-[var(--lg-ink-dim)]">{t("guesswork")}</p>
             </div>
           </div>
         </div>
@@ -128,11 +151,12 @@ function Hero() {
   );
 }
 
-function StatsStrip() {
+async function StatsStrip() {
+  const t = await getTranslations("home.stats");
   const stats = [
-    { value: "10", unit: "languages", label: "Every driver reads their own" },
-    { value: "51", unit: "states mapped", label: "Real boundary data for IFTA mileage" },
-    { value: "0", unit: "guesswork", label: "Every trip is GPS-logged and locked in" },
+    { value: "10", unit: t("languagesUnit"), label: t("languagesLabel") },
+    { value: "51", unit: t("statesUnit"), label: t("statesLabel") },
+    { value: "0", unit: t("guessworkUnit"), label: t("guessworkLabel") },
   ];
   return (
     <section className="border-y border-[var(--lg-line)] bg-white/60">
@@ -153,33 +177,21 @@ function StatsStrip() {
   );
 }
 
-const FEATURES = [
-  {
-    title: "Automatic gig-app detection",
-    body: "Runs multiple gig apps at once and switches between them dynamically as you drive, detecting and excluding anything that looks faked or spoofed.",
-  },
-  {
-    title: "Odometer, verified",
-    body: "Snap a photo at start and end — we read the number automatically, so your mileage has real proof behind it, not just a GPS guess.",
-  },
-  {
-    title: "Your record, protected",
-    body: "Every trip is locked in the moment it's logged. If anything about it ever changes afterward, it shows up right away.",
-  },
-  {
-    title: "Fleet, from one dashboard",
-    body: "Roster, vehicle assignment, DVIR inspections, live location and geofence alerts — one place for an admin to see the whole fleet.",
-  },
-];
-
-function Features() {
+async function Features() {
+  const t = await getTranslations("home.features");
+  const FEATURES = [
+    { title: t("detectionTitle"), body: t("detectionBody") },
+    { title: t("odometerTitle"), body: t("odometerBody") },
+    { title: t("recordTitle"), body: t("recordBody") },
+    { title: t("fleetTitle"), body: t("fleetBody") },
+  ];
   return (
     <section className="mx-auto max-w-6xl px-6 py-20 sm:px-10">
       <p className="mono text-xs font-medium tracking-[0.2em] text-[var(--lg-amber)]">
-        WHAT&apos;S UNDER THE HOOD
+        {t("eyebrow")}
       </p>
       <h2 className="display mt-3 max-w-lg text-4xl font-semibold leading-[1.05] sm:text-5xl">
-        Built to survive an audit, not just a glance.
+        {t("title")}
       </h2>
 
       <div className="mt-12 grid gap-5 sm:grid-cols-2">
@@ -198,17 +210,17 @@ function Features() {
   );
 }
 
-const STEPS = [
-  { n: "01", title: "Drive", body: "The app tracks miles per gig app automatically, purpose and all." },
-  { n: "02", title: "Review", body: "Every trip, purpose, and mile shows up in your history and PDF reports." },
-  { n: "03", title: "Prove it", body: "Share a one-time code — a preparer verifies your report, no account needed." },
-];
-
-function HowItWorks() {
+async function HowItWorks() {
+  const t = await getTranslations("home.how");
+  const STEPS = [
+    { n: "01", title: t("driveTitle"), body: t("driveBody") },
+    { n: "02", title: t("reviewTitle"), body: t("reviewBody") },
+    { n: "03", title: t("proveTitle"), body: t("proveBody") },
+  ];
   return (
     <section className="border-y border-[var(--lg-line)] bg-white/60">
       <div className="mx-auto max-w-6xl px-6 py-20 sm:px-10">
-        <h2 className="display text-3xl font-semibold sm:text-4xl">How it works</h2>
+        <h2 className="display text-3xl font-semibold sm:text-4xl">{t("title")}</h2>
         <div className="mt-10 grid gap-10 sm:grid-cols-3">
           {STEPS.map((s, i) => (
             <Reveal key={s.n} index={i}>
@@ -225,21 +237,20 @@ function HowItWorks() {
   );
 }
 
-function PortalCta() {
+async function PortalCta() {
+  const t = await getTranslations("portalCta");
   return (
     <section className="mx-auto max-w-6xl px-6 py-20 sm:px-10">
       <Reveal className="lift grid gap-8 rounded-2xl border border-[var(--lg-line)] bg-white p-8 shadow-[0_20px_50px_-30px_rgba(33,28,20,0.35)] sm:grid-cols-2 sm:p-12">
         <div>
           <p className="mono text-xs font-medium tracking-[0.2em] text-[var(--lg-amber)]">
-            REPORT PORTAL
+            {t("eyebrow")}
           </p>
           <h2 className="display mt-3 text-3xl font-semibold leading-[1.05] sm:text-4xl">
-            Preparing someone&apos;s taxes?
+            {t("title")}
           </h2>
           <p className="mt-4 text-sm leading-relaxed text-[var(--lg-ink-dim)]">
-            Your client generates a one-time access code from their
-            ControlMiles account. Enter it here to view a read-only
-            mileage summary — no login, no account, nothing installed.
+            {t("body")}
           </p>
         </div>
         <div className="flex flex-col justify-center gap-3">
@@ -248,10 +259,10 @@ function PortalCta() {
             className="rounded-full px-6 py-3 text-center text-sm font-semibold text-white transition hover:opacity-90"
             style={{ background: "var(--lg-amber)" }}
           >
-            Enter access code
+            {t("cta")}
           </Link>
           <p className="text-center text-xs text-[var(--lg-ink-dim)]">
-            For deduction purposes — not guaranteed by this app.
+            {t("note")}
           </p>
         </div>
       </Reveal>

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { headers } from "next/headers";
+import { getLocale } from "next-intl/server";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -30,9 +31,16 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   // JS, every click silently did nothing).
   await headers();
 
+  // El idioma se resuelve aquí, en la raíz, porque `lang` vive en <html> y
+  // <html> no puede declararse dos veces (el segmento [locale] no puede
+  // renderizar su propio documento sin anidar uno dentro de otro).
+  // getLocale() funciona en cualquier Server Component, incluidas las rutas
+  // NO traducidas como /admin: ahí devuelve el idioma por defecto.
+  const locale = await getLocale();
+
   return (
     <html
-      lang="en"
+      lang={locale}
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">{children}</body>

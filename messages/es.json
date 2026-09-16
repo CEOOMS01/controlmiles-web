@@ -1,0 +1,121 @@
+{
+  "nav": {
+    "pricing": "Precios",
+    "verifyReport": "Verificar un reporte",
+    "signIn": "Iniciar sesión",
+    "languageLabel": "Idioma"
+  },
+  "footer": {
+    "privacy": "Política de Privacidad",
+    "terms": "Términos del Servicio",
+    "rights": "© 2026 ControlMiles. Todos los derechos reservados. Powered by Olimsys."
+  },
+  "home": {
+    "metaTitle": "ControlMiles — Registro de millas para conductores gig y flotas",
+    "metaDescription": "Rastreo GPS de viajes, verificación de odómetro y detección automática de apps gig, para conductores y para las flotas que los gestionan.",
+    "eyebrow": "MILLAS GIG Y DE FLOTA, REGISTRADAS",
+    "titleLine1": "Cada milla,",
+    "titleLine2": "documentada.",
+    "subtitle": "Hecho tanto para conductores gig como para empresas de flota: rastreo GPS de viajes, verificación de odómetro y detección automática que sigue varias apps gig a la vez, cambiando entre ellas sobre la marcha.",
+    "ctaSignIn": "Acceso para admin de flota",
+    "ctaPricing": "Ver precios",
+    "todaysRoute": "RUTA DE HOY",
+    "routeAlt": "Una línea de ruta animada que termina en el pin de ControlMiles",
+    "miles": "millas",
+    "trips": "viajes",
+    "guesswork": "de suposiciones",
+    "stats": {
+      "languagesUnit": "idiomas",
+      "languagesLabel": "Cada conductor lee en el suyo",
+      "statesUnit": "estados mapeados",
+      "statesLabel": "Límites reales para millaje IFTA",
+      "guessworkUnit": "de suposiciones",
+      "guessworkLabel": "Cada viaje queda registrado por GPS y sellado"
+    },
+    "features": {
+      "eyebrow": "LO QUE LLEVA DENTRO",
+      "title": "Hecho para resistir una auditoría, no solo un vistazo.",
+      "detectionTitle": "Detección automática de apps gig",
+      "detectionBody": "Sigue varias apps gig a la vez y cambia entre ellas sobre la marcha, detectando y descartando cualquier cosa que parezca falseada o simulada.",
+      "odometerTitle": "Odómetro, verificado",
+      "odometerBody": "Una foto al empezar y otra al terminar: leemos el número automáticamente, así tus millas tienen prueba real detrás y no solo una estimación del GPS.",
+      "recordTitle": "Tu registro, protegido",
+      "recordBody": "Cada viaje queda sellado en el momento en que se registra. Si algo cambia después, se nota de inmediato.",
+      "fleetTitle": "La flota, desde un solo panel",
+      "fleetBody": "Plantilla de conductores, asignación de vehículos, inspecciones DVIR, ubicación en vivo y alertas de geocerca: un solo lugar para verlo todo."
+    },
+    "how": {
+      "title": "Cómo funciona",
+      "driveTitle": "Conduce",
+      "driveBody": "La app registra las millas de cada app gig automáticamente, con su propósito incluido.",
+      "reviewTitle": "Revisa",
+      "reviewBody": "Cada viaje, propósito y milla aparece en tu historial y en los reportes PDF.",
+      "proveTitle": "Demuéstralo",
+      "proveBody": "Comparte un código de un solo uso: tu preparador verifica el reporte sin necesidad de cuenta."
+    }
+  },
+  "pricing": {
+    "metaTitle": "Precios — ControlMiles",
+    "metaDescription": "Precios simples para conductores gig y flotas. Registro de millas, verificación de odómetro y reportes listos para auditoría.",
+    "eyebrow": "PRECIOS",
+    "title": "Precios simples, conduzcas como conduzcas.",
+    "subtitle": "Los conductores gig se suscriben desde la app. Los administradores de flota gestionan facturación y plantilla desde este panel.",
+    "mostPopular": "MÁS POPULAR",
+    "forDrivers": "Para conductores gig",
+    "forDriversNote": "Se cobra dentro de la app, en App Store o Google Play. Cancela cuando quieras.",
+    "forFleets": "Para flotas",
+    "forFleetsNote": "Precio por vehículo. Se configura y gestiona íntegramente desde controlmiles.com.",
+    "getApp": "Descargar la app",
+    "signInFleet": "Entrar como admin de flota",
+    "perDriver": "/ conductor / mes",
+    "perVehicle": "/ vehículo / mes",
+    "plans": {
+      "basicName": "Basic",
+      "basicTagline": "Tus millas, registradas y listas.",
+      "premiumName": "Premium",
+      "premiumTagline": "Todo en lo que una auditoría real puede apoyarse.",
+      "starterName": "Starter",
+      "starterTagline": "Pon tu flota sobre el registro.",
+      "growthName": "Growth",
+      "growthTagline": "Gestiona toda la flota desde un solo panel.",
+      "enterpriseName": "Enterprise",
+      "enterpriseTagline": "Implantación a medida para flotas grandes.",
+      "enterprisePrice": "Consúltanos"
+    },
+    "features": {
+      "gpsCarousel": "Rastreo GPS de viajes, con inicio y fin desde el carrusel de apps gig",
+      "perAppTagging": "Etiquetado de viajes por app gig",
+      "monthlySummary": "Resumen mensual de millas",
+      "pdfExport": "Exportación a PDF",
+      "everythingBasic": "Todo lo de Basic",
+      "autoDetection": "Detección automática de viajes (arranca solo, sin tocar nada)",
+      "odometerPhoto": "Verificación por foto del odómetro, leída automáticamente",
+      "tamperEvident": "Un registro de viajes que no se puede editar a escondidas",
+      "portalCodes": "Códigos del Portal de Reportes (verificar no requiere cuenta)",
+      "unlimitedHistory": "Historial de reportes ilimitado",
+      "rosters": "Plantilla de conductores y de vehículos",
+      "gpsPerDriver": "Rastreo GPS de viajes por conductor",
+      "odometerVerification": "Verificación por foto del odómetro",
+      "portalAnyDriver": "Portal de Reportes para cualquier conductor",
+      "revocation": "Revocación de acceso",
+      "everythingStarter": "Todo lo de Starter",
+      "dvir": "Inspecciones DVIR",
+      "geofencing": "Geocercas y mapa en vivo",
+      "assignmentModes": "Asignación de vehículo fija o abierta",
+      "fleetExport": "Exportación CSV/PDF de toda la flota",
+      "activityLog": "Un registro de actividad completo y protegido contra ediciones",
+      "everythingGrowth": "Todo lo de Growth",
+      "onboarding": "Puesta en marcha acompañada",
+      "customReporting": "Reportes e integraciones a medida",
+      "prioritySupport": "Soporte prioritario"
+    },
+    "disclaimer": "Los precios mostrados son estimaciones actuales y pueden cambiar antes de habilitar el pago. Esto no es asesoramiento fiscal ni financiero."
+  },
+  "portalCta": {
+    "eyebrow": "PORTAL DE REPORTES",
+    "title": "¿Preparas impuestos de alguien?",
+    "body": "Tu cliente genera un código de un solo uso desde su cuenta de ControlMiles. Introdúcelo aquí para ver un resumen de millas de solo lectura: sin iniciar sesión, sin cuenta y sin instalar nada.",
+    "cta": "Introducir código",
+    "note": "Para efectos de deducción: esta app no los garantiza."
+  }
+}

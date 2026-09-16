@@ -1,4 +1,8 @@
 import type { NextConfig } from "next";
+import createNextIntlPlugin from "next-intl/plugin";
+
+// Le indica a next-intl dónde vive la configuración por request.
+const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 // Static security headers (checklist 18/19). Content-Security-Policy is
 // deliberately NOT here -- it needs a fresh nonce per request to allow
@@ -26,4 +30,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withNextIntl(nextConfig);

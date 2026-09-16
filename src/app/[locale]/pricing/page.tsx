@@ -20,7 +20,9 @@
 // cheap-tracker floor but below the enterprise ceiling. All figures are
 // ControlMiles' own estimate, not financial or tax advice.
 
-import Link from "next/link";
+import { getTranslations, setRequestLocale } from "next-intl/server";
+import { alternatesFor } from "@/i18n/metadata";
+import { Link } from "@/i18n/routing";
 import { LandingNav, LandingFooter } from "@/components/landing-chrome";
 import { Reveal } from "@/components/reveal";
 import { Fraunces, Public_Sans, IBM_Plex_Mono } from "next/font/google";
@@ -40,85 +42,85 @@ type Plan = {
   highlight?: boolean;
 };
 
-const GIG_PLANS: Plan[] = [
+const gigPlans = (t: Awaited<ReturnType<typeof getTranslations>>): Plan[] => [
   {
-    name: "Basic",
+    name: t("plans.basicName"),
     price: "$4.99",
-    unit: "/ driver / month",
-    tagline: "Mileage, logged and ready.",
+    unit: t("perDriver"),
+    tagline: t("plans.basicTagline"),
     features: [
-      "GPS trip tracking, start/stop from the gig-app carousel",
-      "Per-gig-app trip tagging",
-      "Monthly mileage summary",
-      "PDF export",
+      t("features.gpsCarousel"),
+      t("features.perAppTagging"),
+      t("features.monthlySummary"),
+      t("features.pdfExport"),
     ],
-    cta: { label: "Get the app", href: "/app-required" },
+    cta: { label: t("getApp"), href: "/app-required" },
   },
   {
-    name: "Premium",
+    name: t("plans.premiumName"),
     price: "$9.99",
-    unit: "/ driver / month",
-    tagline: "Everything a real audit can lean on.",
+    unit: t("perDriver"),
+    tagline: t("plans.premiumTagline"),
     features: [
-      "Everything in Basic",
-      "Automatic trip detection (auto-start, no tapping in)",
-      "Odometer photo verification, read automatically",
-      "A trip record that can't be quietly edited later",
-      "Report Portal access codes (no login needed to verify)",
-      "Unlimited report history",
+      t("features.everythingBasic"),
+      t("features.autoDetection"),
+      t("features.odometerPhoto"),
+      t("features.tamperEvident"),
+      t("features.portalCodes"),
+      t("features.unlimitedHistory"),
     ],
-    cta: { label: "Get the app", href: "/app-required" },
+    cta: { label: t("getApp"), href: "/app-required" },
     highlight: true,
   },
 ];
 
-const FLEET_PLANS: Plan[] = [
+const fleetPlans = (t: Awaited<ReturnType<typeof getTranslations>>): Plan[] => [
   {
-    name: "Starter",
+    name: t("plans.starterName"),
     price: "$12.99",
-    unit: "/ vehicle / month",
-    tagline: "Get a fleet on the record.",
+    unit: t("perVehicle"),
+    tagline: t("plans.starterTagline"),
     features: [
-      "Driver roster & vehicle roster",
-      "GPS trip tracking per driver",
-      "Odometer photo verification",
-      "Report Portal for any driver",
-      "Membership revocation",
+      t("features.rosters"),
+      t("features.gpsPerDriver"),
+      t("features.odometerVerification"),
+      t("features.portalAnyDriver"),
+      t("features.revocation"),
     ],
-    cta: { label: "Sign in as fleet admin", href: "/login" },
+    cta: { label: t("signInFleet"), href: "/login" },
   },
   {
-    name: "Growth",
+    name: t("plans.growthName"),
     price: "$19.99",
-    unit: "/ vehicle / month",
-    tagline: "Run the whole fleet from one dashboard.",
+    unit: t("perVehicle"),
+    tagline: t("plans.growthTagline"),
     features: [
-      "Everything in Starter",
-      "DVIR inspections",
-      "Geofencing & live map",
-      "Fixed or open vehicle assignment",
-      "Fleet-wide CSV/PDF export",
-      "A complete activity log that's protected against edits",
+      t("features.everythingStarter"),
+      t("features.dvir"),
+      t("features.geofencing"),
+      t("features.assignmentModes"),
+      t("features.fleetExport"),
+      t("features.activityLog"),
     ],
-    cta: { label: "Sign in as fleet admin", href: "/login" },
+    cta: { label: t("signInFleet"), href: "/login" },
     highlight: true,
   },
   {
-    name: "Enterprise",
-    price: "Contact us",
+    name: t("plans.enterpriseName"),
+    price: t("plans.enterprisePrice"),
     unit: "",
-    tagline: "Custom rollout for larger fleets.",
+    tagline: t("plans.enterpriseTagline"),
     features: [
-      "Everything in Growth",
-      "Dedicated onboarding",
-      "Custom reporting & integrations",
-      "Priority support",
+      t("features.everythingGrowth"),
+      t("features.onboarding"),
+      t("features.customReporting"),
+      t("features.prioritySupport"),
     ],
     cta: { label: "contact@controlmiles.com", href: "mailto:contact@controlmiles.com" },
   },
 ];
 
-function PlanCard({ plan, index = 0 }: { plan: Plan; index?: number }) {
+function PlanCard({ plan, index = 0, mostPopular }: { plan: Plan; index?: number; mostPopular: string }) {
   return (
     // El plan destacado se distingue por su POSICIÓN EN REPOSO (elevado,
     // .plan-featured) además del borde y la sombra que ya tenía. La
@@ -141,7 +143,7 @@ function PlanCard({ plan, index = 0 }: { plan: Plan; index?: number }) {
           className="mono plan-badge mb-3 w-fit rounded-full px-2.5 py-1 text-[10px] font-semibold tracking-[0.15em]"
           style={{ background: "rgba(62,147,202,0.12)", color: "var(--lg-blue-deep)" }}
         >
-          MOST POPULAR
+          {mostPopular}
         </p>
       )}
       <h3 className="display text-2xl font-semibold">{plan.name}</h3>
@@ -175,7 +177,31 @@ function PlanCard({ plan, index = 0 }: { plan: Plan; index?: number }) {
   );
 }
 
-export default function PricingPage() {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "pricing" });
+  return {
+    title: t("metaTitle"),
+    description: t("metaDescription"),
+    alternates: alternatesFor("/pricing", locale),
+  };
+}
+
+export default async function PricingPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  setRequestLocale(locale);
+  const t = await getTranslations("pricing");
+  const GIG_PLANS = gigPlans(t);
+  const FLEET_PLANS = fleetPlans(t);
+
   return (
     <main
       className={`landing ${display.variable} ${body.variable} ${plexMono.variable}`}
@@ -185,45 +211,43 @@ export default function PricingPage() {
 
       <section className="mx-auto max-w-4xl px-6 pb-4 pt-10 text-center sm:px-10 sm:pt-16">
         <p className="mono text-xs font-medium tracking-[0.2em] text-[var(--lg-amber)]">
-          PRICING
+          {t("eyebrow")}
         </p>
         <h1 className="display mt-4 text-4xl font-semibold leading-[1.05] sm:text-5xl">
-          Simple pricing, either way you drive.
+          {t("title")}
         </h1>
         <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-[var(--lg-ink-dim)]">
-          Individual gig drivers subscribe from the app. Fleet admins manage
-          billing and rostering from this dashboard.
+          {t("subtitle")}
         </p>
       </section>
 
       <section className="mx-auto max-w-6xl px-6 pb-8 pt-6 sm:px-10">
-        <h2 className="display text-2xl font-semibold">For gig drivers</h2>
+        <h2 className="display text-2xl font-semibold">{t("forDrivers")}</h2>
         <p className="mt-1 text-sm text-[var(--lg-ink-dim)]">
-          Billed in-app on the App Store or Google Play. Cancel anytime.
+          {t("forDriversNote")}
         </p>
         <div className="mt-6 grid gap-5 sm:grid-cols-2">
           {GIG_PLANS.map((p, i) => (
-            <PlanCard key={p.name} plan={p} index={i} />
+            <PlanCard key={p.name} plan={p} index={i} mostPopular={t("mostPopular")} />
           ))}
         </div>
       </section>
 
       <section className="mx-auto max-w-6xl px-6 py-12 sm:px-10">
-        <h2 className="display text-2xl font-semibold">For fleets</h2>
+        <h2 className="display text-2xl font-semibold">{t("forFleets")}</h2>
         <p className="mt-1 text-sm text-[var(--lg-ink-dim)]">
-          Priced per vehicle. Set up and manage entirely from controlmiles.com.
+          {t("forFleetsNote")}
         </p>
         <div className="mt-6 grid gap-5 sm:grid-cols-3">
           {FLEET_PLANS.map((p, i) => (
-            <PlanCard key={p.name} plan={p} index={i} />
+            <PlanCard key={p.name} plan={p} index={i} mostPopular={t("mostPopular")} />
           ))}
         </div>
       </section>
 
       <section className="mx-auto max-w-4xl px-6 pb-20 pt-4 sm:px-10">
         <p className="text-center text-xs leading-relaxed text-[var(--lg-ink-dim)]">
-          Prices shown are current estimates and subject to change before
-          checkout is enabled. Not tax or financial advice.
+          {t("disclaimer")}
         </p>
       </section>
 

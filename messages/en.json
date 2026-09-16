@@ -1,0 +1,121 @@
+{
+  "nav": {
+    "pricing": "Pricing",
+    "verifyReport": "Verify a report",
+    "signIn": "Sign in",
+    "languageLabel": "Language"
+  },
+  "footer": {
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service",
+    "rights": "© 2026 ControlMiles. All rights reserved. Powered by Olimsys."
+  },
+  "home": {
+    "metaTitle": "ControlMiles — Mileage tracking for gig drivers & fleets",
+    "metaDescription": "GPS trip tracking, odometer verification, and automatic gig-app detection for gig drivers and the fleets managing them.",
+    "eyebrow": "GIG & FLEET MILEAGE, LOGGED",
+    "titleLine1": "Every mile,",
+    "titleLine2": "on the record.",
+    "subtitle": "Built for gig drivers and fleet companies alike — GPS trip tracking, odometer verification, and automatic gig-app detection that tracks multiple gig apps at once, switching between them dynamically as you drive.",
+    "ctaSignIn": "Fleet admin sign in",
+    "ctaPricing": "See pricing",
+    "todaysRoute": "TODAY'S ROUTE",
+    "routeAlt": "An animated route line ending at a ControlMiles pin",
+    "miles": "miles",
+    "trips": "trips",
+    "guesswork": "guesswork",
+    "stats": {
+      "languagesUnit": "languages",
+      "languagesLabel": "Every driver reads their own",
+      "statesUnit": "states mapped",
+      "statesLabel": "Real boundary data for IFTA mileage",
+      "guessworkUnit": "guesswork",
+      "guessworkLabel": "Every trip is GPS-logged and locked in"
+    },
+    "features": {
+      "eyebrow": "WHAT'S UNDER THE HOOD",
+      "title": "Built to survive an audit, not just a glance.",
+      "detectionTitle": "Automatic gig-app detection",
+      "detectionBody": "Runs multiple gig apps at once and switches between them dynamically as you drive, detecting and excluding anything that looks faked or spoofed.",
+      "odometerTitle": "Odometer, verified",
+      "odometerBody": "Snap a photo at start and end — we read the number automatically, so your mileage has real proof behind it, not just a GPS guess.",
+      "recordTitle": "Your record, protected",
+      "recordBody": "Every trip is locked in the moment it's logged. If anything about it ever changes afterward, it shows up right away.",
+      "fleetTitle": "Fleet, from one dashboard",
+      "fleetBody": "Roster, vehicle assignment, DVIR inspections, live location and geofence alerts — one place for an admin to see the whole fleet."
+    },
+    "how": {
+      "title": "How it works",
+      "driveTitle": "Drive",
+      "driveBody": "The app tracks miles per gig app automatically, purpose and all.",
+      "reviewTitle": "Review",
+      "reviewBody": "Every trip, purpose, and mile shows up in your history and PDF reports.",
+      "proveTitle": "Prove it",
+      "proveBody": "Share a one-time code — a preparer verifies your report, no account needed."
+    }
+  },
+  "pricing": {
+    "metaTitle": "Pricing — ControlMiles",
+    "metaDescription": "Simple pricing for gig drivers and fleets. Mileage tracking, odometer verification and audit-ready reports.",
+    "eyebrow": "PRICING",
+    "title": "Simple pricing, either way you drive.",
+    "subtitle": "Individual gig drivers subscribe from the app. Fleet admins manage billing and rostering from this dashboard.",
+    "mostPopular": "MOST POPULAR",
+    "forDrivers": "For gig drivers",
+    "forDriversNote": "Billed in-app on the App Store or Google Play. Cancel anytime.",
+    "forFleets": "For fleets",
+    "forFleetsNote": "Priced per vehicle. Set up and manage entirely from controlmiles.com.",
+    "getApp": "Get the app",
+    "signInFleet": "Sign in as fleet admin",
+    "perDriver": "/ driver / month",
+    "perVehicle": "/ vehicle / month",
+    "plans": {
+      "basicName": "Basic",
+      "basicTagline": "Mileage, logged and ready.",
+      "premiumName": "Premium",
+      "premiumTagline": "Everything a real audit can lean on.",
+      "starterName": "Starter",
+      "starterTagline": "Get a fleet on the record.",
+      "growthName": "Growth",
+      "growthTagline": "Run the whole fleet from one dashboard.",
+      "enterpriseName": "Enterprise",
+      "enterpriseTagline": "Custom rollout for larger fleets.",
+      "enterprisePrice": "Contact us"
+    },
+    "features": {
+      "gpsCarousel": "GPS trip tracking, start/stop from the gig-app carousel",
+      "perAppTagging": "Per-gig-app trip tagging",
+      "monthlySummary": "Monthly mileage summary",
+      "pdfExport": "PDF export",
+      "everythingBasic": "Everything in Basic",
+      "autoDetection": "Automatic trip detection (auto-start, no tapping in)",
+      "odometerPhoto": "Odometer photo verification, read automatically",
+      "tamperEvident": "A trip record that can't be quietly edited later",
+      "portalCodes": "Report Portal access codes (no login needed to verify)",
+      "unlimitedHistory": "Unlimited report history",
+      "rosters": "Driver roster & vehicle roster",
+      "gpsPerDriver": "GPS trip tracking per driver",
+      "odometerVerification": "Odometer photo verification",
+      "portalAnyDriver": "Report Portal for any driver",
+      "revocation": "Membership revocation",
+      "everythingStarter": "Everything in Starter",
+      "dvir": "DVIR inspections",
+      "geofencing": "Geofencing & live map",
+      "assignmentModes": "Fixed or open vehicle assignment",
+      "fleetExport": "Fleet-wide CSV/PDF export",
+      "activityLog": "A complete activity log that's protected against edits",
+      "everythingGrowth": "Everything in Growth",
+      "onboarding": "Dedicated onboarding",
+      "customReporting": "Custom reporting & integrations",
+      "prioritySupport": "Priority support"
+    },
+    "disclaimer": "Prices shown are current estimates and subject to change before checkout is enabled. Not tax or financial advice."
+  },
+  "portalCta": {
+    "eyebrow": "REPORT PORTAL",
+    "title": "Preparing someone's taxes?",
+    "body": "Your client generates a one-time access code from their ControlMiles account. Enter it here to view a read-only mileage summary — no login, no account, nothing installed.",
+    "cta": "Enter access code",
+    "note": "For deduction purposes — not guaranteed by this app."
+  }
+}
