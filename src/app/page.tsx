@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Fraunces, Public_Sans, IBM_Plex_Mono } from "next/font/google";
 import { LandingNav, LandingFooter } from "@/components/landing-chrome";
+import { Reveal } from "@/components/reveal";
 import "./landing.css";
 
 const display = Fraunces({
@@ -136,8 +137,8 @@ function StatsStrip() {
   return (
     <section className="border-y border-[var(--lg-line)] bg-white/60">
       <div className="mx-auto grid max-w-6xl divide-y divide-[var(--lg-line)] px-6 sm:grid-cols-3 sm:divide-x sm:divide-y-0 sm:px-10">
-        {stats.map((s) => (
-          <div key={s.label} className="py-8 sm:px-8">
+        {stats.map((s, i) => (
+          <Reveal key={s.label} index={i} className="py-8 sm:px-8">
             <div className="flex items-baseline gap-2">
               <p className="mono display text-4xl leading-none font-semibold" style={{ color: "var(--lg-blue-deep)" }}>
                 {s.value}
@@ -145,7 +146,7 @@ function StatsStrip() {
               <p className="text-sm leading-tight text-[var(--lg-ink-dim)]">{s.unit}</p>
             </div>
             <p className="mt-2 text-sm leading-relaxed text-[var(--lg-ink-dim)]">{s.label}</p>
-          </div>
+          </Reveal>
         ))}
       </div>
     </section>
@@ -182,14 +183,15 @@ function Features() {
       </h2>
 
       <div className="mt-12 grid gap-5 sm:grid-cols-2">
-        {FEATURES.map((f) => (
-          <div
+        {FEATURES.map((f, i) => (
+          <Reveal
             key={f.title}
-            className="rounded-xl border border-[var(--lg-line)] bg-white p-7 shadow-[0_10px_30px_-20px_rgba(33,28,20,0.3)]"
+            index={i}
+            className="lift rounded-xl border border-[var(--lg-line)] bg-white p-7 shadow-[0_10px_30px_-20px_rgba(33,28,20,0.3)]"
           >
             <h3 className="display text-xl font-semibold">{f.title}</h3>
             <p className="mt-2 text-sm leading-relaxed text-[var(--lg-ink-dim)]">{f.body}</p>
-          </div>
+          </Reveal>
         ))}
       </div>
     </section>
@@ -208,14 +210,14 @@ function HowItWorks() {
       <div className="mx-auto max-w-6xl px-6 py-20 sm:px-10">
         <h2 className="display text-3xl font-semibold sm:text-4xl">How it works</h2>
         <div className="mt-10 grid gap-10 sm:grid-cols-3">
-          {STEPS.map((s) => (
-            <div key={s.n}>
+          {STEPS.map((s, i) => (
+            <Reveal key={s.n} index={i}>
               <p className="mono text-3xl font-medium" style={{ color: "var(--lg-blue-deep)" }}>
                 {s.n}
               </p>
               <h3 className="display mt-2 text-2xl font-semibold">{s.title}</h3>
               <p className="mt-2 text-sm leading-relaxed text-[var(--lg-ink-dim)]">{s.body}</p>
-            </div>
+            </Reveal>
           ))}
         </div>
       </div>
@@ -226,7 +228,7 @@ function HowItWorks() {
 function PortalCta() {
   return (
     <section className="mx-auto max-w-6xl px-6 py-20 sm:px-10">
-      <div className="grid gap-8 rounded-2xl border border-[var(--lg-line)] bg-white p-8 shadow-[0_20px_50px_-30px_rgba(33,28,20,0.35)] sm:grid-cols-2 sm:p-12">
+      <Reveal className="lift grid gap-8 rounded-2xl border border-[var(--lg-line)] bg-white p-8 shadow-[0_20px_50px_-30px_rgba(33,28,20,0.35)] sm:grid-cols-2 sm:p-12">
         <div>
           <p className="mono text-xs font-medium tracking-[0.2em] text-[var(--lg-amber)]">
             REPORT PORTAL
@@ -252,7 +254,7 @@ function PortalCta() {
             For deduction purposes — not guaranteed by this app.
           </p>
         </div>
-      </div>
+      </Reveal>
     </section>
   );
 }

@@ -214,3 +214,202 @@
     transform: translateY(0);
   }
 }
+
+/* ============================================================
+   SISTEMA DE MOVIMIENTO  (2026-09-16)
+   ============================================================
+   Pedido explícito: "algunas card integran efecto, necesito que todas las
+   card tengan efecto al momento de ingresar a la pagina web" + que las
+   tarjetas de precios "se destaquen y no se queden estaticas".
+
+   La clave para que haya ARMONÍA y no un collage de animaciones sueltas:
+   un solo vocabulario, definido aquí una vez, heredado por todas las
+   páginas públicas (landing.css ya lo importan page/pricing/privacy/terms/
+   app-required). Los valores NO son nuevos -- son exactamente los que ya
+   usaba la entrada del hero (.rise: 0.7s, cubic-bezier(0.22,1,0.36,1),
+   14px), así que lo que revela al hacer scroll se mueve igual que lo que
+   ya se movía al cargar. Misma distancia, misma curva, misma duración.
+
+   Reglas que se respetan a rajatabla (buenas prácticas 2026):
+   - Solo se animan `opacity` y `transform`. Son las dos únicas propiedades
+     aceleradas por GPU que no disparan layout ni paint.
+   - CERO CLS: el elemento ocupa su caja definitiva desde el primer frame;
+     revelar solo cambia opacidad y desplazamiento. Nada reserva ni colapsa
+     espacio, así que la métrica no se mueve con o sin movimiento.
+   - IntersectionObserver, nunca un listener de scroll: el observer solo
+     despierta al cruzar el umbral, un handler de scroll corre en cada
+     frame.
+   - prefers-reduced-motion tiene una RAMA REAL (estado final forzado, sin
+     transición), no una duración más lenta. Es movimiento: o se quiere o
+     no se quiere.
+   ============================================================ */
+
+:root {
+  --motion-distance: 14px;
+  --motion-duration: 0.7s;
+  --motion-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  /* Escalonado entre hermanas de una misma fila. 70ms es el punto donde
+     se percibe secuencia sin que la última tarjeta se sienta tardía. */
+  --motion-stagger: 70ms;
+  /* La microinteracción (hover) va por debajo de 300ms a propósito: por
+     encima de ahí deja de sentirse como respuesta y empieza a sentirse
+     como espera. */
+  --motion-ui: 200ms;
+}
+
+/* Estado inicial del revelado. Lo pinta el servidor, así que no hay
+   parpadeo de contenido sin estilo. */
+.reveal {
+  /* SEGUNDA COLISIÓN DE CASCADA (2026-09-16): .reveal.is-visible son dos
+     clases y .plan-featured una, así que el transform del revelado ganaba
+     y anulaba la elevación en reposo de la tarjeta destacada -- medido en
+     el navegador: salía matrix identidad, sin los -6px.
+     La solución no es subir especificidad (eso se repite con el siguiente
+     modificador que aparezca) sino que SOLO las reglas .reveal escriban
+     `transform`, y que hover/destacado aporten su desplazamiento a través
+     de esta variable. Así componen en vez de competir. */
+  --lift-y: 0px;
+  opacity: 0;
+  transform: translateY(calc(var(--lift-y) + var(--motion-distance)));
+  transition:
+    opacity var(--motion-duration) var(--motion-ease),
+    transform var(--motion-duration) var(--motion-ease);
+  transition-delay: var(--reveal-delay, 0ms);
+  will-change: opacity, transform;
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  transform: translateY(var(--lift-y));
+}
+
+/* Soltar la promesa de composición en cuanto termina: mantener
+   will-change indefinidamente es justo lo que satura memoria de GPU en
+   páginas con muchas tarjetas. */
+.reveal.is-visible {
+  will-change: auto;
+}
+
+/* ---- Tarjetas: elevación al puntero ---------------------------------- */
+.lift {
+  /* Para un .lift que no sea .reveal: las reglas .reveal no existen ahí,
+     así que este necesita traducir la variable a transform por su cuenta. */
+  transform: translateY(var(--lift-y, 0px));
+  transition:
+    transform var(--motion-ui) var(--motion-ease),
+    box-shadow var(--motion-ui) var(--motion-ease),
+    border-color var(--motion-ui) var(--motion-ease);
+}
+
+/* COLISIÓN DE CASCADA, encontrada midiendo en el navegador (2026-09-16):
+   una tarjeta con .reveal Y .lift recibía la transición de .lift, que gana
+   por orden en la hoja y NO incluye `opacity`. Resultado: esas tarjetas
+   aparecían de golpe en vez de fundirse, y su desplazamiento de entrada
+   usaba los 200ms del hover en lugar de los 700ms del revelado. Se declara
+   la combinación explícitamente en vez de reordenar el archivo, que
+   arreglaría este caso y rompería el siguiente.
+
+   El detalle que lo hace correcto: `transform` cambia de duración según el
+   estado. Mientras entra usa la duración larga del revelado; ya visible
+   pasa a la corta de interfaz, para que el hover responda al instante y no
+   arrastre 700ms. */
+.reveal.lift {
+  transition:
+    opacity var(--motion-duration) var(--motion-ease),
+    transform var(--motion-duration) var(--motion-ease),
+    box-shadow var(--motion-ui) var(--motion-ease),
+    border-color var(--motion-ui) var(--motion-ease);
+}
+
+.reveal.lift.is-visible {
+  transition:
+    opacity var(--motion-duration) var(--motion-ease),
+    transform var(--motion-ui) var(--motion-ease),
+    box-shadow var(--motion-ui) var(--motion-ease),
+    border-color var(--motion-ui) var(--motion-ease);
+}
+
+.lift:hover {
+  --lift-y: -3px;
+  box-shadow: 0 18px 40px -24px rgba(33, 28, 20, 0.45);
+}
+
+/* El foco de teclado recibe el MISMO tratamiento que el hover: si el
+   efecto comunica "esto es interactivo", quien navega con teclado tiene
+   derecho a la misma señal. */
+.lift:focus-visible,
+.lift:focus-within {
+  --lift-y: -3px;
+  box-shadow: 0 18px 40px -24px rgba(33, 28, 20, 0.45);
+}
+
+/* ---- Tarjeta de plan destacada --------------------------------------- */
+/* "Que se destaquen y no se queden estaticas". La jerarquía la da la
+   posición en reposo (elevada), no un bucle infinito: una tarjeta entera
+   latiendo sin parar cansa y consume batería. El único movimiento
+   continuo es un brillo muy tenue que recorre la insignia. */
+.plan-featured {
+  --lift-y: -6px;
+}
+
+.plan-featured:hover,
+.plan-featured:focus-within {
+  --lift-y: -9px;
+}
+
+.plan-badge {
+  position: relative;
+  overflow: hidden;
+}
+
+.plan-badge::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 20%,
+    rgba(255, 255, 255, 0.55) 50%,
+    transparent 80%
+  );
+  transform: translateX(-100%);
+  animation: badge-sheen 3.6s ease-in-out 1.2s infinite;
+}
+
+@keyframes badge-sheen {
+  0% {
+    transform: translateX(-100%);
+  }
+  /* El brillo ocupa una fracción mínima del ciclo -- el resto es reposo.
+     Un barrido continuo sería ruido; así es un destello ocasional. */
+  22%,
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* ---- Rama real de movimiento reducido -------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+
+  .lift,
+  .lift:hover,
+  .lift:focus-visible,
+  .lift:focus-within,
+  .plan-featured,
+  .plan-featured:hover,
+  .plan-featured:focus-within {
+    --lift-y: 0px !important;
+    transform: none !important;
+    transition: none !important;
+  }
+
+  .plan-badge::after {
+    animation: none !important;
+    opacity: 0 !important;
+  }
+}

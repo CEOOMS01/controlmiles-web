@@ -22,6 +22,7 @@
 
 import Link from "next/link";
 import { LandingNav, LandingFooter } from "@/components/landing-chrome";
+import { Reveal } from "@/components/reveal";
 import { Fraunces, Public_Sans, IBM_Plex_Mono } from "next/font/google";
 import "../landing.css";
 
@@ -117,10 +118,16 @@ const FLEET_PLANS: Plan[] = [
   },
 ];
 
-function PlanCard({ plan }: { plan: Plan }) {
+function PlanCard({ plan, index = 0 }: { plan: Plan; index?: number }) {
   return (
-    <div
-      className="flex flex-col rounded-2xl border p-7"
+    // El plan destacado se distingue por su POSICIÓN EN REPOSO (elevado,
+    // .plan-featured) además del borde y la sombra que ya tenía. La
+    // jerarquía se lee de un vistazo, sin que la tarjeta tenga que estar
+    // latiendo: el único movimiento continuo de la página es el destello
+    // ocasional de la insignia.
+    <Reveal
+      index={index}
+      className={`lift flex flex-col rounded-2xl border p-7${plan.highlight ? " plan-featured" : ""}`}
       style={{
         borderColor: plan.highlight ? "var(--lg-blue)" : "var(--lg-line)",
         background: "var(--lg-bg-raised)",
@@ -131,7 +138,7 @@ function PlanCard({ plan }: { plan: Plan }) {
     >
       {plan.highlight && (
         <p
-          className="mono mb-3 w-fit rounded-full px-2.5 py-1 text-[10px] font-semibold tracking-[0.15em]"
+          className="mono plan-badge mb-3 w-fit rounded-full px-2.5 py-1 text-[10px] font-semibold tracking-[0.15em]"
           style={{ background: "rgba(62,147,202,0.12)", color: "var(--lg-blue-deep)" }}
         >
           MOST POPULAR
@@ -164,7 +171,7 @@ function PlanCard({ plan }: { plan: Plan }) {
       >
         {plan.cta.label}
       </Link>
-    </div>
+    </Reveal>
   );
 }
 
@@ -195,8 +202,8 @@ export default function PricingPage() {
           Billed in-app on the App Store or Google Play. Cancel anytime.
         </p>
         <div className="mt-6 grid gap-5 sm:grid-cols-2">
-          {GIG_PLANS.map((p) => (
-            <PlanCard key={p.name} plan={p} />
+          {GIG_PLANS.map((p, i) => (
+            <PlanCard key={p.name} plan={p} index={i} />
           ))}
         </div>
       </section>
@@ -207,8 +214,8 @@ export default function PricingPage() {
           Priced per vehicle. Set up and manage entirely from controlmiles.com.
         </p>
         <div className="mt-6 grid gap-5 sm:grid-cols-3">
-          {FLEET_PLANS.map((p) => (
-            <PlanCard key={p.name} plan={p} />
+          {FLEET_PLANS.map((p, i) => (
+            <PlanCard key={p.name} plan={p} index={i} />
           ))}
         </div>
       </section>
