@@ -19,16 +19,16 @@ export async function LandingNav() {
   const t = await getTranslations("nav");
 
   return (
-    <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-7 sm:px-10">
-      {/* Sin desplazamiento: el logo comparte exactamente el mismo eje
-          izquierdo que todo el contenido de la página (medido: 234, igual
-          que el hero, las secciones y el footer).
-          Hubo dos intentos de "corrección óptica" aquí que se revirtieron:
-          ambos partían de medir el logo con getBoundingClientRect mientras
-          su animación de entrada (nav-in-left, translateX(-10px)) seguía
-          corriendo, así que devolvía la posición de vuelo y no la de reposo.
-          Si alguna vez hace falta un ajuste óptico real, medir con las
-          animaciones ya terminadas. */}
+    <header className="flex w-full items-center justify-between px-6 py-7 sm:px-10 lg:px-16 xl:px-20">
+      {/* CAMBIO (pedido explícito, 2026-09-16): el nav ya NO comparte el
+          contenedor max-w-6xl con el resto de la página -- eso es lo que
+          dejaba el logo y los botones lejos de los bordes reales en
+          pantallas anchas (ambos quedaban pegados al mismo eje de 1152px
+          centrado que el hero). Ahora el header ocupa el 100% del ancho:
+          el logo queda pegado a la izquierda real de la página y los
+          botones a la derecha real, con su propio padding que crece en
+          pantallas grandes (px-6 -> sm:px-10 -> lg:px-16 -> xl:px-20) en
+          vez de depender del centrado del contenido debajo. */}
       <Link href="/" className="flex items-center gap-2.5">
         <Image
           src="/logo_controlmiles.png"
