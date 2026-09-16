@@ -19,7 +19,16 @@ export async function LandingNav() {
   const t = await getTranslations("nav");
 
   return (
-    <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6 sm:px-10">
+    <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-7 sm:px-10">
+      {/* Sin desplazamiento: el logo comparte exactamente el mismo eje
+          izquierdo que todo el contenido de la página (medido: 234, igual
+          que el hero, las secciones y el footer).
+          Hubo dos intentos de "corrección óptica" aquí que se revirtieron:
+          ambos partían de medir el logo con getBoundingClientRect mientras
+          su animación de entrada (nav-in-left, translateX(-10px)) seguía
+          corriendo, así que devolvía la posición de vuelo y no la de reposo.
+          Si alguna vez hace falta un ajuste óptico real, medir con las
+          animaciones ya terminadas. */}
       <Link href="/" className="flex items-center gap-2.5">
         <Image
           src="/logo_controlmiles.png"
@@ -33,7 +42,7 @@ export async function LandingNav() {
           Control<span style={{ color: "var(--lg-blue-deep)" }}>Miles</span>
         </span>
       </Link>
-      <nav className="flex items-center gap-3 text-sm">
+      <nav className="flex items-center gap-2.5 text-sm sm:gap-3.5">
         <LanguageSwitcher label={t("languageLabel")} />
         <Link
           href="/pricing"

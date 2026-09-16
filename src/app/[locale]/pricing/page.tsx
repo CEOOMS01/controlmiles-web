@@ -209,14 +209,20 @@ export default async function PricingPage({
     >
       <LandingNav />
 
-      <section className="mx-auto max-w-4xl px-6 pb-4 pt-10 text-center sm:px-10 sm:pt-16">
+      {/* Antes: max-w-4xl + text-center. Eso rompía el eje de la página --
+          el resto del contenido (secciones, tarjetas, nav, footer) arranca
+          en el mismo borde izquierdo, y este bloque flotaba centrado en un
+          contenedor más estrecho, así que al bajar la vista el texto
+          saltaba de sitio. Mismo max-w-6xl y misma alineación que todo lo
+          demás: una sola columna vertical de lectura. */}
+      <section className="mx-auto max-w-6xl px-6 pb-4 pt-12 sm:px-10 sm:pt-16">
         <p className="mono text-xs font-medium tracking-[0.2em] text-[var(--lg-amber)]">
           {t("eyebrow")}
         </p>
         <h1 className="display mt-4 text-4xl font-semibold leading-[1.05] sm:text-5xl">
           {t("title")}
         </h1>
-        <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-[var(--lg-ink-dim)]">
+        <p className="mt-5 max-w-xl text-sm leading-relaxed text-[var(--lg-ink-dim)]">
           {t("subtitle")}
         </p>
       </section>
@@ -245,8 +251,8 @@ export default async function PricingPage({
         </div>
       </section>
 
-      <section className="mx-auto max-w-4xl px-6 pb-20 pt-4 sm:px-10">
-        <p className="text-center text-xs leading-relaxed text-[var(--lg-ink-dim)]">
+      <section className="mx-auto max-w-6xl px-6 pb-20 pt-4 sm:px-10">
+        <p className="max-w-2xl text-xs leading-relaxed text-[var(--lg-ink-dim)]">
           {t("disclaimer")}
         </p>
       </section>

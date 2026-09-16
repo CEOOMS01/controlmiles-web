@@ -68,7 +68,13 @@ export default async function Home({
 async function Hero() {
   const t = await getTranslations("home");
   return (
-    <section className="mx-auto grid max-w-6xl gap-14 px-6 pb-20 pt-10 sm:px-10 md:grid-cols-[1.1fr_0.9fr] md:items-center md:pt-20">
+    <section // md:items-start, no items-center: con la tarjeta (284px) mucho más
+      // baja que la columna de texto (383px), centrarla la dejaba flotando a
+      // 50px por debajo del inicio del texto y 50px por encima de su final
+      // -- medido. Leído como desalineación, no como composición. Compartir
+      // el borde superior es lo que hace que un texto y su apoyo visual se
+      // lean como una sola unidad.
+      className="mx-auto grid max-w-6xl gap-16 px-6 pb-24 pt-12 sm:px-10 md:grid-cols-[1.1fr_0.9fr] md:items-start md:gap-20 md:pt-24">
       <div>
         <p
           className="rise mono text-xs font-medium tracking-[0.2em] text-[var(--lg-amber)]"
@@ -77,7 +83,7 @@ async function Hero() {
           {t("eyebrow")}
         </p>
         <h1
-          className="display rise mt-5 text-5xl leading-[1.02] font-semibold sm:text-6xl md:text-[4.2rem]"
+          className="display rise mt-7 text-5xl leading-[1.02] font-semibold sm:text-6xl md:text-[4.2rem]"
           style={{ animationDelay: "0.15s" }}
         >
           {t("titleLine1")}
@@ -87,12 +93,12 @@ async function Hero() {
           </span>
         </h1>
         <p
-          className="rise mt-6 max-w-md text-base leading-relaxed text-[var(--lg-ink-dim)]"
+          className="rise mt-7 max-w-md text-base leading-relaxed text-[var(--lg-ink-dim)]"
           style={{ animationDelay: "0.3s" }}
         >
           {t("subtitle")}
         </p>
-        <div className="rise mt-9 flex flex-wrap gap-3" style={{ animationDelay: "0.42s" }}>
+        <div className="rise mt-10 flex flex-wrap gap-3" style={{ animationDelay: "0.42s" }}>
           <Link
             href="/login"
             className="rounded-full px-6 py-3 text-sm font-semibold text-white shadow-[0_8px_20px_-8px_rgba(44,108,153,0.55)] transition hover:opacity-90"
@@ -162,7 +168,17 @@ async function StatsStrip() {
     <section className="border-y border-[var(--lg-line)] bg-white/60">
       <div className="mx-auto grid max-w-6xl divide-y divide-[var(--lg-line)] px-6 sm:grid-cols-3 sm:divide-x sm:divide-y-0 sm:px-10">
         {stats.map((s, i) => (
-          <Reveal key={s.label} index={i} className="py-8 sm:px-8">
+          <Reveal
+            key={s.label}
+            index={i}
+            // El padding interno de las celdas empujaba el PRIMER número 32px
+            // hacia dentro respecto al resto de la página (medido: 266 frente
+            // a 234). Esta franja no es una tarjeta -- no tiene borde ni fondo
+            // propio que justifique esa sangría, así que el ojo solo veía el
+            // contenido desalineado. Primera y última celda se pegan al eje;
+            // las de en medio conservan su aire para separar los divisores.
+            className="py-8 sm:px-8 sm:first:pl-0 sm:last:pr-0"
+          >
             <div className="flex items-baseline gap-2">
               <p className="mono display text-4xl leading-none font-semibold" style={{ color: "var(--lg-blue-deep)" }}>
                 {s.value}
