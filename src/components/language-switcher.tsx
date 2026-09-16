@@ -39,6 +39,23 @@ export function LanguageSwitcher({ label }: { label: string }) {
   // cambio de que lang, hreflang y canonical queden coherentes es el
   // intercambio correcto.
   function switchTo(next: Locale) {
+    // BUG FIX (reportado: "no cambia al inglés, está anclada al español").
+    //
+    // next-intl guarda el idioma elegido en la cookie NEXT_LOCALE y su
+    // detección la respeta POR ENCIMA de la URL cuando la ruta no lleva
+    // prefijo. Al pasar a navegación dura dejé de usar su router, que era
+    // quien escribía esa cookie -- así que volver a /pricing (inglés, sin
+    // prefijo) llegaba al middleware con NEXT_LOCALE=es y era redirigido de
+    // vuelta a /es/pricing. El selector parecía ignorado: se quedaba
+    // pegado al español para siempre.
+    //
+    // Confirmado en el navegador: document.cookie mostraba NEXT_LOCALE=es y
+    // fetch('/pricing') respondía con un opaqueredirect.
+    //
+    // Escribir la cookie aquí, antes de navegar, la mantiene alineada con
+    // la elección explícita del usuario, que es justo lo que debe mandar.
+    document.cookie = `NEXT_LOCALE=${next}; path=/; max-age=31536000; samesite=lax`;
+
     const target =
       next === routing.defaultLocale ? pathname : `/${next}${pathname === "/" ? "" : pathname}`;
     window.location.assign(target || "/");
