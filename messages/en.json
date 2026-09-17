@@ -24,7 +24,7 @@
     "routeAlt": "An animated route line ending at a ControlMiles pin",
     "miles": "miles",
     "trips": "trips",
-    "guesswork": "guesswork",
+    "guesswork": "lost deductions",
     "stats": {
       "languagesUnit": "languages",
       "languagesLabel": "Every driver reads their own",

@@ -4,6 +4,7 @@ import { Link } from "@/i18n/routing";
 import { Fraunces, Public_Sans, IBM_Plex_Mono } from "next/font/google";
 import { LandingNav, LandingFooter } from "@/components/landing-chrome";
 import { Reveal } from "@/components/reveal";
+import { CountingStat } from "@/components/counting-stat";
 import "./landing.css";
 
 const display = Fraunces({
@@ -139,15 +140,26 @@ async function Hero() {
             style={{ animationDelay: "2.4s" }}
           >
             <div>
-              <p className="display text-2xl font-semibold">18.4</p>
+              <p className="display text-2xl font-semibold">
+                <CountingStat from={0} to={18.4} decimals={1} delay={2500} />
+              </p>
               <p className="text-xs text-[var(--lg-ink-dim)]">{t("miles")}</p>
             </div>
             <div className="pl-4">
-              <p className="display text-2xl font-semibold">3</p>
+              <p className="display text-2xl font-semibold">
+                <CountingStat from={0} to={3} delay={2500} />
+              </p>
               <p className="text-xs text-[var(--lg-ink-dim)]">{t("trips")}</p>
             </div>
             <div className="pl-4">
-              <p className="display text-2xl font-semibold">$0</p>
+              {/* Cuenta HACIA ATRÁS hasta $0 a propósito (pedido explícito,
+                  2026-09-18): "$0 lost deductions" es la promesa central de
+                  esta tarjeta -- ver la que arranca en un monto real y baja
+                  a cero es lo que hace ese mensaje legible sin necesitar el
+                  párrafo de contexto de al lado. */}
+              <p className="display text-2xl font-semibold">
+                <CountingStat from={50} to={0} prefix="$" delay={2500} />
+              </p>
               <p className="text-xs text-[var(--lg-ink-dim)]">{t("guesswork")}</p>
             </div>
           </div>
