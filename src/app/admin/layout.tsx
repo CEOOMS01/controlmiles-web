@@ -62,7 +62,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
       .from("organization_members")
       .select("organization_id, organizations(id, name)")
       .eq("user_id", user.id)
-      .in("member_role", ["owner", "admin"])
+      .in("member_role", ["owner", "admin", "operator"])
       .eq("is_active", true),
   ]);
 
@@ -80,7 +80,15 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
     return <CreateOrgForm />;
   }
 
-  if (membership?.member_role !== "owner" && membership?.member_role !== "admin") {
+  // Explicit user request, 2026-09-18: an Operator now needs into this
+  // shell too -- found live while building the role, this gate had never
+  // been touched when Operator was added, so an operator was silently
+  // getting turned away at the door with the exact same "not an admin"
+  // message a real driver sees, despite the RLS/RPC layer already
+  // granting them real power. isOperatorOnly below drives the nav's own
+  // scoped-down item list right below.
+  const role = membership?.member_role;
+  if (role !== "owner" && role !== "admin" && role !== "operator") {
     return (
       <main className="flex flex-1 items-center justify-center px-4 py-16 text-center">
         <div>
@@ -94,6 +102,8 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
       </main>
     );
   }
+
+  const isOperatorOnly = role === "operator";
 
   return (
     <div className="flex flex-1">
@@ -122,13 +132,23 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
           <AdminNavLink href="/admin/routes">Routes</AdminNavLink>
           <AdminNavLink href="/admin/vehicles">Vehicles</AdminNavLink>
           <AdminNavLink href="/admin/geofences">Geofences</AdminNavLink>
-          <AdminNavLink href="/admin/ifta">IFTA</AdminNavLink>
-          <AdminNavLink href="/admin/reviews">Reviews</AdminNavLink>
-          <AdminNavLink href="/admin/safety">Safety</AdminNavLink>
-          <AdminNavLink href="/admin/activity">Activity</AdminNavLink>
-          <AdminNavLink href="/admin/maintenance">Maintenance</AdminNavLink>
-          <AdminNavLink href="/admin/export">Export</AdminNavLink>
-          <AdminNavLink href="/admin/settings">Settings</AdminNavLink>
+          {/* Everything below here is outside an Operator's real RLS/RPC
+              scope (IFTA, Reviews, Safety, Activity, Maintenance, Export,
+              Settings all stayed admin+owner-only in the migration that
+              introduced this role) -- hidden rather than shown-but-broken,
+              so an operator never lands on a page that silently renders
+              empty because RLS filtered everything out from under it. */}
+          {!isOperatorOnly && (
+            <>
+              <AdminNavLink href="/admin/ifta">IFTA</AdminNavLink>
+              <AdminNavLink href="/admin/reviews">Reviews</AdminNavLink>
+              <AdminNavLink href="/admin/safety">Safety</AdminNavLink>
+              <AdminNavLink href="/admin/activity">Activity</AdminNavLink>
+              <AdminNavLink href="/admin/maintenance">Maintenance</AdminNavLink>
+              <AdminNavLink href="/admin/export">Export</AdminNavLink>
+              <AdminNavLink href="/admin/settings">Settings</AdminNavLink>
+            </>
+          )}
         </nav>
 
         <div className="mt-8 border-t border-border pt-4">
