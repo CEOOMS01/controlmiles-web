@@ -48,8 +48,8 @@ const CATEGORIES: Category[] = [
         body: "Active drivers and pending invites, in sync whether an admin checks from the app or the dashboard.",
       },
       {
-        title: "Two working ways to bring a driver on",
-        body: "Invite someone who already has a ControlMiles account by email, or hand a brand-new driver a one-time claim code — both create a real, active roster membership.",
+        title: "One invite link, works either way",
+        body: "Send an email invite to any address — it works whether that person already has a ControlMiles account or is brand new, no separate flow to pick. A one-time claim code is still there too, for handing a driver a code in person.",
       },
       {
         title: "Vehicle assignment, fixed or rotating",
