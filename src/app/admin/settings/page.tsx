@@ -3,6 +3,7 @@ import { getAuthedProfile } from "@/lib/supabase/org-context";
 import { RenameOrgForm } from "./rename-org-form";
 import { VehicleAssignmentModeForm } from "./vehicle-assignment-mode-form";
 import { DeleteOrgForm } from "./delete-org-form";
+import { BillingSection } from "./billing-section";
 
 export default async function SettingsPage() {
   const supabase = await createClient();
@@ -11,11 +12,20 @@ export default async function SettingsPage() {
   const orgId = profile?.default_org_id;
   if (!orgId) return null;
 
-  const { data: org } = await supabase
-    .from("organizations")
-    .select("name, compliance_mode, created_at, vehicle_assignment_mode")
-    .eq("id", orgId)
-    .maybeSingle();
+  const [{ data: org }, { count: vehicleCount }] = await Promise.all([
+    supabase
+      .from("organizations")
+      .select(
+        "name, compliance_mode, created_at, vehicle_assignment_mode, subscription_tier, subscription_status",
+      )
+      .eq("id", orgId)
+      .maybeSingle(),
+    supabase
+      .from("vehicles")
+      .select("id", { count: "exact", head: true })
+      .eq("organization_id", orgId)
+      .eq("is_archived", false),
+  ]);
 
   if (!org) return null;
 
@@ -54,6 +64,18 @@ export default async function SettingsPage() {
           <VehicleAssignmentModeForm
             orgId={orgId}
             currentMode={org.vehicle_assignment_mode === "open" ? "open" : "fixed"}
+          />
+        </SettingsSection>
+
+        <SettingsSection
+          title="Billing"
+          description="Fleet plans scale with your vehicle count, billed monthly via Stripe."
+        >
+          <BillingSection
+            orgId={orgId}
+            vehicleCount={vehicleCount ?? 0}
+            currentTier={org.subscription_tier === "growth" ? "growth" : org.subscription_tier === "starter" ? "starter" : null}
+            currentStatus={org.subscription_status}
           />
         </SettingsSection>
 
