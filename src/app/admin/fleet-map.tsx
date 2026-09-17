@@ -13,7 +13,15 @@
 import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { createClient } from "@/lib/supabase/client";
+import { getRealtimeAccessToken } from "./realtime-actions";
 import type { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
+
+// A Supabase access token is short-lived (~1h) -- refreshed well before
+// that so a map an admin leaves open all shift doesn't silently go dark
+// again once the first token expires. See realtime-actions.ts's own
+// header comment for why this dance exists at all (httpOnly auth cookies
+// the browser client can never read directly).
+const REALTIME_TOKEN_REFRESH_MS = 20 * 60_000;
 
 export type FleetVehicle = {
   id: string;
@@ -54,45 +62,72 @@ export function FleetMap({
 
   useEffect(() => {
     const supabase = supabaseRef.current;
-    const channel = supabase
-      .channel(`fleet-live-map-${orgId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "vehicles",
-          filter: `organization_id=eq.${orgId}`,
-        },
-        (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
-          const row = payload.new as Record<string, unknown>;
-          const lat = row.last_latitude as number | null;
-          const lon = row.last_longitude as number | null;
-          if (lat == null || lon == null) return;
+    let cancelled = false;
+    let refreshTimer: ReturnType<typeof setInterval> | undefined;
+    let channel: ReturnType<typeof supabase.channel> | undefined;
 
-          setVehicles((prev) => {
-            const id = row.id as string;
-            const next: FleetVehicle = {
-              id,
-              displayId: (row.display_id as string | null) ?? null,
-              label:
-                (row.nickname as string | null) ||
-                (row.display_id as string | null) ||
-                "Vehicle",
-              lat,
-              lon,
-              speed: (row.last_speed as number | null) ?? null,
-              lastLocationAt: (row.last_location_at as string | null) ?? null,
-            };
-            const exists = prev.some((v) => v.id === id);
-            return exists ? prev.map((v) => (v.id === id ? next : v)) : [...prev, next];
-          });
-        },
-      )
-      .subscribe();
+    async function authenticateAndSubscribe() {
+      // Must happen before .subscribe() -- Realtime's postgres_changes
+      // enforces RLS using whatever role the channel authenticated as,
+      // and the browser client has no session of its own to offer here
+      // (see realtime-actions.ts).
+      const token = await getRealtimeAccessToken();
+      if (cancelled) return;
+      if (token) supabase.realtime.setAuth(token);
+
+      channel = supabase
+        .channel(`fleet-live-map-${orgId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "UPDATE",
+            schema: "public",
+            table: "vehicles",
+            filter: `organization_id=eq.${orgId}`,
+          },
+          (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
+            const row = payload.new as Record<string, unknown>;
+            const lat = row.last_latitude as number | null;
+            const lon = row.last_longitude as number | null;
+            if (lat == null || lon == null) return;
+
+            setVehicles((prev) => {
+              const id = row.id as string;
+              const next: FleetVehicle = {
+                id,
+                displayId: (row.display_id as string | null) ?? null,
+                label:
+                  (row.nickname as string | null) ||
+                  (row.display_id as string | null) ||
+                  "Vehicle",
+                lat,
+                lon,
+                speed: (row.last_speed as number | null) ?? null,
+                lastLocationAt: (row.last_location_at as string | null) ?? null,
+              };
+              const exists = prev.some((v) => v.id === id);
+              return exists ? prev.map((v) => (v.id === id ? next : v)) : [...prev, next];
+            });
+          },
+        )
+        .subscribe();
+
+      // Re-authenticating an already-open channel with a fresh token
+      // (rather than tearing it down and resubscribing) is Realtime's own
+      // supported way to extend a long-lived connection -- avoids a
+      // multi-minute-long map going dark right as the first token expires.
+      refreshTimer = setInterval(async () => {
+        const freshToken = await getRealtimeAccessToken();
+        if (!cancelled && freshToken) supabase.realtime.setAuth(freshToken);
+      }, REALTIME_TOKEN_REFRESH_MS);
+    }
+
+    authenticateAndSubscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      cancelled = true;
+      if (refreshTimer) clearInterval(refreshTimer);
+      if (channel) supabase.removeChannel(channel);
     };
   }, [orgId]);
 
