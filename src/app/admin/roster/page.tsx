@@ -16,22 +16,35 @@ export default async function RosterPage() {
   const orgId = profile?.default_org_id;
   if (!orgId) return null;
 
-  const [{ data: members }, { data: slots }] = await Promise.all([
+  const [{ data: members }, { data: allSlots }] = await Promise.all([
     supabase
       .from("organization_members")
       .select(
-        "id, user_id, member_role, is_active, invited_at, joined_at, profiles(first_name, last_name, email, display_id)",
+        "id, user_id, member_role, is_active, invited_at, joined_at, profiles(first_name, last_name, email)",
       )
       .eq("organization_id", orgId)
       .order("is_active", { ascending: false })
       .order("joined_at", { ascending: false }),
+    // Real bug avoided here, not just a missing column (explicit user
+    // request, 2026-09-18, adding a "User ID" column): profiles.display_id
+    // is a completely different, unrelated ID (format CM-P######, used
+    // elsewhere for gig-driver report verification) -- NOT the CM-D####
+    // id a fleet driver actually logs in with, which only ever lives on
+    // fleet_driver_slots (claimed or not). Fetching every slot for this
+    // org (not just the unclaimed ones the old query pulled) so a claimed
+    // member's row can show their real login ID, matched below by
+    // claimed_by.
     supabase
       .from("fleet_driver_slots")
-      .select("id, first_name, last_name, display_id, created_at")
+      .select("id, first_name, last_name, display_id, created_at, claimed_by")
       .eq("organization_id", orgId)
-      .is("claimed_by", null)
       .order("created_at", { ascending: false }),
   ]);
+
+  const slots = (allSlots ?? []).filter((s) => !s.claimed_by);
+  const displayIdByUserId = new Map(
+    (allSlots ?? []).filter((s) => s.claimed_by).map((s) => [s.claimed_by as string, s.display_id]),
+  );
 
   // Explicit user request, 2026-09-18: only an admin/owner can see the
   // "Make operator" control -- an operator could otherwise see the
@@ -68,6 +81,11 @@ export default async function RosterPage() {
           <thead>
             <tr className="border-b border-border text-left text-muted">
               <th className="px-4 py-3 font-medium">Name</th>
+              {/* Explicit user request, 2026-09-18: User ID column,
+                  between Name and Email -- the real CM-D#### id a driver
+                  actually logs in with (see the query above for why this
+                  ISN'T profiles.display_id, a different id entirely). */}
+              <th className="px-4 py-3 font-medium">User ID</th>
               <th className="px-4 py-3 font-medium">Email</th>
               <th className="px-4 py-3 font-medium">Role</th>
               <th className="px-4 py-3 font-medium">Status</th>
@@ -81,6 +99,9 @@ export default async function RosterPage() {
               return (
                 <tr key={m.id} className="border-b border-border last:border-0">
                   <td className="px-4 py-3">{name}</td>
+                  <td className="px-4 py-3 font-mono text-xs text-muted">
+                    {displayIdByUserId.get(m.user_id) ?? "—"}
+                  </td>
                   <td className="px-4 py-3 text-muted">{p?.email ?? "—"}</td>
                   <td className="px-4 py-3 capitalize text-muted">{m.member_role}</td>
                   <td className="px-4 py-3">
@@ -117,10 +138,11 @@ export default async function RosterPage() {
                 </tr>
               );
             })}
-            {(slots ?? []).map((s) => (
+            {slots.map((s) => (
               <tr key={s.id} className="border-b border-border last:border-0">
                 <td className="px-4 py-3">{[s.first_name, s.last_name].join(" ")}</td>
                 <td className="px-4 py-3 font-mono text-xs text-muted">{s.display_id}</td>
+                <td className="px-4 py-3 text-muted">—</td>
                 <td className="px-4 py-3 capitalize text-muted">driver</td>
                 <td className="px-4 py-3">
                   <span className="inline-flex items-center rounded-full bg-accent/15 px-2.5 py-0.5 text-xs font-medium text-accent">
@@ -134,9 +156,9 @@ export default async function RosterPage() {
                 </td>
               </tr>
             ))}
-            {(members ?? []).length === 0 && (slots ?? []).length === 0 && (
+            {(members ?? []).length === 0 && slots.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-muted">
+                <td colSpan={6} className="px-4 py-8 text-center text-muted">
                   No drivers yet.
                 </td>
               </tr>
