@@ -7,6 +7,7 @@ import { RemoveSlotButton } from "./remove-slot-button";
 import { GenerateReportButton } from "./generate-report-button";
 import { OperatorButton } from "./operator-button";
 import { AdminButton } from "./admin-button";
+import { RowActionsMenu } from "./row-actions-menu";
 
 export default async function RosterPage() {
   const supabase = await createClient();
@@ -83,7 +84,7 @@ export default async function RosterPage() {
                     <StatusPill active={m.is_active} />
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <div className="flex flex-col items-end gap-2">
+                    <RowActionsMenu>
                       {m.is_active && (
                         <GenerateReportButton driverUserId={m.user_id} driverName={name} />
                       )}
@@ -108,7 +109,7 @@ export default async function RosterPage() {
                           />
                         )}
                       {m.member_role !== "owner" && <RemoveButton membershipId={m.id} />}
-                    </div>
+                    </RowActionsMenu>
                   </td>
                 </tr>
               );
@@ -124,7 +125,9 @@ export default async function RosterPage() {
                   </span>
                 </td>
                 <td className="px-4 py-3 text-right">
-                  <RemoveSlotButton slotId={s.id} />
+                  <RowActionsMenu>
+                    <RemoveSlotButton slotId={s.id} />
+                  </RowActionsMenu>
                 </td>
               </tr>
             ))}

@@ -47,7 +47,7 @@ export function GenerateReportButton({
 
   if (result) {
     return (
-      <div className="flex flex-col items-end gap-1 text-right">
+      <div className="flex flex-col gap-1 px-3 py-2">
         <div className="flex items-center gap-2">
           <span className="rounded-lg bg-[var(--code-bg)] px-3 py-1.5 font-mono text-sm tracking-[0.2em] text-[var(--code-foreground)]">
             {result.code}
@@ -67,7 +67,7 @@ export function GenerateReportButton({
             setResult(null);
             setOpen(false);
           }}
-          className="text-xs text-muted hover:underline"
+          className="self-start text-xs text-muted hover:underline"
         >
           Done
         </button>
@@ -78,8 +78,9 @@ export function GenerateReportButton({
   if (!open) {
     return (
       <button
+        role="menuitem"
         onClick={() => setOpen(true)}
-        className="text-xs text-accent transition hover:underline"
+        className="block w-full rounded-lg px-3 py-2 text-left text-sm text-accent transition hover:bg-background"
       >
         Generate report
       </button>
@@ -87,8 +88,8 @@ export function GenerateReportButton({
   }
 
   return (
-    <div className="flex flex-col items-end gap-2">
-      <div className="flex items-center gap-1.5">
+    <div className="flex flex-col gap-2 px-3 py-2">
+      <div className="flex flex-wrap items-center gap-1.5">
         <input
           type="date"
           value={startDate}
