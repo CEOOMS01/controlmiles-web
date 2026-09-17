@@ -5,6 +5,7 @@ import { RemoveButton } from "./remove-button";
 import { AddDriverSlotForm } from "./add-driver-slot-form";
 import { RemoveSlotButton } from "./remove-slot-button";
 import { GenerateReportButton } from "./generate-report-button";
+import { OperatorButton } from "./operator-button";
 
 export default async function RosterPage() {
   const supabase = await createClient();
@@ -30,11 +31,20 @@ export default async function RosterPage() {
       .order("created_at", { ascending: false }),
   ]);
 
+  // Explicit user request, 2026-09-18: only an admin/owner can see the
+  // "Make operator" control -- an operator could otherwise see the
+  // button next to their own peers even though set_member_operator would
+  // correctly reject the call server-side either way. Derived from the
+  // already-fetched members list instead of a second query -- the
+  // caller's own row is already in there.
+  const callerRole = (members ?? []).find((m) => m.user_id === user.id)?.member_role;
+  const canManageOperators = callerRole === "owner" || callerRole === "admin";
+
   return (
     <main className="px-6 py-10 sm:px-10">
       <div className="mb-8">
         <p className="text-sm font-semibold tracking-wide text-accent uppercase">
-          Roster
+          Team
         </p>
         <h1 className="mt-1 text-2xl font-semibold">Drivers</h1>
       </div>
@@ -72,6 +82,15 @@ export default async function RosterPage() {
                       {m.is_active && (
                         <GenerateReportButton driverUserId={m.user_id} driverName={name} />
                       )}
+                      {canManageOperators &&
+                        m.is_active &&
+                        (m.member_role === "driver" || m.member_role === "operator") && (
+                          <OperatorButton
+                            orgId={orgId}
+                            userId={m.user_id}
+                            isOperator={m.member_role === "operator"}
+                          />
+                        )}
                       {m.member_role !== "owner" && <RemoveButton membershipId={m.id} />}
                     </div>
                   </td>

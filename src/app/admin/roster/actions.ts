@@ -73,6 +73,33 @@ export async function inviteMember(
   return { error: null, success: true };
 }
 
+// Real feature, not a caveat left in place (explicit user request,
+// 2026-09-18): "Operator" is a real third membership tier below owner/
+// admin -- an admin the owner (or an existing admin) can delegate
+// day-to-day fleet operations to. The real safety boundary is
+// set_member_operator's own SQL (see migration 20260918000000_operator_
+// role.sql) -- it can only ever touch a row that's already 'driver' or
+// 'operator', so this action has no path to ever reach an owner's or an
+// existing admin's row, even called with the wrong user_id. This is
+// just the client-facing call site.
+export async function setMemberOperator(
+  orgId: string,
+  userId: string,
+  makeOperator: boolean,
+): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_member_operator", {
+    p_org_id: orgId,
+    p_user_id: userId,
+    p_make_operator: makeOperator,
+  });
+  if (error) {
+    return { error: AppError.from(error).display() };
+  }
+  revalidatePath("/admin/roster");
+  return { error: null };
+}
+
 export async function removeMember(membershipId: string): Promise<{ error: string | null }> {
   const supabase = await createClient();
   // RLS (org_members_delete_admin_or_self) is what actually enforces

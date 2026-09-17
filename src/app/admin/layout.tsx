@@ -114,6 +114,11 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
 
         <nav className="mt-6 space-y-1">
           <AdminNavLink href="/admin">Dashboard</AdminNavLink>
+          {/* Explicit user request, 2026-09-18: Team (formerly "Roster" --
+              renamed so it doesn't read as a near-match for "Routes" right
+              below it) moved directly under Dashboard, with Routes right
+              after it -- the two most-used day-to-day screens first. */}
+          <AdminNavLink href="/admin/roster">Team</AdminNavLink>
           <AdminNavLink href="/admin/routes">Routes</AdminNavLink>
           <AdminNavLink href="/admin/vehicles">Vehicles</AdminNavLink>
           <AdminNavLink href="/admin/geofences">Geofences</AdminNavLink>
@@ -122,7 +127,6 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
           <AdminNavLink href="/admin/safety">Safety</AdminNavLink>
           <AdminNavLink href="/admin/activity">Activity</AdminNavLink>
           <AdminNavLink href="/admin/maintenance">Maintenance</AdminNavLink>
-          <AdminNavLink href="/admin/roster">Roster</AdminNavLink>
           <AdminNavLink href="/admin/export">Export</AdminNavLink>
           <AdminNavLink href="/admin/settings">Settings</AdminNavLink>
         </nav>
