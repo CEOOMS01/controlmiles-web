@@ -10,6 +10,14 @@ import { daysAgoIso } from "@/lib/dates";
 // only the org admin does. RLS (driver_safety_events_select) is the real
 // gate: is_org_admin_or_owner(organization_id), not this page's own
 // query filter alone.
+//
+// Real fix (explicit user request, 2026-09-18): speeding used to be a
+// single fixed ~75mph ceiling with no road context at all -- now
+// confirmed against the real posted limit for that spot via
+// SpeedLimitService (OpenStreetMap Overpass API) before it's even
+// logged, with speed_limit_mps/speed_limit_source recorded on the row.
+// Shown here whenever a real limit was found; falls back to the fixed
+// threshold, honestly labeled, when no tagged road data exists nearby.
 
 const EVENT_LABELS: Record<string, string> = {
   harsh_braking: "Harsh braking",
@@ -45,7 +53,7 @@ export default async function SafetyPage() {
   const { data: events } = await supabase
     .from("driver_safety_events")
     .select(
-      "id, event_type, speed_mps, recorded_at, profiles(first_name, last_name), vehicles(nickname, make, model, display_id)",
+      "id, event_type, speed_mps, speed_limit_mps, speed_limit_source, recorded_at, profiles(first_name, last_name), vehicles(nickname, make, model, display_id)",
     )
     .eq("organization_id", orgId)
     .gte("recorded_at", thirtyDaysAgo)
@@ -67,8 +75,9 @@ export default async function SafetyPage() {
         <p className="mt-2 max-w-2xl text-sm text-muted">
           Harsh braking, hard acceleration, and speeding, detected
           automatically from GPS during tracked trips — no extra hardware.
-          Last 30 days. Speeding uses a fixed threshold, not per-road speed
-          limits.
+          Last 30 days. Speeding is checked against the real posted limit
+          for that road when it&apos;s available, falling back to a fixed
+          ~75 mph threshold where it isn&apos;t.
         </p>
       </div>
 
@@ -104,8 +113,14 @@ export default async function SafetyPage() {
                 <div>
                   <p className="text-sm font-semibold">{driverName(p)}</p>
                   <p className="text-xs text-muted">
-                    {vehicleLabel(v)} · {speedLabel(e.speed_mps)} ·{" "}
-                    {new Date(e.recorded_at).toLocaleString()}
+                    {vehicleLabel(v)} · {speedLabel(e.speed_mps)}
+                    {isSpeeding && e.speed_limit_source === "osm" && (
+                      <> in a {speedLabel(e.speed_limit_mps)} zone</>
+                    )}
+                    {isSpeeding && e.speed_limit_source === "fixed_fallback" && (
+                      <> (posted limit unknown here)</>
+                    )}{" "}
+                    · {new Date(e.recorded_at).toLocaleString()}
                   </p>
                 </div>
                 <span

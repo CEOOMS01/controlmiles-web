@@ -73,6 +73,10 @@ const CATEGORIES: Category[] = [
         body: "Harsh braking, hard acceleration, and speeding are detected from the GPS trail the app is already collecting — no extra hardware, no separate app.",
       },
       {
+        title: "Speeding checked against the real posted limit",
+        body: "Not a flat cutoff — a speeding flag is confirmed against the actual road's posted speed limit (OpenStreetMap) before it's logged, falling back to a fixed threshold only where a road isn't tagged.",
+      },
+      {
         title: "Vehicle maintenance history",
         body: "A running log of service records — type, date, odometer, cost, next due — visible on the dashboard.",
       },
