@@ -23,6 +23,20 @@ export const routing = defineRouting({
   locales: ["en", "es"],
   defaultLocale: "en",
   localePrefix: "as-needed",
+  // BUG FIX (pedido explícito, 2026-09-17): next-intl trae activada por
+  // defecto la negociación automática vía el header Accept-Language del
+  // navegador -- un visitante de EE.UU. cuyo navegador/SO reporta español
+  // como idioma (secundario o no) aterrizaba en /es en su primera visita
+  // sin haberlo pedido nunca, confirmado en vivo por varios usuarios reales
+  // en distintos estados. defaultLocale ya era "en", pero eso solo aplica
+  // cuando la negociación no encuentra nada que hacer matching -- con
+  // localeDetection activo, si HAY un match (aunque sea parcial/erróneo)
+  // gana sobre el default. false apaga tanto esa negociación por header
+  // como la lectura de la cookie de idioma en la primera visita: todo
+  // visitante nuevo entra en inglés siempre, y solo pasa a español si elige
+  // el switcher explícitamente (eso sigue funcionando igual -- no depende
+  // de este flag).
+  localeDetection: false,
 });
 
 export type Locale = (typeof routing.locales)[number];
