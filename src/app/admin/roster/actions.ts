@@ -26,15 +26,27 @@ export async function inviteMember(
 ): Promise<InviteState> {
   const orgId = String(formData.get("org_id") ?? "");
   const email = String(formData.get("email") ?? "").trim();
+  const firstName = String(formData.get("first_name") ?? "").trim();
+  const lastName = String(formData.get("last_name") ?? "").trim();
 
-  if (!orgId || !email) {
-    return { error: "Enter an email address.", success: false };
+  if (!orgId || !email || !firstName || !lastName) {
+    return { error: "Enter a first name, last name, and email address.", success: false };
   }
 
   const supabase = await createClient();
+  // Real fix, not a caveat left in place (explicit user request,
+  // 2026-09-17): the driver's ControlMiles ID (CM-D####, what they'll log
+  // in with once fleet_driver accounts stop using email/password -- see
+  // resolve-driver-login) used to only exist for the in-person claim-code
+  // path -- an email-invited driver never got one. create_driver_invite
+  // now reserves it up front from the name given here, same trigger/
+  // format as the claim-code path (fn_assign_driver_slot_display_id, see
+  // migration 20260917220000_driver_id_login.sql).
   const { data: token, error: createError } = await supabase.rpc("create_driver_invite", {
     p_org_id: orgId,
     p_email: email,
+    p_first_name: firstName,
+    p_last_name: lastName,
   });
 
   if (createError) {
