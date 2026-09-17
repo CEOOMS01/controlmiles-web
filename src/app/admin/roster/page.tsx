@@ -6,6 +6,7 @@ import { AddDriverSlotForm } from "./add-driver-slot-form";
 import { RemoveSlotButton } from "./remove-slot-button";
 import { GenerateReportButton } from "./generate-report-button";
 import { OperatorButton } from "./operator-button";
+import { AdminButton } from "./admin-button";
 
 export default async function RosterPage() {
   const supabase = await createClient();
@@ -39,6 +40,10 @@ export default async function RosterPage() {
   // caller's own row is already in there.
   const callerRole = (members ?? []).find((m) => m.user_id === user.id)?.member_role;
   const canManageOperators = callerRole === "owner" || callerRole === "admin";
+  // Explicit user request, 2026-09-18: "Make admin" is owner-only --
+  // set_member_admin itself enforces this server-side regardless, but a
+  // plain admin shouldn't even see the control that would try and fail.
+  const isOwner = callerRole === "owner";
 
   return (
     <main className="px-6 py-10 sm:px-10">
@@ -89,6 +94,17 @@ export default async function RosterPage() {
                             orgId={orgId}
                             userId={m.user_id}
                             isOperator={m.member_role === "operator"}
+                          />
+                        )}
+                      {isOwner &&
+                        m.is_active &&
+                        (m.member_role === "driver" ||
+                          m.member_role === "operator" ||
+                          m.member_role === "admin") && (
+                          <AdminButton
+                            orgId={orgId}
+                            userId={m.user_id}
+                            isAdmin={m.member_role === "admin"}
                           />
                         )}
                       {m.member_role !== "owner" && <RemoveButton membershipId={m.id} />}

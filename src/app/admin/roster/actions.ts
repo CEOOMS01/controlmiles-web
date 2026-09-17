@@ -100,6 +100,32 @@ export async function setMemberOperator(
   return { error: null };
 }
 
+// Owner-only, real question answered live (explicit user request,
+// 2026-09-18): "y el rol admin que solo un owner puede ascender?" --
+// auditing the DB found a real pre-existing gap where any plain admin
+// could already do this via a raw table update; set_member_admin's own
+// WHERE clause (member_role IN ('driver','operator','admin')) is the
+// real safety boundary, not just the is_org_owner check inside it -- it
+// has no code path that can ever reach an owner's row. Same call-site
+// shape as setMemberOperator.
+export async function setMemberAdmin(
+  orgId: string,
+  userId: string,
+  makeAdmin: boolean,
+): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_member_admin", {
+    p_org_id: orgId,
+    p_user_id: userId,
+    p_make_admin: makeAdmin,
+  });
+  if (error) {
+    return { error: AppError.from(error).display() };
+  }
+  revalidatePath("/admin/roster");
+  return { error: null };
+}
+
 export async function removeMember(membershipId: string): Promise<{ error: string | null }> {
   const supabase = await createClient();
   // RLS (org_members_delete_admin_or_self) is what actually enforces
