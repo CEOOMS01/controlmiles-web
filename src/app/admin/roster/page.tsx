@@ -4,6 +4,7 @@ import { InviteForm } from "./invite-form";
 import { RemoveButton } from "./remove-button";
 import { AddDriverSlotForm } from "./add-driver-slot-form";
 import { RemoveSlotButton } from "./remove-slot-button";
+import { GenerateReportButton } from "./generate-report-button";
 
 export default async function RosterPage() {
   const supabase = await createClient();
@@ -16,7 +17,7 @@ export default async function RosterPage() {
     supabase
       .from("organization_members")
       .select(
-        "id, member_role, is_active, invited_at, joined_at, profiles(first_name, last_name, email, display_id)",
+        "id, user_id, member_role, is_active, invited_at, joined_at, profiles(first_name, last_name, email, display_id)",
       )
       .eq("organization_id", orgId)
       .order("is_active", { ascending: false })
@@ -67,7 +68,12 @@ export default async function RosterPage() {
                     <StatusPill active={m.is_active} />
                   </td>
                   <td className="px-4 py-3 text-right">
-                    {m.member_role !== "owner" && <RemoveButton membershipId={m.id} />}
+                    <div className="flex flex-col items-end gap-2">
+                      {m.is_active && (
+                        <GenerateReportButton driverUserId={m.user_id} driverName={name} />
+                      )}
+                      {m.member_role !== "owner" && <RemoveButton membershipId={m.id} />}
+                    </div>
                   </td>
                 </tr>
               );

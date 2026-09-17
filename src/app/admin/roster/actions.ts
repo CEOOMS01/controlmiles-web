@@ -102,3 +102,49 @@ export async function removeDriverSlot(slotId: string): Promise<{ error: string 
   revalidatePath("/admin/roster");
   return { error: null };
 }
+
+// Real fix, not a pricing-copy edit (explicit user request, 2026-09-18):
+// the pricing page has promised "Report Portal for any driver" on the
+// Starter tier since it shipped, but until today there was no way for an
+// admin to actually do this -- generate_report_access_code only ever
+// generated a code for the caller's own trips. This is the admin-facing
+// call site for the p_target_user_id param added in migration
+// 20260918100000_report_portal_admin_target_driver.sql. No
+// p_weekly_checkpoints here on purpose: that param needs signed Storage
+// URLs the admin has no RLS access to sign (only the driver's own
+// authenticated client can, see portal/generate/actions.ts's own header
+// comment) -- an admin-generated report covers real GPS mileage/trip
+// data, just without the odometer-photo pairs a driver generating their
+// own report gets. A real, disclosed v1 scope cut, not an oversight.
+export type GenerateReportState = {
+  error: string | null;
+  result: { code: string; expiresAt: string } | null;
+};
+
+export async function generateReportForDriver(
+  driverUserId: string,
+  startDate: string,
+  endDate: string,
+): Promise<GenerateReportState> {
+  if (!driverUserId || !startDate || !endDate) {
+    return { error: "Pick a date range.", result: null };
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("generate_report_access_code", {
+    p_start_date: startDate,
+    p_end_date: endDate,
+    p_target_user_id: driverUserId,
+  });
+
+  if (error) {
+    return { error: AppError.from(error).display(), result: null };
+  }
+
+  const row = data?.[0];
+  if (!row) {
+    return { error: "Could not generate a report code. Try again.", result: null };
+  }
+
+  return { error: null, result: { code: row.code, expiresAt: row.expires_at } };
+}
