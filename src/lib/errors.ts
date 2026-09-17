@@ -112,7 +112,20 @@ export class AppError {
    * database/system error falls through to 701/720.
    */
   static from(error: unknown, opts: { critical?: boolean } = {}): AppError {
-    const text = error instanceof Error ? error.message : String(error);
+    // Real bug fix (found live, 2026-09-17): a Supabase PostgrestError
+    // (what .rpc()/.from() actually reject with) is a plain object, not
+    // an Error instance -- String(error) on it produced the literal text
+    // "[object Object]", which then sailed straight past
+    // looksLikeRawDbError (short, no raw-SQL keywords) and got shown to
+    // the user verbatim as "[object Object] (450)". Every caller of
+    // AppError.from was exposed to this whenever the caught value had a
+    // `.message` string property but wasn't an Error instance.
+    const text =
+      error instanceof Error
+        ? error.message
+        : typeof error === "object" && error !== null && "message" in error && typeof (error as { message: unknown }).message === "string"
+          ? (error as { message: string }).message
+          : String(error);
 
     if (text.includes("VEHICLE_LIMIT_REACHED")) return AppError.vehicleLimitReached;
     if (text.includes("FREE_TRIAL_EXPIRED")) return AppError.freeTrialExpired;
