@@ -75,7 +75,7 @@ export function LanguageSwitcher({ label }: { label: string }) {
           // por defecto) para conservar la página en la que está el usuario.
           startTransition(() => switchTo(next));
         }}
-        className="mono cursor-pointer rounded-full border border-[var(--lg-line)] bg-transparent px-3 py-2 text-xs font-medium text-[var(--lg-ink-dim)] transition hover:border-[var(--lg-blue)] hover:text-[var(--lg-ink)] disabled:opacity-60"
+        className="nav-pill mono cursor-pointer rounded-full border border-[var(--lg-line)] bg-transparent px-3 py-2 text-xs font-medium text-[var(--lg-ink-dim)] transition hover:border-[var(--lg-blue)] hover:text-[var(--lg-ink)] disabled:opacity-60"
       >
         {LANGUAGES.map((l) => (
           <option key={l.code} value={l.code}>

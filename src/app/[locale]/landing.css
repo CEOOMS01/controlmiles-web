@@ -149,6 +149,39 @@
   animation: nav-in-right 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+/* Nav right-side actions (language, Pricing, Verify a report, Sign in) --
+   pedido explícito: se veían "estáticos" comparados con el logo, que sí
+   entra animado. Mismo keyframe que el wordmark (nav-in-right) -- entran
+   desde el mismo lado en el que viven, con --nav-delay escalonado por
+   botón así se leen como una secuencia, no un parpadeo simultáneo. El
+   valor de --nav-delay lo pone cada elemento inline (0.05s, 0.1s, 0.15s...)
+   -- una custom property en vez de 4 clases nav-action-in-1..4 porque el
+   número de acciones puede cambiar sin tener que tocar este CSS. */
+.nav-action-in {
+  animation: nav-in-right 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: var(--nav-delay, 0s);
+}
+
+/* Micro-interacción al pasar el mouse/foco -- mismos --motion-ui/--motion-ease
+   que ya gobiernan el hover de las tarjetas (.lift), aplicado aquí como un
+   levantamiento más sutil porque son píldoras de 32-40px de alto, no
+   tarjetas: una sombra al estilo .lift se vería pesada a esa escala. Solo
+   transform, nunca layout/paint. */
+.nav-pill {
+  /* inline-block, not inline-flex: this class also lands on a native
+     <select> (LanguageSwitcher) -- inline-flex on a <select> is unreliable
+     across browsers (breaks the native arrow/box in some engines),
+     inline-block is the safe minimum needed for `transform` to apply
+     consistently on both <a> and <select>. */
+  display: inline-block;
+  transition: transform var(--motion-ui) var(--motion-ease);
+}
+
+.nav-pill:hover,
+.nav-pill:focus-visible {
+  transform: translateY(-2px);
+}
+
 @keyframes nav-in-left {
   from {
     opacity: 0;
@@ -182,8 +215,13 @@
   .route-pin-glow,
   .nav-mark-in,
   .nav-word-in,
+  .nav-action-in,
   .rise {
     animation: none !important;
+    transform: none !important;
+  }
+  .nav-pill:hover,
+  .nav-pill:focus-visible {
     transform: none !important;
   }
   .route-path {

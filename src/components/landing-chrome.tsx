@@ -10,10 +10,18 @@
 // te saque al inglés sin avisar; con next/link crudo el usuario pierde el
 // idioma en el primer clic y no hay forma de que lo note nadie en revisión.
 
+import type { CSSProperties } from "react";
 import Image from "next/image";
 import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/routing";
 import { LanguageSwitcher } from "./language-switcher";
+
+// Delay escalonado de entrada de los 4 controles del nav (ver landing.css,
+// .nav-action-in) -- tipado como CSSProperties porque --nav-delay es una
+// custom property, no un nombre de propiedad CSS estándar que React
+// reconozca de forma nativa.
+const navDelay = (seconds: number): CSSProperties =>
+  ({ "--nav-delay": `${seconds}s` }) as CSSProperties;
 
 export async function LandingNav() {
   const t = await getTranslations("nav");
@@ -43,22 +51,33 @@ export async function LandingNav() {
         </span>
       </Link>
       <nav className="flex items-center gap-2.5 text-sm sm:gap-3.5">
-        <LanguageSwitcher label={t("languageLabel")} />
+        {/* Entrada escalonada + hover (pedido explícito, 2026-09-17): estos
+            4 controles no tenían ningún efecto, a diferencia del logo
+            (nav-mark-in/nav-word-in). nav-action-in reusa el mismo keyframe
+            que el wordmark, con --nav-delay escalonado 0.05s por elemento
+            para que entren en secuencia; nav-pill agrega el levantamiento
+            sutil al pasar el mouse/foco. */}
+        <span className="nav-action-in" style={navDelay(0.35)}>
+          <LanguageSwitcher label={t("languageLabel")} />
+        </span>
         <Link
           href="/pricing"
-          className="hidden rounded-full border border-[var(--lg-line)] px-4 py-2 font-medium text-[var(--lg-ink-dim)] transition hover:border-[var(--lg-blue)] hover:text-[var(--lg-ink)] sm:inline"
+          className="nav-action-in nav-pill hidden rounded-full border border-[var(--lg-line)] px-4 py-2 font-medium text-[var(--lg-ink-dim)] transition hover:border-[var(--lg-blue)] hover:text-[var(--lg-ink)] sm:inline"
+          style={navDelay(0.4)}
         >
           {t("pricing")}
         </Link>
         <Link
           href="/portal/verify"
-          className="hidden rounded-full border border-[var(--lg-line)] px-4 py-2 font-medium text-[var(--lg-ink-dim)] transition hover:border-[var(--lg-blue)] hover:text-[var(--lg-ink)] sm:inline"
+          className="nav-action-in nav-pill hidden rounded-full border border-[var(--lg-line)] px-4 py-2 font-medium text-[var(--lg-ink-dim)] transition hover:border-[var(--lg-blue)] hover:text-[var(--lg-ink)] sm:inline"
+          style={navDelay(0.45)}
         >
           {t("verifyReport")}
         </Link>
         <Link
           href="/login"
-          className="rounded-full border border-[var(--lg-ink)] bg-[var(--lg-ink)] px-4 py-2 font-medium text-[var(--lg-bg)] transition hover:border-[var(--lg-blue-deep)] hover:bg-[var(--lg-blue-deep)]"
+          className="nav-action-in nav-pill rounded-full border border-[var(--lg-ink)] bg-[var(--lg-ink)] px-4 py-2 font-medium text-[var(--lg-bg)] transition hover:border-[var(--lg-blue-deep)] hover:bg-[var(--lg-blue-deep)]"
+          style={navDelay(0.5)}
         >
           {t("signIn")}
         </Link>
