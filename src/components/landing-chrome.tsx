@@ -52,11 +52,19 @@ export async function LandingNav() {
       </Link>
       <nav className="flex items-center gap-2.5 text-sm sm:gap-3.5">
         {/* Entrada escalonada + hover (pedido explícito, 2026-09-17): estos
-            4 controles no tenían ningún efecto, a diferencia del logo
+            controles no tenían ningún efecto, a diferencia del logo
             (nav-mark-in/nav-word-in). nav-action-in reusa el mismo keyframe
             que el wordmark, con --nav-delay escalonado 0.05s por elemento
             para que entren en secuencia; nav-pill agrega el levantamiento
-            sutil al pasar el mouse/foco. */}
+            sutil al pasar el mouse/foco.
+
+            "Verify a report" (pedido explícito, 2026-09-17) salió de acá:
+            es una acción de nicho (la usa un tercero verificando UN reporte
+            puntual, no el visitante típico) que competía por atención con
+            Sign in. Vive en su propia sección más abajo en la página (con
+            contexto real, no un botón suelto) y ahora también en el footer
+            -- así igual queda alcanzable para quien llega con un link
+            directo sin tener que leer toda la página. */}
         <span className="nav-action-in" style={navDelay(0.35)}>
           <LanguageSwitcher label={t("languageLabel")} />
         </span>
@@ -68,16 +76,9 @@ export async function LandingNav() {
           {t("pricing")}
         </Link>
         <Link
-          href="/portal/verify"
-          className="nav-action-in nav-pill hidden rounded-full border border-[var(--lg-line)] px-4 py-2 font-medium text-[var(--lg-ink-dim)] transition hover:border-[var(--lg-blue)] hover:text-[var(--lg-ink)] sm:inline"
-          style={navDelay(0.45)}
-        >
-          {t("verifyReport")}
-        </Link>
-        <Link
           href="/login"
           className="nav-action-in nav-pill rounded-full border border-[var(--lg-ink)] bg-[var(--lg-ink)] px-4 py-2 font-medium text-[var(--lg-bg)] transition hover:border-[var(--lg-blue-deep)] hover:bg-[var(--lg-blue-deep)]"
-          style={navDelay(0.5)}
+          style={navDelay(0.45)}
         >
           {t("signIn")}
         </Link>
@@ -94,6 +95,9 @@ export async function LandingFooter() {
       <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-10 text-xs text-[var(--lg-ink-dim)] sm:flex-row sm:items-center sm:justify-between sm:px-10">
         <span className="display font-medium">ControlMiles</span>
         <nav className="flex flex-wrap items-center gap-x-5 gap-y-2">
+          <Link href="/portal/verify" className="transition hover:text-[var(--lg-ink)]">
+            {t("verifyReport")}
+          </Link>
           <Link href="/privacy" className="transition hover:text-[var(--lg-ink)]">
             {t("privacy")}
           </Link>
