@@ -136,18 +136,27 @@ async function Hero() {
             <image className="route-pin" href="/logo_controlmiles.png" x="723" y="73" width="34" height="34" />
           </svg>
           <div
+            // Timing sincronizado con el pin (pedido explícito, 2026-09-18:
+            // "que no se vea desincronizado"), no un valor suelto. El pin
+            // termina de asentarse (pin-in) a los 2.55s y su glow de
+            // confirmación corre 2.35s->3.25s (0.9s, ver route-pin-glow en
+            // landing.css) -- esa ventana es la que dice "llegada
+            // confirmada". La fila entra un poco ANTES (2.2s) para que ya
+            // esté visible cuando arranca el conteo, y el conteo mismo usa
+            // la MISMA ventana que el glow (2.35s, 0.9s de duración) para
+            // que ambos resuelvan exactamente juntos, como un solo latido.
             className="rise mt-2 grid grid-cols-3 divide-x divide-[var(--lg-line)] border-t border-[var(--lg-line)] pt-4"
-            style={{ animationDelay: "2.4s" }}
+            style={{ animationDelay: "2.2s" }}
           >
             <div>
               <p className="display text-2xl font-semibold">
-                <CountingStat from={0} to={18.4} decimals={1} delay={2500} />
+                <CountingStat from={0} to={18.4} decimals={1} delay={2350} duration={900} />
               </p>
               <p className="text-xs text-[var(--lg-ink-dim)]">{t("miles")}</p>
             </div>
             <div className="pl-4">
               <p className="display text-2xl font-semibold">
-                <CountingStat from={0} to={3} delay={2500} />
+                <CountingStat from={0} to={3} delay={2350} duration={900} />
               </p>
               <p className="text-xs text-[var(--lg-ink-dim)]">{t("trips")}</p>
             </div>
@@ -158,7 +167,7 @@ async function Hero() {
                   a cero es lo que hace ese mensaje legible sin necesitar el
                   párrafo de contexto de al lado. */}
               <p className="display text-2xl font-semibold">
-                <CountingStat from={50} to={0} prefix="$" delay={2500} />
+                <CountingStat from={50} to={0} prefix="$" delay={2350} duration={900} />
               </p>
               <p className="text-xs text-[var(--lg-ink-dim)]">{t("guesswork")}</p>
             </div>
