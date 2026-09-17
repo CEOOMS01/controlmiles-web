@@ -5,9 +5,34 @@ import { inviteMember, type InviteState } from "./actions";
 
 const initialState: InviteState = { error: null, success: false };
 
-export function InviteForm({ orgId }: { orgId: string }) {
+// Explicit user request, 2026-09-18: same form now invites straight into
+// Operator/Admin, not just Driver -- role options shown here are just
+// UX (which roles THIS caller can actually grant lives server-side in
+// create_driver_invite and is re-checked there regardless of what this
+// form sends).
+const ROLE_OPTIONS: Record<"owner" | "admin" | "operator", { value: string; label: string }[]> = {
+  owner: [
+    { value: "driver", label: "Driver" },
+    { value: "operator", label: "Operator" },
+    { value: "admin", label: "Admin" },
+  ],
+  admin: [
+    { value: "driver", label: "Driver" },
+    { value: "operator", label: "Operator" },
+  ],
+  operator: [{ value: "driver", label: "Driver" }],
+};
+
+export function InviteForm({
+  orgId,
+  callerRole,
+}: {
+  orgId: string;
+  callerRole: "owner" | "admin" | "operator";
+}) {
   const [state, formAction, pending] = useActionState(inviteMember, initialState);
   const formRef = useRef<HTMLFormElement>(null);
+  const roleOptions = ROLE_OPTIONS[callerRole] ?? ROLE_OPTIONS.operator;
 
   useEffect(() => {
     if (state.success) formRef.current?.reset();
@@ -65,6 +90,28 @@ export function InviteForm({ orgId }: { orgId: string }) {
           not their email.
         </p>
       </div>
+      {roleOptions.length > 1 && (
+        <div>
+          <label htmlFor="role" className="mb-1.5 block text-xs font-medium text-muted">
+            Role
+          </label>
+          <select
+            id="role"
+            name="role"
+            defaultValue="driver"
+            className="w-full rounded-lg border border-border bg-background px-3.5 py-2.5 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
+          >
+            {roleOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+          <p className="mt-1 text-xs text-muted">
+            Operator and Admin get real dashboard access on top of the mobile app.
+          </p>
+        </div>
+      )}
       <button
         type="submit"
         disabled={pending}

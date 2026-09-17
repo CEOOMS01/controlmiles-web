@@ -28,6 +28,12 @@ export async function inviteMember(
   const email = String(formData.get("email") ?? "").trim();
   const firstName = String(formData.get("first_name") ?? "").trim();
   const lastName = String(formData.get("last_name") ?? "").trim();
+  // Explicit user request, 2026-09-18: same form now invites straight
+  // into Operator/Admin, not just Driver -- authorization for WHICH
+  // roles this caller may actually grant lives server-side in
+  // create_driver_invite itself (owner-only for 'admin', admin-or-owner
+  // for 'operator'), never trusted from this form value alone.
+  const role = String(formData.get("role") ?? "driver").trim();
 
   if (!orgId || !email || !firstName || !lastName) {
     return { error: "Enter a first name, last name, and email address.", success: false };
@@ -47,6 +53,7 @@ export async function inviteMember(
     p_email: email,
     p_first_name: firstName,
     p_last_name: lastName,
+    p_intended_role: role,
   });
 
   if (createError) {

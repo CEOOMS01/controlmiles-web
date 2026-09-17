@@ -56,7 +56,10 @@ export default async function RosterPage() {
       </div>
 
       <div className="mb-6 grid gap-4 sm:grid-cols-2">
-        <InviteForm orgId={orgId} />
+        <InviteForm
+          orgId={orgId}
+          callerRole={callerRole === "owner" || callerRole === "admin" || callerRole === "operator" ? callerRole : "operator"}
+        />
         <AddDriverSlotForm orgId={orgId} />
       </div>
 
