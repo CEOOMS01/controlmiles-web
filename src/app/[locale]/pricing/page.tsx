@@ -23,6 +23,17 @@
 // without ever selling hardware, so Starter/Growth are priced above the
 // cheap-tracker floor but below the enterprise ceiling. All figures are
 // ControlMiles' own estimate, not financial or tax advice.
+//
+// Real finding + fix (2026-09-17): the Premium gigPlans card used to list
+// odometer photo verification, tamper-evident trip records, and Report
+// Portal access codes as Premium-exclusive. They never were -- a code
+// audit found zero premiumEntitled/baseEntitled gates on any of the
+// three anywhere in lib/, so every Gig tier (including the free Started
+// trial) already has them. Removed those three bullets rather than
+// gating the code to match, since gating would take something away from
+// people already using it for free. Premium's real differentiators are
+// just auto-detection, the 5-vehicle cap (vs 1), and unlimited
+// PDF export/report history.
 
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { alternatesFor } from "@/i18n/metadata";
@@ -68,9 +79,6 @@ const gigPlans = (t: Awaited<ReturnType<typeof getTranslations>>): Plan[] => [
     features: [
       t("features.everythingBasic"),
       t("features.autoDetection"),
-      t("features.odometerPhoto"),
-      t("features.tamperEvident"),
-      t("features.portalCodes"),
       t("features.unlimitedHistory"),
     ],
     cta: { label: t("getApp"), href: "/app-required" },
