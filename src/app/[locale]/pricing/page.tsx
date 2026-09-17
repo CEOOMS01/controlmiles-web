@@ -5,7 +5,11 @@
 // fleet admins, display-only for now (no real Stripe checkout yet --
 // user chose "solo mostrar planes por ahora"). Numbers below are the
 // output of a competitive research + cost pass done the same day:
-// Gig tiers ($4.99/$9.99) were reviewed against MileIQ ($13.99),
+// Gig tiers (originally $4.99/$9.99, Basic raised to $5.99 on
+// 2026-09-17 as part of the tier restructuring pass -- Premium also
+// gained its own 5-day free trial that day, Stripe-side only, so not
+// reflected in this display-only page's copy) were reviewed against
+// MileIQ ($13.99),
 // Everlance ($5-10), Hurdlr ($8.34-16.67) and kept as-is -- already
 // undercuts the category while offering odometer-OCR verification +
 // hash-chained audit log none of them have, and infra cost (~$200-290/mo
@@ -45,7 +49,7 @@ type Plan = {
 const gigPlans = (t: Awaited<ReturnType<typeof getTranslations>>): Plan[] => [
   {
     name: t("plans.basicName"),
-    price: "$4.99",
+    price: "$5.99",
     unit: t("perDriver"),
     tagline: t("plans.basicTagline"),
     features: [
