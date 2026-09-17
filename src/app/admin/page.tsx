@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getAuthedProfile } from "@/lib/supabase/org-context";
 import { daysAgoIso } from "@/lib/dates";
 import { FleetMap, type FleetVehicle } from "./fleet-map";
+import { GrowthUpsell } from "./growth-upsell";
 import { RouteEfficiencyChart, type RouteStatusCount } from "./route-efficiency-chart";
 import { DriverStartTimesChart, type DriverStartSeries } from "./driver-start-times-chart";
 
@@ -17,6 +18,15 @@ export default async function AdminDashboardPage() {
     .select("name, compliance_mode, created_at")
     .eq("id", orgId)
     .maybeSingle();
+
+  // Live map is Growth-only (explicit user requirement, 2026-09-18) --
+  // mirrors the same fn_org_effective_tier check now enforced in
+  // getRealtimeAccessToken. Checked here too so a Starter org sees a real
+  // upsell card instead of a map that silently never receives any
+  // updates (the old failure mode: the token request just came back null
+  // with no explanation).
+  const { data: tier } = await supabase.rpc("fn_org_effective_tier", { p_org_id: orgId });
+  const isGrowth = tier === "growth";
 
   const thirtyDaysAgo = daysAgoIso(30);
   const fourteenDaysAgo = daysAgoIso(14);
@@ -159,7 +169,11 @@ export default async function AdminDashboardPage() {
       </div>
 
       <div className="mt-10">
-        <FleetMap orgId={orgId} initialVehicles={vehicles} />
+        {isGrowth ? (
+          <FleetMap orgId={orgId} initialVehicles={vehicles} />
+        ) : (
+          <GrowthUpsell feature="Live map" />
+        )}
       </div>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-2">

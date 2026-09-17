@@ -28,5 +28,30 @@ export async function getRealtimeAccessToken(): Promise<string | null> {
   const {
     data: { session },
   } = await supabase.auth.getSession();
-  return session?.access_token ?? null;
+  if (!session) return null;
+
+  // Growth-only feature, second layer (explicit user requirement,
+  // 2026-09-18): the admin dashboard page already hides FleetMap
+  // entirely for a non-Growth org, but this action is the one that would
+  // actually leak live vehicle positions over the Realtime socket if
+  // called directly -- same fn_org_effective_tier check as everywhere
+  // else this tier is enforced.
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("default_org_id")
+    .eq("id", user.id)
+    .maybeSingle();
+  if (!profile?.default_org_id) return null;
+
+  const { data: tier } = await supabase.rpc("fn_org_effective_tier", {
+    p_org_id: profile.default_org_id,
+  });
+  if (tier !== "growth") return null;
+
+  return session.access_token;
 }

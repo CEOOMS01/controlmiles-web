@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getAuthedProfile } from "@/lib/supabase/org-context";
+import { GrowthUpsell } from "../growth-upsell";
 
 // Real fix, not a pricing-copy edit (explicit user request, 2026-09-18):
 // the pricing page has promised a Growth-tier "activity log... protected
@@ -40,6 +41,25 @@ export default async function ActivityPage() {
   if (!user) return null;
   const orgId = profile?.default_org_id;
   if (!orgId) return null;
+
+  // Page-level Growth gate (explicit user requirement, 2026-09-18):
+  // mirrors the same fn_org_effective_tier the RLS/RPC layer already
+  // enforces for geofencing/DVIR -- checked here too so a Starter org
+  // sees a real upsell instead of just an empty-looking activity log
+  // (audit_events itself has no tier-scoped RLS; nothing here was ever
+  // technically broken, just uninformative).
+  const { data: tier } = await supabase.rpc("fn_org_effective_tier", { p_org_id: orgId });
+  if (tier !== "growth") {
+    return (
+      <main className="px-6 py-10 sm:px-10">
+        <div className="mb-8">
+          <p className="text-sm font-semibold tracking-wide text-accent uppercase">Activity</p>
+          <h1 className="mt-1 text-2xl font-semibold">Activity log</h1>
+        </div>
+        <GrowthUpsell feature="Activity log" />
+      </main>
+    );
+  }
 
   const { data: events } = await supabase
     .from("audit_events")

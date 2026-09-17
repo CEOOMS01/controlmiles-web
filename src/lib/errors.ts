@@ -44,6 +44,14 @@ export class AppError {
   static readonly vehicleLimitReached = new AppError(410, "You've reached your plan's vehicle limit.");
   static readonly freeTrialExpired = new AppError(411, "Your 30-day free trial is over.");
   static readonly orgMembershipRevoked = new AppError(412, "Your fleet admin has removed your access.");
+  static readonly fleetSubscriptionRequired = new AppError(
+    413,
+    "This organization needs an active Fleet subscription to do that.",
+  );
+  static readonly fleetGrowthRequired = new AppError(
+    414,
+    "This feature needs the Growth plan. Upgrade to unlock it.",
+  );
   static readonly rateLimited = new AppError(420, "Too many attempts. Try again in a few minutes.");
   static readonly duplicateEntry = new AppError(430, "This already exists.");
   static readonly subscriptionsNotConfigured = new AppError(440, "Subscriptions are not available yet.");
@@ -130,6 +138,8 @@ export class AppError {
     if (text.includes("VEHICLE_LIMIT_REACHED")) return AppError.vehicleLimitReached;
     if (text.includes("FREE_TRIAL_EXPIRED")) return AppError.freeTrialExpired;
     if (text.includes("ORG_MEMBERSHIP_REVOKED")) return AppError.orgMembershipRevoked;
+    if (text.includes("FLEET_SUBSCRIPTION_REQUIRED")) return AppError.fleetSubscriptionRequired;
+    if (text.includes("FLEET_GROWTH_REQUIRED")) return AppError.fleetGrowthRequired;
     if (text.includes("already own a fleet organization")) return AppError.alreadyOwnFleet;
     if (text.includes("Invalid login credentials") || text.includes("Invalid credentials")) {
       return AppError.invalidCredentials;

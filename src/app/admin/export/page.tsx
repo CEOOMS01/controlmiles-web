@@ -1,21 +1,25 @@
-"use client";
+import { createClient } from "@/lib/supabase/server";
+import { getAuthedProfile } from "@/lib/supabase/org-context";
+import { GrowthUpsell } from "../growth-upsell";
+import { ExportForm } from "./export-form";
 
-import { useState } from "react";
+// Converted to a server component (explicit user requirement, 2026-09-18)
+// so the Growth gate can be checked BEFORE the form (and its download
+// links straight to /api/admin/export/csv|pdf) ever renders -- the API
+// routes already enforce this via lib/fleet-export.ts, but a Starter org
+// used to see the raw Postgres FLEET_GROWTH_REQUIRED text only after
+// clicking Download; now they see the real upsell up front. The
+// interactive date-picker bits stay in export-form.tsx (a client
+// component) since Server Components can't hold that state themselves.
+export default async function ExportPage() {
+  const supabase = await createClient();
+  const { user, profile } = await getAuthedProfile();
+  if (!user) return null;
+  const orgId = profile?.default_org_id;
+  if (!orgId) return null;
 
-function todayIso() {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function firstOfMonthIso() {
-  const d = new Date();
-  return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10);
-}
-
-export default function ExportPage() {
-  const [startDate, setStartDate] = useState(firstOfMonthIso());
-  const [endDate, setEndDate] = useState(todayIso());
-
-  const query = `start_date=${startDate}&end_date=${endDate}`;
+  const { data: tier } = await supabase.rpc("fn_org_effective_tier", { p_org_id: orgId });
+  const isGrowth = tier === "growth";
 
   return (
     <main className="px-6 py-10 sm:px-10">
@@ -31,45 +35,7 @@ export default function ExportPage() {
         </p>
       </div>
 
-      <div className="max-w-xl rounded-xl border border-border bg-surface p-6">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <label className="mb-1.5 block text-sm font-medium">From</label>
-            <input
-              type="date"
-              value={startDate}
-              max={todayIso()}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
-            />
-          </div>
-          <div>
-            <label className="mb-1.5 block text-sm font-medium">To</label>
-            <input
-              type="date"
-              value={endDate}
-              max={todayIso()}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
-            />
-          </div>
-        </div>
-
-        <div className="mt-5 flex flex-wrap gap-3">
-          <a
-            href={`/api/admin/export/csv?${query}`}
-            className="rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground transition hover:opacity-90"
-          >
-            Download CSV
-          </a>
-          <a
-            href={`/api/admin/export/pdf?${query}`}
-            className="rounded-lg border border-border px-4 py-2.5 text-sm font-semibold text-foreground transition hover:border-accent"
-          >
-            Download PDF
-          </a>
-        </div>
-      </div>
+      {isGrowth ? <ExportForm /> : <GrowthUpsell feature="Fleet-wide export" />}
     </main>
   );
 }

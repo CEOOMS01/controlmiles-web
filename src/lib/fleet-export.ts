@@ -64,6 +64,15 @@ export async function loadFleetExportData(startDate: string, endDate: string): P
     throw new Error("No organization.");
   }
 
+  // Growth-only feature (explicit user requirement, 2026-09-18): mirrors
+  // the same fn_org_effective_tier check the geofencing/DVIR RLS layer
+  // already enforces. Checked here, not just hidden in the page's UI, so
+  // a direct fetch to these API routes can't bypass the gate either.
+  const { data: tier } = await supabase.rpc("fn_org_effective_tier", { p_org_id: orgId });
+  if (tier !== "growth") {
+    throw new Error("FLEET_GROWTH_REQUIRED");
+  }
+
   const { data: org } = await supabase.from("organizations").select("name").eq("id", orgId).maybeSingle();
 
   const { data, error } = await supabase.rpc("get_fleet_export_data", {
