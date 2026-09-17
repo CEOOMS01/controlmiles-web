@@ -33,7 +33,8 @@ export function InviteForm({ orgId }: { orgId: string }) {
           className="w-full rounded-lg border border-border bg-background px-3.5 py-2.5 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
         />
         <p className="mt-1 text-xs text-muted">
-          They need an existing ControlMiles account to be invited.
+          We&apos;ll email them a link — works whether they already have a
+          ControlMiles account or not.
         </p>
       </div>
       <button

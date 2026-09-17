@@ -6,6 +6,20 @@ import { AppError } from "@/lib/errors";
 
 export type InviteState = { error: string | null; success: boolean };
 
+// Real fix, not a caveat left in place (explicit user request,
+// 2026-09-18): create_driver_invite/resolve_driver_invite/
+// accept_driver_invite (migration 20260904060000_driver_invites.sql) and
+// send-driver-invite (the branded Resend email, see its own header
+// comment) were both fully built and working, but nothing anywhere ever
+// called create_driver_invite -- the invite dialog called the OLDER,
+// strictly weaker invite_member_by_email instead, which only works for
+// an email that already has a ControlMiles account. This IS that missing
+// call site: create the invite (gets back a one-time token), then invoke
+// the edge function to actually send it. supabase.functions.invoke()
+// carries the caller's own session as the Authorization header
+// automatically -- the same identity send-driver-invite re-verifies
+// server-side before it will send anything (see its own header comment
+// on why it never trusts a client-supplied email/org).
 export async function inviteMember(
   _prevState: InviteState,
   formData: FormData,
@@ -18,18 +32,29 @@ export async function inviteMember(
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.rpc("invite_member_by_email", {
+  const { data: token, error: createError } = await supabase.rpc("create_driver_invite", {
     p_org_id: orgId,
     p_email: email,
   });
 
-  if (error) {
+  if (createError) {
     // The RPC's own exceptions are already user-facing sentences
-    // ("No ControlMiles account found for that email", etc.) --
+    // ("This person already owns their own fleet...", etc.) --
     // AppError.from recognizes these aren't raw Postgres internals and
     // routes them to the 450 (business rule rejection) code instead of
     // downgrading to a generic message.
-    return { error: AppError.from(error).display(), success: false };
+    return { error: AppError.from(createError).display(), success: false };
+  }
+
+  const { error: sendError } = await supabase.functions.invoke("send-driver-invite", {
+    body: { token },
+  });
+
+  if (sendError) {
+    return {
+      error: "Invite created but the email failed to send. Try again.",
+      success: false,
+    };
   }
 
   revalidatePath("/admin/roster");
