@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { signUp } from "./actions";
 import { PasswordInput } from "@/components/password-input";
@@ -13,10 +14,15 @@ export default function SignupPage() {
     <main className="flex flex-1 items-center justify-center px-4 py-16">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <p className="text-sm font-semibold tracking-wide text-accent uppercase">
-            ControlMiles
-          </p>
-          <h1 className="mt-1 text-2xl font-semibold">Create your fleet account</h1>
+          <Image
+            src="/logo_controlmiles.png"
+            alt="ControlMiles"
+            width={64}
+            height={64}
+            className="mx-auto rounded-xl"
+            priority
+          />
+          <h1 className="mt-4 text-2xl font-semibold">Create your fleet account</h1>
           <p className="mt-2 text-sm text-muted">
             Set up your organization and start managing drivers and
             vehicles from this dashboard.

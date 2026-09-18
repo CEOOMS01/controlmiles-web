@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useActionState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { signIn } from "./actions";
@@ -39,14 +40,17 @@ export default function LoginPage() {
     <main className="flex flex-1 items-center justify-center px-4 py-16">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <p className="text-sm font-semibold tracking-wide text-accent uppercase">
-            ControlMiles
-          </p>
-          <h1 className="mt-1 text-2xl font-semibold">Fleet admin sign in</h1>
+          <Image
+            src="/logo_controlmiles.png"
+            alt="ControlMiles"
+            width={64}
+            height={64}
+            className="mx-auto rounded-xl"
+            priority
+          />
+          <h1 className="mt-4 text-2xl font-semibold">Fleet Admin</h1>
           <p className="mt-2 text-sm text-muted">
-            This dashboard is for fleet administrators. Driving for
-            yourself or for a fleet? Get the ControlMiles mobile app
-            instead.
+            This dashboard is for fleet administrators.
           </p>
         </div>
 
