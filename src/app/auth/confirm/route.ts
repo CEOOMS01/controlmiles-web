@@ -24,6 +24,17 @@ import { createClient } from "@/lib/supabase/server";
 // password sign-in resolves inside a Server Action; OAuth resolves here
 // instead, so the same authorization decision has to be duplicated at
 // this second entry point, not skipped.
+//
+// Explicit user follow-up (2026-09-18): "primero se loguea y luego crea
+// la organización paso a paso" -- a brand-new Google sign-in has no org
+// yet (no pending_org_name the way password /signup carries one), but
+// unlike a genuine non-admin mobile-app account, this person just
+// authenticated through the FLEET-ADMIN-ONLY website, so the org-less
+// case here means "new fleet admin, hasn't named their fleet yet", not
+// "wrong audience, go get the mobile app". Sends them to
+// /onboarding/organization instead of /app-required -- that page itself
+// re-checks both conditions (real session, still no org) before
+// rendering anything.
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const tokenHash = searchParams.get("token_hash");
@@ -51,7 +62,7 @@ export async function GET(request: NextRequest) {
         .in("member_role", ["owner", "admin"])
         .eq("is_active", true)
         .limit(1);
-      redirect((adminMemberships?.length ?? 0) > 0 ? "/admin" : "/app-required");
+      redirect((adminMemberships?.length ?? 0) > 0 ? "/admin" : "/onboarding/organization");
     }
     redirect("/login?oauth_error=1");
   }

@@ -59,7 +59,11 @@ function isNonLocalizedRoute(pathname: string) {
     // through the flow in the browser, not just reading the code.
     pathname.startsWith("/forgot-password") ||
     pathname.startsWith("/reset-password") ||
-    pathname.startsWith("/auth")
+    pathname.startsWith("/auth") ||
+    // Same reasoning, added proactively this time instead of found live:
+    // /onboarding/organization lives directly under src/app/ too (the
+    // post-Google-sign-in "create your fleet" step).
+    pathname.startsWith("/onboarding")
   );
 }
 
