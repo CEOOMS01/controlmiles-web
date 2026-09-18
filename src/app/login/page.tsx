@@ -5,15 +5,29 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { signIn } from "./actions";
 import { PasswordInput } from "@/components/password-input";
+import { GoogleSignInButton } from "@/components/google-sign-in-button";
 
 // useSearchParams() needs its own Suspense boundary -- split out so it
 // wraps only the bit that reads the URL, not the whole page.
 function PasswordResetNotice() {
-  const reset = useSearchParams().get("reset") === "1";
-  if (!reset) return null;
+  const params = useSearchParams();
+  const reset = params.get("reset") === "1";
+  // Set by /auth/confirm when exchangeCodeForSession fails on the
+  // Google OAuth callback (expired/cancelled consent, provider not
+  // enabled yet in Supabase, etc.) -- a real message instead of
+  // silently landing back on Login with no explanation.
+  const oauthError = params.get("oauth_error") === "1";
+  if (!reset && !oauthError) return null;
   return (
-    <p role="status" className="mb-4 rounded-lg border border-border bg-surface p-3 text-sm">
-      Your password was updated. Sign in with your new password.
+    <p
+      role={oauthError ? "alert" : "status"}
+      className={`mb-4 rounded-lg border p-3 text-sm ${
+        oauthError ? "border-danger text-danger" : "border-border bg-surface"
+      }`}
+    >
+      {oauthError
+        ? "Couldn't sign in with Google. Try again, or sign in with email."
+        : "Your password was updated. Sign in with your new password."}
     </p>
   );
 }
@@ -39,6 +53,14 @@ export default function LoginPage() {
         <Suspense fallback={null}>
           <PasswordResetNotice />
         </Suspense>
+
+        <GoogleSignInButton />
+
+        <div className="my-5 flex items-center gap-3">
+          <div className="h-px flex-1 bg-border" />
+          <span className="text-xs text-muted">or</span>
+          <div className="h-px flex-1 bg-border" />
+        </div>
 
         <form action={formAction} className="space-y-4">
           <div>

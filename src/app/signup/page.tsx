@@ -4,6 +4,16 @@ import { useActionState } from "react";
 import Link from "next/link";
 import { signUp } from "./actions";
 import { PasswordInput } from "@/components/password-input";
+// Deliberately NOT importing GoogleSignInButton here -- see the
+// explanation in the same-session chat: a brand-new Google sign-in has
+// no way to carry `pending_org_name` the way the password signUp
+// action does (it rides in raw_user_meta_data set at supabase.auth.signUp()
+// call time, which OAuth's redirect-based flow never goes through), so
+// today it would create a bare auth user with no organization and dead-
+// end at /app-required. Wiring the button here needs that gap closed
+// first (a post-OAuth "create your organization" step), not silently
+// shipped broken. The button lives on /login already, for existing
+// admins signing back in.
 
 export default function SignupPage() {
   const [state, formAction, pending] = useActionState(signUp, { error: null });

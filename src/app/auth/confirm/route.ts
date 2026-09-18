@@ -12,10 +12,23 @@ import { createClient } from "@/lib/supabase/server";
 // (reset-password/page.tsx actually sets the new password). A failed or
 // already-used link falls back to forgot-password with a flag the page
 // reads to show a real "request a new one" message instead of a dead end.
+//
+// Explicit user request (2026-09-18, "flujo de iniciar sesión con tu
+// cuenta de Google"): this route also doubles as the OAuth callback --
+// Google redirects the browser back here with `?code=...` (PKCE), not
+// `token_hash`/`type`. exchangeCodeForSession turns that into a real
+// session the same way verifyOtp does for the email-link case. After a
+// successful Google sign-in, mirrors login/actions.ts's own
+// admin-vs-app-required redirect exactly (same organization_members
+// owner/admin check) -- that logic only runs there today because
+// password sign-in resolves inside a Server Action; OAuth resolves here
+// instead, so the same authorization decision has to be duplicated at
+// this second entry point, not skipped.
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const tokenHash = searchParams.get("token_hash");
   const type = searchParams.get("type") as EmailOtpType | null;
+  const code = searchParams.get("code");
   const next = searchParams.get("next") ?? "/reset-password";
 
   if (tokenHash && type) {
@@ -24,6 +37,23 @@ export async function GET(request: NextRequest) {
     if (!error) {
       redirect(next);
     }
+    redirect("/forgot-password?expired=1");
+  }
+
+  if (code) {
+    const supabase = await createClient();
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+    if (!error && data.user) {
+      const { data: adminMemberships } = await supabase
+        .from("organization_members")
+        .select("organization_id")
+        .eq("user_id", data.user.id)
+        .in("member_role", ["owner", "admin"])
+        .eq("is_active", true)
+        .limit(1);
+      redirect((adminMemberships?.length ?? 0) > 0 ? "/admin" : "/app-required");
+    }
+    redirect("/login?oauth_error=1");
   }
 
   redirect("/forgot-password?expired=1");
