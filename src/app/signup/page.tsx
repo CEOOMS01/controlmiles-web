@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import Link from "next/link";
 import { signUp } from "./actions";
+import { PasswordInput } from "@/components/password-input";
 
 export default function SignupPage() {
   const [state, formAction, pending] = useActionState(signUp, { error: null });
@@ -54,15 +55,7 @@ export default function SignupPage() {
             <label htmlFor="password" className="mb-1.5 block text-sm font-medium">
               Password
             </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              required
-              minLength={8}
-              autoComplete="new-password"
-              className="w-full rounded-lg border border-border bg-surface px-3.5 py-2.5 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
-            />
+            <PasswordInput id="password" name="password" autoComplete="new-password" minLength={8} />
             <p className="mt-1.5 text-xs text-muted">At least 8 characters.</p>
           </div>
 

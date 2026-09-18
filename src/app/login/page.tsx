@@ -1,8 +1,22 @@
 "use client";
 
-import { useActionState } from "react";
+import { Suspense, useActionState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { signIn } from "./actions";
+import { PasswordInput } from "@/components/password-input";
+
+// useSearchParams() needs its own Suspense boundary -- split out so it
+// wraps only the bit that reads the URL, not the whole page.
+function PasswordResetNotice() {
+  const reset = useSearchParams().get("reset") === "1";
+  if (!reset) return null;
+  return (
+    <p role="status" className="mb-4 rounded-lg border border-border bg-surface p-3 text-sm">
+      Your password was updated. Sign in with your new password.
+    </p>
+  );
+}
 
 export default function LoginPage() {
   const [state, formAction, pending] = useActionState(signIn, { error: null });
@@ -22,6 +36,10 @@ export default function LoginPage() {
           </p>
         </div>
 
+        <Suspense fallback={null}>
+          <PasswordResetNotice />
+        </Suspense>
+
         <form action={formAction} className="space-y-4">
           <div>
             <label htmlFor="email" className="mb-1.5 block text-sm font-medium">
@@ -38,17 +56,15 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label htmlFor="password" className="mb-1.5 block text-sm font-medium">
-              Password
-            </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              required
-              autoComplete="current-password"
-              className="w-full rounded-lg border border-border bg-surface px-3.5 py-2.5 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
-            />
+            <div className="mb-1.5 flex items-center justify-between">
+              <label htmlFor="password" className="block text-sm font-medium">
+                Password
+              </label>
+              <Link href="/forgot-password" className="text-xs text-accent hover:underline">
+                Forgot password?
+              </Link>
+            </div>
+            <PasswordInput id="password" name="password" autoComplete="current-password" />
           </div>
 
           {state.error && (

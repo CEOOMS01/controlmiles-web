@@ -49,7 +49,17 @@ function isNonLocalizedRoute(pathname: string) {
     pathname.startsWith("/api") ||
     pathname.startsWith("/login") ||
     pathname.startsWith("/signup") ||
-    pathname.startsWith("/portal")
+    pathname.startsWith("/portal") ||
+    // BUG FIX (found live, 2026-09-18, exact same regression class this
+    // comment already warns about): the password-reset flow
+    // (/forgot-password, /reset-password, /auth/confirm) lives directly
+    // under src/app/, not src/app/[locale]/, same as /login -- missing
+    // here meant next-intl rewrote it to /[locale]/forgot-password,
+    // found no matching file, and 404'd. Caught by actually clicking
+    // through the flow in the browser, not just reading the code.
+    pathname.startsWith("/forgot-password") ||
+    pathname.startsWith("/reset-password") ||
+    pathname.startsWith("/auth")
   );
 }
 
