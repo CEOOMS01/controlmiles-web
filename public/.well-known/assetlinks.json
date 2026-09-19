@@ -5,7 +5,8 @@
       "namespace": "android_app",
       "package_name": "com.olimsys.controlmiles",
       "sha256_cert_fingerprints": [
-        "E8:43:C2:92:D3:27:AB:47:D3:EA:49:7D:16:0C:C0:23:16:19:72:8C:38:94:52:22:C5:E2:67:C8:10:59:7E:7E"
+        "E8:43:C2:92:D3:27:AB:47:D3:EA:49:7D:16:0C:C0:23:16:19:72:8C:38:94:52:22:C5:E2:67:C8:10:59:7E:7E",
+        "57:5D:22:35:64:A8:76:00:38:1F:BC:B3:50:10:4E:27:83:77:C6:13:19:FC:A1:CA:D3:D9:F3:71:5E:A8:1C:4C"
       ]
     }
   }
