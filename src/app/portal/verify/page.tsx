@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { gigAppLabel, irsPurposeLabel } from "@/lib/catalog";
+import { RouteMap } from "./route-map";
 import type { PortalReport } from "./report-data";
 
 type RedeemResponse = {
@@ -124,6 +125,16 @@ function formatPeriod(startDate: string, endDate: string): string {
   return startLabel === endLabel ? startLabel : `${startLabel} – ${endLabel}`;
 }
 
+function formatTripDate(dateKey: string): string {
+  const opts: Intl.DateTimeFormatOptions = {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  };
+  return new Date(`${dateKey}T00:00:00Z`).toLocaleDateString("en-US", opts);
+}
+
 function formatWeekRange(startDate: string, endDate: string): string {
   const opts: Intl.DateTimeFormatOptions = { month: "short", day: "numeric", timeZone: "UTC" };
   const start = new Date(`${startDate}T00:00:00Z`).toLocaleDateString("en-US", opts);
@@ -207,6 +218,22 @@ function ReportView({ report, onReset }: { report: PortalReport; onReset: () => 
                         photoUrl={cp.end_odometer_photo_url}
                       />
                     </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {report.route_points.length > 0 && (
+            <div className="border-b border-border py-4">
+              <h2 className="mb-2 text-sm font-semibold">Trip routes</h2>
+              <div className="space-y-3">
+                {report.route_points.map((route) => (
+                  <div key={route.session_id} className="rounded-lg border border-border p-3">
+                    <p className="mb-2 text-xs font-medium text-muted">
+                      {formatTripDate(route.date_key)} · {route.total_miles.toFixed(1)} mi
+                    </p>
+                    <RouteMap route={route} />
                   </div>
                 ))}
               </div>
