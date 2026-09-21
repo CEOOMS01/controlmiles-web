@@ -14,11 +14,18 @@ function buildCsp(nonce: string) {
     "default-src 'self'",
     `script-src ${scriptSrc}`,
     "style-src 'self' 'unsafe-inline'",
-    // *.tile.openstreetmap.org: map tiles for the fleet live-map
-    // (Leaflet + OSM, same keyless-map reasoning as the mobile app's
-    // flutter_map).
-    "img-src 'self' data: https://*.tile.openstreetmap.org",
+    // *.tile.openstreetmap.org: still used by admin/geofences and
+    // portal/verify's Leaflet maps (not touched in the 2026-09-21 swap
+    // below -- only the fleet live map moved off it).
+    // protomaps.github.io: sprite PNG for the fleet map's self-hosted
+    // MapLibre basemap (see fleet-map-inner.tsx).
+    "img-src 'self' data: https://*.tile.openstreetmap.org https://protomaps.github.io",
     "font-src 'self'",
+    // MapLibre GL JS parses/renders vector tiles off the main thread via
+    // a Web Worker constructed from a blob: URL internally -- without
+    // this, the fleet map's worker creation is silently blocked by CSP
+    // (falls back to default-src, which doesn't cover worker-src).
+    "worker-src 'self' blob:",
     // photon.komoot.io: the free, keyless OpenStreetMap-based geocoder
     // powering the route form's address autocomplete (admin/routes).
     // wss://*.supabase.co: Realtime websocket for the live map's vehicle
@@ -27,7 +34,13 @@ function buildCsp(nonce: string) {
     // listed explicitly alongside the https entry.
     // cgc-cre.vercel.app: CGC Core, where the pageview beacon
     // (src/components/pageview-beacon.tsx) reports to (2026-09-21).
-    "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://photon.komoot.io https://cgc-cre.vercel.app",
+    // protomaps.github.io: glyphs (.pbf) + sprite JSON for the fleet
+    // map's basemap style, fetched via fetch()/XHR, not <img>.
+    // r2.dev / your R2 custom domain: the self-hosted .pmtiles file
+    // itself (NEXT_PUBLIC_FLEET_MAP_PMTILES_URL) -- *.r2.dev covers
+    // Cloudflare's default public bucket subdomain; replace/extend with
+    // your own custom domain once the bucket uses one instead.
+    "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://photon.komoot.io https://cgc-cre.vercel.app https://protomaps.github.io https://*.r2.dev",
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "form-action 'self'",
