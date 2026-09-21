@@ -7,6 +7,7 @@ import { useSearchParams } from "next/navigation";
 import { signIn } from "./actions";
 import { PasswordInput } from "@/components/password-input";
 import { GoogleSignInButton } from "@/components/google-sign-in-button";
+import { BackToHome } from "@/components/back-to-home";
 
 // useSearchParams() needs its own Suspense boundary -- split out so it
 // wraps only the bit that reads the URL, not the whole page.
@@ -38,6 +39,7 @@ export default function LoginPage() {
 
   return (
     <main className="flex flex-1 items-center justify-center px-4 py-16">
+      <BackToHome />
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
           <Image

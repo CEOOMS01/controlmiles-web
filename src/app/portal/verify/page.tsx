@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { gigAppLabel, irsPurposeLabel } from "@/lib/catalog";
 import { RouteMap } from "./route-map";
+import { BackToHome } from "@/components/back-to-home";
 import type { PortalReport } from "./report-data";
 
 type RedeemResponse = {
@@ -52,6 +53,7 @@ export default function VerifyPage() {
 
   return (
     <main className="flex flex-1 items-center justify-center px-4 py-16">
+      <BackToHome />
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
           <p className="text-sm font-semibold tracking-wide text-accent uppercase">
