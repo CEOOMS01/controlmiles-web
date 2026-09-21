@@ -61,81 +61,197 @@
   z-index: 1;
 }
 
-/* Route line draw-in, once on page load -- ink-on-paper, not a glowing
-   digital trace: a thin dark line whose leading dot travels to the route's
-   end, then hands off to the real ControlMiles pin (2026-09-09, explicit
-   user concept: draw -> arrive -> morph to pin -> settle+glow, ~3.2s total,
-   no "VERIFIED" label -- the pin's own checkmark already says that). Plays
-   once on mount, never re-triggers on scroll, per explicit user request. */
-.route-path {
-  stroke-dasharray: 1400;
-  stroke-dashoffset: 1400;
-  animation: draw-route 1.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+/* "Ruta -> auto -> ControlMiles" (pedido explícito, 2026-09-21): reemplaza
+   el efecto anterior (línea + punto + "glow" tipo globo, una sola vez al
+   cargar) por una micro-historia en BUCLE continuo de 7.3s -- carretera se
+   traza, un auto azul la recorre rotando en las curvas dejando el carril
+   "iluminado" detrás, llega al final, se transforma en el logo, el logo
+   respira un momento, y todo se desvanece para reiniciar. Bucle continuo
+   reemplaza la decisión anterior ("una sola vez, nunca se re-dispara") --
+   pedido explícito de esta vuelta.
+
+   Presupuesto de tiempo (igual al que definió el usuario), como % de un
+   ciclo de 7.3s para que un solo `animation: Xs infinite` por elemento
+   baste (nada de JS/GSAP, mismo mecanismo offset-path que ya movía el
+   punto anterior):
+     0.0-0.8s  ( 0%   -11%   ) carretera aparece
+     0.8-4.8s  (11%   -65.75%) el auto recorre la ruta
+     4.8-5.5s  (65.75%-75.34%) el auto se transforma en el logo
+     5.5-6.8s  (75.34%-93.15%) el logo permanece
+     6.8-7.3s  (93.15%-100%  ) fade out, reinicio */
+
+.route-surface {
+  opacity: 0;
+  animation: route-surface-cycle 7.3s ease-in-out infinite;
 }
 
-@keyframes draw-route {
-  to {
-    stroke-dashoffset: 0;
+@keyframes route-surface-cycle {
+  0% {
+    opacity: 0;
+  }
+  11% {
+    opacity: 1;
+  }
+  93.15% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
   }
 }
 
-.route-dot {
-  offset-path: path("M 8 210 C 120 210, 140 60, 260 60 S 420 210, 520 150 S 640 40, 740 90");
+/* Carril iluminado -- se "dibuja" exactamente durante la ventana en que el
+   auto viaja (mismo 11%-65.75% que route-car-cycle), como si cada milla
+   quedara marcada al pasar. Se borra rápido al reiniciar el ciclo. */
+.route-lit {
+  stroke-dasharray: 1400;
+  stroke-dashoffset: 1400;
+  opacity: 0;
+  animation: route-lit-cycle 7.3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes route-lit-cycle {
+  0%,
+  11% {
+    stroke-dashoffset: 1400;
+    opacity: 0;
+  }
+  11.5% {
+    opacity: 1;
+  }
+  65.75% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+  93.15% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: 1400;
+    opacity: 0;
+  }
+}
+
+/* El auto -- ancla en offset-path: offset-rotate:auto hace que gire con la
+   curva (conduce las curvas correctamente, no un ícono fijo). Se desvanece
+   y encoge justo donde llega el pin/logo (misma coordenada, 740,90), como
+   si se convirtiera en él. */
+.route-car {
+  offset-path: path(
+    "M 8 210 C 120 210, 140 60, 260 60 S 420 210, 520 150 S 640 40, 740 90"
+  );
+  offset-rotate: auto;
   offset-distance: 0%;
   transform-box: fill-box;
   transform-origin: center;
-  animation:
-    travel 1.6s cubic-bezier(0.4, 0, 0.2, 1) forwards,
-    dot-out 0.4s ease-in 1.6s forwards;
+  opacity: 0;
+  filter: drop-shadow(0 0 5px rgba(44, 108, 153, 0.55));
+  animation: route-car-cycle 7.3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
-@keyframes travel {
-  to {
-    offset-distance: 100%;
-  }
-}
-
-@keyframes dot-out {
-  to {
+@keyframes route-car-cycle {
+  0%,
+  11% {
+    offset-distance: 0%;
     opacity: 0;
-    transform: scale(0.3);
+    transform: scale(1);
+  }
+  11.5% {
+    opacity: 1;
+  }
+  65.75% {
+    offset-distance: 100%;
+    opacity: 1;
+    transform: scale(1);
+  }
+  70.5% {
+    offset-distance: 100%;
+    opacity: 0;
+    transform: scale(0.2);
+  }
+  100% {
+    offset-distance: 100%;
+    opacity: 0;
+    transform: scale(0.2);
   }
 }
 
-/* The pin itself -- appears where the dot arrives, with a small overshoot
-   bounce (stage 3, 1.6-2.4s). */
+/* Rebote vertical sutil (1-2px) mientras el auto viaja -- le da vida sin
+   caer en videojuego. Vive en el <g> hijo, nunca en el mismo elemento que
+   offset-path, para no pelear con esa transformación. Corre siempre (barato,
+   solo transform) -- imperceptible mientras el auto está en opacity:0. */
+.route-car-bob {
+  animation: route-car-bob 0.5s ease-in-out infinite;
+}
+
+@keyframes route-car-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-1.5px);
+  }
+}
+
+/* El logo -- aparece justo cuando el auto "llega" (70.5%), con el mismo
+   overshoot que ya tenía el pin antes, ahora dentro del bucle. Permanece
+   visible (75.34%-93.15%) y se desvanece para el reinicio. */
 .route-pin {
   opacity: 0;
   transform-box: fill-box;
   transform-origin: center;
   transform: scale(0.3);
-  animation: pin-in 0.8s 1.75s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation: route-pin-cycle 7.3s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
 }
 
-@keyframes pin-in {
-  to {
+@keyframes route-pin-cycle {
+  0%,
+  70.5% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  75.34% {
     opacity: 1;
     transform: scale(1);
   }
-}
-
-/* A soft expanding ring behind the pin as it settles (stage 4, 2.4-3.2s) --
-   reads as a quiet "confirmed" pulse without spelling out the word. */
-.route-pin-glow {
-  opacity: 0;
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: pin-glow 0.9s 2.35s ease-out forwards;
-}
-
-@keyframes pin-glow {
-  0% {
-    opacity: 0.45;
+  93.15% {
+    opacity: 1;
     transform: scale(1);
   }
   100% {
     opacity: 0;
+    transform: scale(0.85);
+  }
+}
+
+/* Pulso de confirmación -- mismo anillo expansivo que antes, retimed para
+   disparar justo cuando el logo asienta. */
+.route-pin-glow {
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: route-pin-glow-cycle 7.3s ease-out infinite;
+}
+
+@keyframes route-pin-glow-cycle {
+  0%,
+  74% {
+    opacity: 0;
+    transform: scale(1);
+  }
+  75.34% {
+    opacity: 0.45;
+    transform: scale(1);
+  }
+  85% {
+    opacity: 0;
     transform: scale(2.4);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1);
   }
 }
 
@@ -209,8 +325,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .route-path,
-  .route-dot,
+  .route-surface,
+  .route-lit,
+  .route-car,
+  .route-car-bob,
   .route-pin,
   .route-pin-glow,
   .nav-mark-in,
@@ -224,11 +342,15 @@
   .nav-pill:focus-visible {
     transform: none !important;
   }
-  .route-path {
-    stroke-dashoffset: 0 !important;
+  /* Estado estático: carretera visible en reposo, sin auto ni carril
+     iluminado (ambos son "movimiento" puro), logo ya asentado -- la
+     historia completa, congelada en su fotograma final. */
+  .route-surface {
+    opacity: 0.55 !important;
   }
-  .route-dot {
-    offset-distance: 100% !important;
+  .route-lit,
+  .route-car,
+  .route-pin-glow {
     opacity: 0 !important;
   }
   .route-pin,
@@ -236,9 +358,6 @@
   .nav-word-in,
   .rise {
     opacity: 1 !important;
-  }
-  .route-pin-glow {
-    opacity: 0 !important;
   }
 }
 

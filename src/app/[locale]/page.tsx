@@ -121,42 +121,92 @@ async function Hero() {
           <p className="mono text-[11px] font-medium tracking-[0.15em] text-[var(--lg-ink-dim)]">
             {t("todaysRoute")}
           </p>
+          {/* "Ruta -> auto -> ControlMiles" (pedido explícito, 2026-09-21):
+              reemplaza el efecto anterior (línea + punto + glow tipo
+              "globo") por una micro-historia: una mini carretera se traza,
+              un mini auto la recorre rotando en las curvas, y al llegar se
+              transforma en el logo. Reescrito en bucle continuo (7.3s) en
+              vez de "una sola vez al cargar" -- pedido explícito de esta
+              vuelta, reemplaza esa decisión anterior. Todo vía CSS puro
+              (offset-path/offset-rotate, el mismo mecanismo que ya movía
+              el punto anterior) -- sin GSAP ni ninguna librería de
+              animación nueva, cero peso extra. */}
           <svg viewBox="0 0 760 240" className="mt-4 w-full" role="img" aria-label={t("routeAlt")}>
-            <path d={ROUTE_D} fill="none" stroke="var(--lg-line)" strokeWidth="2" />
+            {/* Superficie + señalización -- aparecen/desaparecen juntas al
+                inicio/fin de cada vuelta del bucle (route-surface). Grosor
+                y opacidad bajos a propósito: es apoyo visual, no debe leerse
+                como un mapa. */}
+            <g className="route-surface">
+              <path
+                d={ROUTE_D}
+                fill="none"
+                stroke="var(--lg-line)"
+                strokeWidth="9"
+                strokeLinecap="round"
+                opacity="0.55"
+              />
+              <path
+                d={ROUTE_D}
+                fill="none"
+                stroke="white"
+                strokeWidth="1.5"
+                strokeDasharray="7 9"
+                opacity="0.9"
+              />
+            </g>
+            {/* Carril "iluminado" -- se dibuja en sincronía exacta con el
+                avance del auto (mismo timing en landing.css): el tramo ya
+                recorrido queda marcado, como evidencia de la milla
+                capturada. */}
             <path
-              className="route-path"
+              className="route-lit"
               d={ROUTE_D}
               fill="none"
-              stroke="var(--lg-ink)"
-              strokeWidth="2.5"
+              stroke="var(--lg-blue-deep)"
+              strokeWidth="3"
               strokeLinecap="round"
             />
-            <circle className="route-dot" r="6" fill="var(--lg-blue-deep)" />
+            {/* Auto -- ancla en offset-path (posición + rotación según la
+                curva); el rebote vertical vive en el <g> hijo para no pelear
+                con la transformación que impone offset-path. */}
+            <g className="route-car">
+              <g className="route-car-bob">
+                <rect x="-11" y="-6" width="22" height="12" rx="5" fill="var(--lg-blue-deep)" />
+                <rect x="1" y="-4" width="7" height="8" rx="2" fill="white" opacity="0.9" />
+              </g>
+            </g>
+
             <circle className="route-pin-glow" cx="740" cy="90" r="15" fill="var(--lg-blue-deep)" />
             <image className="route-pin" href="/logo_controlmiles.png" x="723" y="73" width="34" height="34" />
           </svg>
           <div
-            // Timing sincronizado con el pin (pedido explícito, 2026-09-18:
-            // "que no se vea desincronizado"), no un valor suelto. El pin
-            // termina de asentarse (pin-in) a los 2.55s y su glow de
-            // confirmación corre 2.35s->3.25s (0.9s, ver route-pin-glow en
-            // landing.css) -- esa ventana es la que dice "llegada
-            // confirmada". La fila entra un poco ANTES (2.2s) para que ya
+            // Timing sincronizado con el logo (pedido explícito, 2026-09-21:
+            // "que el efecto del logo vaya con los números en regresión"),
+            // retimed tras el rediseño ruta->auto->logo en bucle de 7.3s
+            // (antes era pin-in a los 2.55s / glow 2.35s->3.25s de la
+            // versión de un solo disparo). El logo ahora asienta a los 5.5s
+            // (75.34% del ciclo, ver route-pin-cycle en landing.css) y su
+            // glow de confirmación corre 5.5s->6.2s (~0.7s, ver
+            // route-pin-glow-cycle) -- esa es la ventana que dice "llegada
+            // confirmada". La fila entra un poco ANTES (5.35s) para que ya
             // esté visible cuando arranca el conteo, y el conteo mismo usa
-            // la MISMA ventana que el glow (2.35s, 0.9s de duración) para
-            // que ambos resuelvan exactamente juntos, como un solo latido.
+            // la MISMA ventana que el glow (5500ms, ~700ms de duración)
+            // para que ambos resuelvan exactamente juntos, como un solo
+            // latido. Sigue siendo un disparo único (no se re-cuenta en
+            // cada vuelta del bucle de la ruta) -- las cifras quedan
+            // asentadas después del primer ciclo, a propósito.
             className="rise mt-2 grid grid-cols-3 divide-x divide-[var(--lg-line)] border-t border-[var(--lg-line)] pt-4"
-            style={{ animationDelay: "2.2s" }}
+            style={{ animationDelay: "5.35s" }}
           >
             <div>
               <p className="display text-2xl font-semibold">
-                <CountingStat from={0} to={18.4} decimals={1} delay={2350} duration={900} />
+                <CountingStat from={0} to={18.4} decimals={1} delay={5500} duration={700} />
               </p>
               <p className="text-xs text-[var(--lg-ink-dim)]">{t("miles")}</p>
             </div>
             <div className="pl-4">
               <p className="display text-2xl font-semibold">
-                <CountingStat from={0} to={3} delay={2350} duration={900} />
+                <CountingStat from={0} to={3} delay={5500} duration={700} />
               </p>
               <p className="text-xs text-[var(--lg-ink-dim)]">{t("trips")}</p>
             </div>
@@ -167,7 +217,7 @@ async function Hero() {
                   a cero es lo que hace ese mensaje legible sin necesitar el
                   párrafo de contexto de al lado. */}
               <p className="display text-2xl font-semibold">
-                <CountingStat from={50} to={0} prefix="$" delay={2350} duration={900} />
+                <CountingStat from={50} to={0} prefix="$" delay={5500} duration={700} />
               </p>
               <p className="text-xs text-[var(--lg-ink-dim)]">{t("guesswork")}</p>
             </div>
