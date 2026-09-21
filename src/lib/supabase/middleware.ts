@@ -25,7 +25,9 @@ function buildCsp(nonce: string) {
     // position updates -- connect-src doesn't implicitly cover a
     // different scheme (wss vs https) on the same host, so this is
     // listed explicitly alongside the https entry.
-    "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://photon.komoot.io",
+    // cgc-cre.vercel.app: CGC Core, where the pageview beacon
+    // (src/components/pageview-beacon.tsx) reports to (2026-09-21).
+    "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://photon.komoot.io https://cgc-cre.vercel.app",
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "form-action 'self'",
