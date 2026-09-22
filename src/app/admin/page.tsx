@@ -42,6 +42,7 @@ export default async function AdminDashboardPage() {
     { data: mapVehicles },
     { data: routeRows },
     { data: sessionRows },
+    { data: mapGeofences },
   ] = await Promise.all([
     supabase
       .from("organization_members")
@@ -91,6 +92,10 @@ export default async function AdminDashboardPage() {
       .eq("organization_id", orgId)
       .gte("start_time", fourteenDaysAgo)
       .order("start_time", { ascending: true }),
+    supabase
+      .from("vehicle_geofences")
+      .select("id, center_latitude, center_longitude, radius_meters, is_active")
+      .eq("organization_id", orgId),
   ]);
 
   const pendingCount = (pendingInviteCount ?? 0) + (unclaimedSlotCount ?? 0);
@@ -170,7 +175,7 @@ export default async function AdminDashboardPage() {
 
       <div className="mt-10">
         {isGrowth ? (
-          <FleetMap orgId={orgId} initialVehicles={vehicles} />
+          <FleetMap orgId={orgId} initialVehicles={vehicles} geofences={mapGeofences ?? []} />
         ) : (
           <GrowthUpsell feature="Live map" />
         )}

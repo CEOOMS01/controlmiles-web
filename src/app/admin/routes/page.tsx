@@ -14,6 +14,28 @@ function vehicleLabel(v: { nickname: string | null; make: string | null; model: 
   return v.display_id ? `${name || v.nickname || "Vehicle"} (${v.display_id})` : name || v.nickname || "—";
 }
 
+// scheduled_start_time/end_time are plain `time` columns (HH:MM:SS, no
+// date/timezone) -- formatted directly as a string instead of round-
+// tripping through Date, which would need a fake date attached and could
+// silently shift by a timezone offset.
+function formatTimeOfDay(t: string | null) {
+  if (!t) return null;
+  const [h, m] = t.split(":");
+  const hour = Number(h);
+  const period = hour >= 12 ? "PM" : "AM";
+  const hour12 = hour % 12 || 12;
+  return `${hour12}:${m} ${period}`;
+}
+
+function formatScheduledRange(date: string | null, start: string | null, end: string | null) {
+  if (!date) return "—";
+  const startLabel = formatTimeOfDay(start);
+  const endLabel = formatTimeOfDay(end);
+  if (!startLabel && !endLabel) return date;
+  if (startLabel && endLabel) return `${date}, ${startLabel}–${endLabel}`;
+  return `${date}, ${startLabel ?? endLabel}`;
+}
+
 const STATUS_STYLES: Record<string, string> = {
   draft: "bg-accent/15 text-accent",
   active: "bg-success/15 text-success",
@@ -31,7 +53,7 @@ export default async function RoutesPage() {
     supabase
       .from("routes")
       .select(
-        "id, name, origin, destination, scheduled_date, status, closed_at, created_at, assigned_driver_id, assigned_vehicle_id, profiles!routes_assigned_driver_id_fkey(first_name, last_name), vehicles(nickname, make, model, display_id)",
+        "id, name, origin, destination, scheduled_date, scheduled_start_time, scheduled_end_time, status, closed_at, created_at, assigned_driver_id, assigned_vehicle_id, profiles!routes_assigned_driver_id_fkey(first_name, last_name), vehicles(nickname, make, model, display_id)",
       )
       .eq("organization_id", orgId)
       .order("created_at", { ascending: false }),
@@ -96,7 +118,9 @@ export default async function RoutesPage() {
                   </td>
                   <td className="px-4 py-3 text-muted">{driverName(p)}</td>
                   <td className="px-4 py-3 text-muted">{vehicleLabel(v)}</td>
-                  <td className="px-4 py-3 text-muted">{r.scheduled_date ?? "—"}</td>
+                  <td className="px-4 py-3 text-muted">
+                    {formatScheduledRange(r.scheduled_date, r.scheduled_start_time, r.scheduled_end_time)}
+                  </td>
                   <td className="px-4 py-3">
                     <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${STATUS_STYLES[r.status]}`}>
                       {r.status}

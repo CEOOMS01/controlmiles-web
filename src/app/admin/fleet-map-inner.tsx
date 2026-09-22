@@ -32,7 +32,16 @@ import * as maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { Protocol } from "pmtiles";
 import { layers, namedFlavor } from "@protomaps/basemaps";
+import { circlePolygon } from "@/lib/geo-circle";
 import type { FleetVehicle } from "./fleet-map";
+
+export type FleetGeofence = {
+  id: string;
+  center_latitude: number;
+  center_longitude: number;
+  radius_meters: number;
+  is_active: boolean;
+};
 
 const PMTILES_URL =
   process.env.NEXT_PUBLIC_FLEET_MAP_PMTILES_URL ??
@@ -71,7 +80,13 @@ function buildStyle(): maplibregl.StyleSpecification {
   };
 }
 
-export default function FleetMapInner({ vehicles }: { vehicles: FleetVehicle[] }) {
+export default function FleetMapInner({
+  vehicles,
+  geofences = [],
+}: {
+  vehicles: FleetVehicle[];
+  geofences?: FleetGeofence[];
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const markersRef = useRef<Map<string, maplibregl.Marker>>(new Map());
@@ -95,6 +110,26 @@ export default function FleetMapInner({ vehicles }: { vehicles: FleetVehicle[] }
       zoom: vehicles.length > 0 ? 9 : 3.5,
     });
     mapRef.current.addControl(new maplibregl.NavigationControl(), "top-right");
+    mapRef.current.on("load", () => {
+      const map = mapRef.current;
+      if (!map) return;
+      map.addSource("fleet-geofences", {
+        type: "geojson",
+        data: { type: "FeatureCollection", features: [] },
+      });
+      map.addLayer({
+        id: "fleet-geofences-fill",
+        type: "fill",
+        source: "fleet-geofences",
+        paint: { "fill-color": ["get", "color"], "fill-opacity": 0.06 },
+      });
+      map.addLayer({
+        id: "fleet-geofences-line",
+        type: "line",
+        source: "fleet-geofences",
+        paint: { "line-color": ["get", "color"], "line-width": 1.5, "line-dasharray": [2, 2] },
+      });
+    });
 
     return () => {
       mapRef.current?.remove();
@@ -159,6 +194,27 @@ export default function FleetMapInner({ vehicles }: { vehicles: FleetVehicle[] }
       }
     }
   }, [vehicles]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    const applyGeofences = () => {
+      const source = map.getSource("fleet-geofences") as maplibregl.GeoJSONSource | undefined;
+      if (!source) return;
+      source.setData({
+        type: "FeatureCollection",
+        features: geofences.map((g) => {
+          const f = circlePolygon(g.center_longitude, g.center_latitude, g.radius_meters);
+          f.properties = { color: g.is_active ? "#2c6c99" : "#94a3b8" };
+          return f;
+        }),
+      });
+    };
+
+    if (map.isStyleLoaded()) applyGeofences();
+    else map.once("load", applyGeofences);
+  }, [geofences]);
 
   return <div ref={containerRef} className="h-full w-full" />;
 }

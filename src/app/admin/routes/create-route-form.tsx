@@ -79,6 +79,22 @@ export function CreateRouteForm({
         />
       </div>
       <div>
+        <label className="mb-1.5 block text-sm font-medium">Start time</label>
+        <input
+          name="scheduled_start_time"
+          type="time"
+          className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
+        />
+      </div>
+      <div>
+        <label className="mb-1.5 block text-sm font-medium">End time</label>
+        <input
+          name="scheduled_end_time"
+          type="time"
+          className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
+        />
+      </div>
+      <div>
         <label className="mb-1.5 block text-sm font-medium">Driver</label>
         <select
           name="driver_id"

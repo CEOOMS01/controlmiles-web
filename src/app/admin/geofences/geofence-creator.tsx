@@ -18,6 +18,37 @@ const GeofenceMap = dynamic(() => import("./geofence-map-inner"), {
 
 const initialState: CreateGeofenceState = { error: null, success: false };
 
+// Real request (explicit user ask, 2026-09-22): a zone needs to reach
+// "one or two states" wide, not just a warehouse yard -- but a plain
+// linear slider from 50m to 500km would waste almost its entire range on
+// giant radii while giving a warehouse-sized zone (the common case) only
+// a few pixels of travel. Mapped logarithmically instead (same fix
+// volume/zoom sliders use for a wide dynamic range): slider position is
+// t in [0, SLIDER_STEPS], radius = MIN_RADIUS_M * (MAX_RADIUS_M /
+// MIN_RADIUS_M) ^ (t / SLIDER_STEPS), so small and large zones both get
+// proportionally fine control. No database change needed -- the
+// radius_meters column only ever enforced `> 0`.
+const MIN_RADIUS_M = 50;
+const MAX_RADIUS_M = 500_000; // 500km -- comfortably covers one or two US states from a central point
+const SLIDER_STEPS = 1000;
+
+function radiusToSlider(radiusMeters: number): number {
+  const t = Math.log(radiusMeters / MIN_RADIUS_M) / Math.log(MAX_RADIUS_M / MIN_RADIUS_M);
+  return Math.round(t * SLIDER_STEPS);
+}
+
+function sliderToRadius(sliderPos: number): number {
+  const t = sliderPos / SLIDER_STEPS;
+  return Math.round(MIN_RADIUS_M * Math.pow(MAX_RADIUS_M / MIN_RADIUS_M, t));
+}
+
+function formatRadius(radiusMeters: number): string {
+  if (radiusMeters >= 1000) {
+    return `${(radiusMeters / 1000).toLocaleString(undefined, { maximumFractionDigits: 1 })} km`;
+  }
+  return `${radiusMeters.toLocaleString()} m`;
+}
+
 export function GeofenceCreator({
   orgId,
   mapVehicles,
@@ -117,18 +148,21 @@ export function GeofenceCreator({
 
         <div>
           <label htmlFor="gf-radius" className="mb-1 block text-xs font-medium">
-            Radius — {radius.toLocaleString()} m
+            Radius — {formatRadius(radius)}
           </label>
           <input
             id="gf-radius"
             type="range"
-            min={50}
-            max={5000}
-            step={50}
-            value={radius}
-            onChange={(e) => setRadius(Number(e.target.value))}
+            min={0}
+            max={SLIDER_STEPS}
+            step={1}
+            value={radiusToSlider(radius)}
+            onChange={(e) => setRadius(sliderToRadius(Number(e.target.value)))}
             className="w-full"
           />
+          <p className="mt-1 text-[11px] text-muted">
+            50 m – 500 km — drag far right to cover a region the size of a state.
+          </p>
           <input type="hidden" name="radius_meters" value={radius} />
         </div>
 

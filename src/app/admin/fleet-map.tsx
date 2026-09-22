@@ -23,6 +23,14 @@ import type { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
 // the browser client can never read directly).
 const REALTIME_TOKEN_REFRESH_MS = 20 * 60_000;
 
+export type FleetGeofence = {
+  id: string;
+  center_latitude: number;
+  center_longitude: number;
+  radius_meters: number;
+  is_active: boolean;
+};
+
 export type FleetVehicle = {
   id: string;
   displayId: string | null;
@@ -53,9 +61,11 @@ function isRecent(iso: string | null, minutes: number): boolean {
 export function FleetMap({
   orgId,
   initialVehicles,
+  geofences = [],
 }: {
   orgId: string;
   initialVehicles: FleetVehicle[];
+  geofences?: FleetGeofence[];
 }) {
   const [vehicles, setVehicles] = useState(initialVehicles);
   const supabaseRef = useRef(createClient());
@@ -146,15 +156,14 @@ export function FleetMap({
         </div>
       </div>
 
-      {vehicles.length === 0 ? (
-        <div className="flex h-72 items-center justify-center rounded-lg border border-dashed border-border text-sm text-muted">
-          Vehicles show up here once a driver starts a trip.
-        </div>
-      ) : (
-        <div className="h-96 overflow-hidden rounded-lg">
-          <MapInner vehicles={vehicles} />
-        </div>
-      )}
+      <div className="relative h-96 overflow-hidden rounded-lg">
+        <MapInner vehicles={vehicles} geofences={geofences} />
+        {vehicles.length === 0 && (
+          <div className="pointer-events-none absolute inset-x-4 bottom-4 rounded-lg border border-dashed border-border bg-surface/90 px-3 py-2 text-center text-sm text-muted">
+            Vehicles show up here once a driver starts a trip.
+          </div>
+        )}
+      </div>
     </div>
   );
 }

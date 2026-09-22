@@ -15,6 +15,8 @@ export async function addRoute(
   const origin = String(formData.get("origin") ?? "").trim() || null;
   const destination = String(formData.get("destination") ?? "").trim() || null;
   const scheduledDate = String(formData.get("scheduled_date") ?? "").trim() || null;
+  const scheduledStartTime = String(formData.get("scheduled_start_time") ?? "").trim() || null;
+  const scheduledEndTime = String(formData.get("scheduled_end_time") ?? "").trim() || null;
   const driverId = String(formData.get("driver_id") ?? "").trim() || null;
   const vehicleId = String(formData.get("vehicle_id") ?? "").trim() || null;
 
@@ -34,6 +36,8 @@ export async function addRoute(
     origin,
     destination,
     scheduled_date: scheduledDate,
+    scheduled_start_time: scheduledStartTime,
+    scheduled_end_time: scheduledEndTime,
     assigned_driver_id: driverId,
     assigned_vehicle_id: vehicleId,
     created_by: user.id,

@@ -55,3 +55,18 @@ export async function getRealtimeAccessToken(): Promise<string | null> {
 
   return session.access_token;
 }
+
+// Same httpOnly-cookie token-minting as getRealtimeAccessToken above, but
+// WITHOUT the Growth-tier gate -- that gate is specific to FleetMap being
+// a paid feature, not a security boundary (the real boundary is each
+// table's own RLS, enforced by Realtime using whatever role the token
+// carries). Added as its own function rather than relaxing the existing
+// one so FleetMap's gating can never regress by way of an unrelated
+// caller (geofence-alerts-feed.tsx) needing a token on every tier.
+export async function getRealtimeAccessTokenAnyTier(): Promise<string | null> {
+  const supabase = await createClient();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  return session?.access_token ?? null;
+}

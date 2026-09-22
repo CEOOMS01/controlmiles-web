@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getAuthedProfile } from "@/lib/supabase/org-context";
 import { GeofenceCreator } from "./geofence-creator";
 import { GeofenceList } from "./geofence-list";
+import { GeofenceAlertsFeed } from "./geofence-alerts-feed";
 
 export default async function GeofencesPage() {
   const supabase = await createClient();
@@ -81,38 +82,21 @@ export default async function GeofencesPage() {
       </div>
 
       <div>
-        <h2 className="mb-3 text-lg font-semibold">Recent crossings</h2>
-        <div className="overflow-x-auto rounded-xl border border-border bg-surface">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border text-left text-muted">
-                <th className="px-4 py-3 font-medium">Zone</th>
-                <th className="px-4 py-3 font-medium">Vehicle</th>
-                <th className="px-4 py-3 font-medium">Distance</th>
-                <th className="px-4 py-3 font-medium">When</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(alerts ?? []).map((a) => (
-                <tr key={a.id} className="border-b border-border last:border-0">
-                  <td className="px-4 py-3">{geofenceById.get(a.geofence_id)?.name ?? "—"}</td>
-                  <td className="px-4 py-3 text-muted">
-                    {vehicleById.has(a.vehicle_id) ? vehicleLabel(vehicleById.get(a.vehicle_id)!) : "—"}
-                  </td>
-                  <td className="px-4 py-3 font-mono tabular-nums">{Math.round(a.distance_meters).toLocaleString()} m out</td>
-                  <td className="px-4 py-3 text-muted">{new Date(a.created_at).toLocaleString()}</td>
-                </tr>
-              ))}
-              {(alerts ?? []).length === 0 && (
-                <tr>
-                  <td colSpan={4} className="px-4 py-8 text-center text-muted">
-                    No crossings recorded yet.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+        <div className="mb-3 flex items-center gap-2">
+          <h2 className="text-lg font-semibold">Recent crossings</h2>
+          <span className="flex items-center gap-1.5 text-xs text-muted">
+            <span className="h-1.5 w-1.5 rounded-full bg-success" />
+            Live
+          </span>
         </div>
+        <GeofenceAlertsFeed
+          orgId={orgId}
+          initialAlerts={alerts ?? []}
+          geofenceNameById={Object.fromEntries((geofences ?? []).map((g) => [g.id, g.name]))}
+          vehicleLabelById={Object.fromEntries(
+            (vehicles ?? []).map((v) => [v.id, vehicleLabel(v)]),
+          )}
+        />
       </div>
     </main>
   );
