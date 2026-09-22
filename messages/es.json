@@ -105,6 +105,7 @@
       "assignmentModes": "Asignación de vehículo fija o abierta",
       "fleetExport": "Exportación CSV/PDF de toda la flota",
       "activityLog": "Un registro de actividad completo y protegido contra ediciones",
+      "shiftScheduling": "Horarios de turnos recurrentes para conductores",
       "everythingGrowth": "Todo lo de Growth",
       "onboarding": "Puesta en marcha acompañada",
       "customReporting": "Reportes e integraciones a medida",

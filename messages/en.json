@@ -105,6 +105,7 @@
       "assignmentModes": "Fixed or open vehicle assignment",
       "fleetExport": "Fleet-wide CSV/PDF export",
       "activityLog": "A complete activity log that's protected against edits",
+      "shiftScheduling": "Recurring driver shift scheduling",
       "everythingGrowth": "Everything in Growth",
       "onboarding": "Dedicated onboarding",
       "customReporting": "Custom reporting & integrations",

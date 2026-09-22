@@ -113,6 +113,7 @@ const fleetPlans = (t: Awaited<ReturnType<typeof getTranslations>>): Plan[] => [
       t("features.assignmentModes"),
       t("features.fleetExport"),
       t("features.activityLog"),
+      t("features.shiftScheduling"),
     ],
     cta: { label: t("signInFleet"), href: "/login" },
     highlight: true,
