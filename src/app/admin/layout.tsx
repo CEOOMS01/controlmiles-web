@@ -130,6 +130,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
               after it -- the two most-used day-to-day screens first. */}
           <AdminNavLink href="/admin/roster">Team</AdminNavLink>
           <AdminNavLink href="/admin/routes">Routes</AdminNavLink>
+          <AdminNavLink href="/admin/shifts">Shifts</AdminNavLink>
           <AdminNavLink href="/admin/vehicles">Vehicles</AdminNavLink>
           <AdminNavLink href="/admin/geofences">Geofences</AdminNavLink>
           <AdminNavLink href="/admin/import">Import</AdminNavLink>

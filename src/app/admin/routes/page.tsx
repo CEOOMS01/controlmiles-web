@@ -48,6 +48,38 @@ const STATUS_STYLES: Record<string, string> = {
   closed: "bg-border text-muted",
 };
 
+// Light Shifts integration (explicit user request, 2026-09-22): informs,
+// never blocks -- a route can still be created/dispatched outside a
+// driver's scheduled shift (real fleets have exceptions), this just
+// surfaces it instead of silently saying nothing. `date` is the plain
+// scheduled_date string (YYYY-MM-DD); parsed as UTC noon so a date-only
+// value can never roll to the adjacent day depending on the server's
+// timezone before extracting its day-of-week.
+function shiftMatchStatus(
+  shifts: { driver_id: string; day_of_week: number; start_time: string; end_time: string; is_active: boolean }[],
+  driverId: string | null,
+  date: string | null,
+  startTime: string | null,
+): "in_shift" | "outside_shift" | "no_shift_data" | null {
+  if (!driverId || !date) return null;
+  const driverShifts = shifts.filter((s) => s.driver_id === driverId && s.is_active);
+  if (driverShifts.length === 0) return null;
+
+  const dayOfWeek = new Date(`${date}T12:00:00Z`).getUTCDay();
+  const dayShifts = driverShifts.filter((s) => s.day_of_week === dayOfWeek);
+  if (dayShifts.length === 0) return "no_shift_data";
+  if (!startTime) return "no_shift_data";
+
+  const inRange = dayShifts.some((s) => startTime >= s.start_time && startTime < s.end_time);
+  return inRange ? "in_shift" : "outside_shift";
+}
+
+const SHIFT_BADGE: Record<string, { label: string; className: string }> = {
+  in_shift: { label: "In shift", className: "bg-success/15 text-success" },
+  outside_shift: { label: "Outside shift", className: "bg-danger/15 text-danger" },
+  no_shift_data: { label: "No shift that day", className: "bg-border text-muted" },
+};
+
 export default async function RoutesPage() {
   const supabase = await createClient();
   const { user, profile } = await getAuthedProfile();
@@ -55,7 +87,7 @@ export default async function RoutesPage() {
   const orgId = profile?.default_org_id;
   if (!orgId) return null;
 
-  const [{ data: routes }, { data: myProfile }, { data: driverMembers }, { data: vehicles }] = await Promise.all([
+  const [{ data: routes }, { data: myProfile }, { data: driverMembers }, { data: vehicles }, { data: shifts }] = await Promise.all([
     supabase
       .from("routes")
       .select(
@@ -75,6 +107,10 @@ export default async function RoutesPage() {
       .select("id, nickname, make, model, display_id")
       .eq("organization_id", orgId)
       .eq("is_archived", false),
+    supabase
+      .from("shifts")
+      .select("driver_id, day_of_week, start_time, end_time, is_active")
+      .eq("organization_id", orgId),
   ]);
 
   const drivers = (driverMembers ?? []).map((m) => {
@@ -128,6 +164,23 @@ export default async function RoutesPage() {
                   <td className="px-4 py-3 text-muted">{vehicleLabel(v)}</td>
                   <td className="px-4 py-3 text-muted">
                     {formatScheduledRange(r.scheduled_date, r.scheduled_start_time, r.scheduled_end_time, timeFormat)}
+                    {(() => {
+                      const status = shiftMatchStatus(
+                        shifts ?? [],
+                        r.assigned_driver_id,
+                        r.scheduled_date,
+                        r.scheduled_start_time,
+                      );
+                      if (!status) return null;
+                      const badge = SHIFT_BADGE[status];
+                      return (
+                        <span
+                          className={`mt-1 block w-fit rounded-full px-2 py-0.5 text-[10px] font-medium ${badge.className}`}
+                        >
+                          {badge.label}
+                        </span>
+                      );
+                    })()}
                   </td>
                   <td className="px-4 py-3">
                     <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${STATUS_STYLES[r.status]}`}>
