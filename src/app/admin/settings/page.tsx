@@ -4,6 +4,7 @@ import { RenameOrgForm } from "./rename-org-form";
 import { VehicleAssignmentModeForm } from "./vehicle-assignment-mode-form";
 import { DeleteOrgForm } from "./delete-org-form";
 import { BillingSection } from "./billing-section";
+import { TimeFormatForm } from "./time-format-form";
 
 export default async function SettingsPage() {
   const supabase = await createClient();
@@ -12,7 +13,7 @@ export default async function SettingsPage() {
   const orgId = profile?.default_org_id;
   if (!orgId) return null;
 
-  const [{ data: org }, { count: vehicleCount }] = await Promise.all([
+  const [{ data: org }, { count: vehicleCount }, { data: myProfile }] = await Promise.all([
     supabase
       .from("organizations")
       .select(
@@ -25,6 +26,7 @@ export default async function SettingsPage() {
       .select("id", { count: "exact", head: true })
       .eq("organization_id", orgId)
       .eq("is_archived", false),
+    supabase.from("profiles").select("time_format").eq("id", user.id).maybeSingle(),
   ]);
 
   if (!org) return null;
@@ -65,6 +67,13 @@ export default async function SettingsPage() {
             orgId={orgId}
             currentMode={org.vehicle_assignment_mode === "open" ? "open" : "fixed"}
           />
+        </SettingsSection>
+
+        <SettingsSection
+          title="Preferences"
+          description="Personal to your account — not shared with the rest of your team."
+        >
+          <TimeFormatForm currentFormat={myProfile?.time_format === "24h" ? "24h" : "12h"} />
         </SettingsSection>
 
         <SettingsSection

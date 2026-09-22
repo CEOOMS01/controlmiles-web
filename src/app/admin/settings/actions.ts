@@ -111,3 +111,38 @@ export async function setVehicleAssignmentMode(
   revalidatePath("/admin", "layout");
   return { error: null, success: true };
 }
+
+export type TimeFormatState = { error: string | null; success: boolean };
+
+// Personal preference (explicit user request, 2026-09-22), not an org
+// setting -- lives on profiles same as mileage_method, not organizations,
+// since two admins signed into the same fleet may each want their own
+// clock format. Only ever updates the caller's own row (no org_id/target
+// user param at all) so there's no authorization check to get wrong.
+export async function setTimeFormat(
+  _prevState: TimeFormatState,
+  formData: FormData,
+): Promise<TimeFormatState> {
+  const format = String(formData.get("time_format") ?? "");
+  if (format !== "12h" && format !== "24h") {
+    return { error: "Invalid selection.", success: false };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated.", success: false };
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ time_format: format })
+    .eq("id", user.id);
+
+  if (error) {
+    return { error: AppError.from(error).display(), success: false };
+  }
+
+  revalidatePath("/admin", "layout");
+  return { error: null, success: true };
+}

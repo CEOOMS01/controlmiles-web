@@ -18,19 +18,25 @@ function vehicleLabel(v: { nickname: string | null; make: string | null; model: 
 // date/timezone) -- formatted directly as a string instead of round-
 // tripping through Date, which would need a fake date attached and could
 // silently shift by a timezone offset.
-function formatTimeOfDay(t: string | null) {
+function formatTimeOfDay(t: string | null, timeFormat: "12h" | "24h") {
   if (!t) return null;
   const [h, m] = t.split(":");
   const hour = Number(h);
+  if (timeFormat === "24h") return `${String(hour).padStart(2, "0")}:${m}`;
   const period = hour >= 12 ? "PM" : "AM";
   const hour12 = hour % 12 || 12;
   return `${hour12}:${m} ${period}`;
 }
 
-function formatScheduledRange(date: string | null, start: string | null, end: string | null) {
+function formatScheduledRange(
+  date: string | null,
+  start: string | null,
+  end: string | null,
+  timeFormat: "12h" | "24h",
+) {
   if (!date) return "—";
-  const startLabel = formatTimeOfDay(start);
-  const endLabel = formatTimeOfDay(end);
+  const startLabel = formatTimeOfDay(start, timeFormat);
+  const endLabel = formatTimeOfDay(end, timeFormat);
   if (!startLabel && !endLabel) return date;
   if (startLabel && endLabel) return `${date}, ${startLabel}–${endLabel}`;
   return `${date}, ${startLabel ?? endLabel}`;
@@ -49,7 +55,7 @@ export default async function RoutesPage() {
   const orgId = profile?.default_org_id;
   if (!orgId) return null;
 
-  const [{ data: routes }, { data: driverMembers }, { data: vehicles }] = await Promise.all([
+  const [{ data: routes }, { data: myProfile }, { data: driverMembers }, { data: vehicles }] = await Promise.all([
     supabase
       .from("routes")
       .select(
@@ -57,6 +63,7 @@ export default async function RoutesPage() {
       )
       .eq("organization_id", orgId)
       .order("created_at", { ascending: false }),
+    supabase.from("profiles").select("time_format").eq("id", user.id).maybeSingle(),
     supabase
       .from("organization_members")
       .select("user_id, profiles(first_name, last_name, email)")
@@ -76,6 +83,7 @@ export default async function RoutesPage() {
     return { id: m.user_id, label: name || p?.email || m.user_id };
   });
   const vehicleOptions = (vehicles ?? []).map((v) => ({ id: v.id, label: vehicleLabel(v) }));
+  const timeFormat: "12h" | "24h" = myProfile?.time_format === "24h" ? "24h" : "12h";
 
   return (
     <main className="px-6 py-10 sm:px-10">
@@ -87,7 +95,7 @@ export default async function RoutesPage() {
       </div>
 
       <div className="mb-6">
-        <CreateRouteForm orgId={orgId} drivers={drivers} vehicles={vehicleOptions} />
+        <CreateRouteForm orgId={orgId} drivers={drivers} vehicles={vehicleOptions} timeFormat={timeFormat} />
       </div>
 
       <div className="overflow-x-auto rounded-xl border border-border bg-surface">
@@ -119,7 +127,7 @@ export default async function RoutesPage() {
                   <td className="px-4 py-3 text-muted">{driverName(p)}</td>
                   <td className="px-4 py-3 text-muted">{vehicleLabel(v)}</td>
                   <td className="px-4 py-3 text-muted">
-                    {formatScheduledRange(r.scheduled_date, r.scheduled_start_time, r.scheduled_end_time)}
+                    {formatScheduledRange(r.scheduled_date, r.scheduled_start_time, r.scheduled_end_time, timeFormat)}
                   </td>
                   <td className="px-4 py-3">
                     <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${STATUS_STYLES[r.status]}`}>

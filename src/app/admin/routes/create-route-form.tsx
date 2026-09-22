@@ -3,6 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { addRoute } from "./actions";
 import { AddressAutocompleteInput } from "./address-autocomplete-input";
+import { TimeInput } from "@/components/time-input";
 
 type Driver = { id: string; label: string };
 type Vehicle = { id: string; label: string };
@@ -11,10 +12,12 @@ export function CreateRouteForm({
   orgId,
   drivers,
   vehicles,
+  timeFormat,
 }: {
   orgId: string;
   drivers: Driver[];
   vehicles: Vehicle[];
+  timeFormat: "12h" | "24h";
 }) {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -80,19 +83,11 @@ export function CreateRouteForm({
       </div>
       <div>
         <label className="mb-1.5 block text-sm font-medium">Start time</label>
-        <input
-          name="scheduled_start_time"
-          type="time"
-          className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
-        />
+        <TimeInput name="scheduled_start_time" format={timeFormat} />
       </div>
       <div>
         <label className="mb-1.5 block text-sm font-medium">End time</label>
-        <input
-          name="scheduled_end_time"
-          type="time"
-          className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
-        />
+        <TimeInput name="scheduled_end_time" format={timeFormat} />
       </div>
       <div>
         <label className="mb-1.5 block text-sm font-medium">Driver</label>
