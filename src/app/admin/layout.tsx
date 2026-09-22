@@ -132,6 +132,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
           <AdminNavLink href="/admin/routes">Routes</AdminNavLink>
           <AdminNavLink href="/admin/vehicles">Vehicles</AdminNavLink>
           <AdminNavLink href="/admin/geofences">Geofences</AdminNavLink>
+          <AdminNavLink href="/admin/import">Import</AdminNavLink>
           {/* Everything below here is outside an Operator's real RLS/RPC
               scope (IFTA, Reviews, Safety, Activity, Maintenance, Export,
               Settings all stayed admin+owner-only in the migration that
