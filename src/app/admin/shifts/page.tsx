@@ -6,6 +6,24 @@ import { ShiftRowActions } from "./shift-row-actions";
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
+// Explicit user request, 2026-09-22: color distinguishes WHEN an active
+// shift runs (morning vs. evening/night), never a status alert (overtime,
+// late start) -- those need real attendance data (sessions.start_time
+// compared against the scheduled shift), which doesn't exist yet and is
+// scoped for the Enterprise pass. Keeping this to a single dimension
+// avoids the ambiguity of a night shift that's ALSO running late: with
+// alerts on their own channel later, that stays representable as two
+// facts instead of one color fighting itself.
+function shiftPeriod(startTime: string): "morning" | "evening" {
+  const hour = Number(startTime.split(":")[0]);
+  return hour < 12 ? "morning" : "evening";
+}
+
+const PERIOD_BADGE = {
+  morning: { label: "Morning", className: "bg-accent/15 text-accent" },
+  evening: { label: "Evening", className: "bg-success/15 text-success" },
+} as const;
+
 function formatTimeOfDay(t: string, timeFormat: "12h" | "24h") {
   const [h, m] = t.split(":");
   const hour = Number(h);
@@ -120,7 +138,13 @@ export default async function ShiftsPage() {
                             <td className="px-4 py-2.5 text-muted">{vehicleLabel(v) ?? "—"}</td>
                             <td className="px-4 py-2.5 text-muted">{s.notes ?? ""}</td>
                             <td className="px-4 py-2.5">
-                              {!s.is_active && (
+                              {s.is_active ? (
+                                <span
+                                  className={`rounded-full px-2 py-0.5 text-xs font-medium ${PERIOD_BADGE[shiftPeriod(s.start_time)].className}`}
+                                >
+                                  {PERIOD_BADGE[shiftPeriod(s.start_time)].label}
+                                </span>
+                              ) : (
                                 <span className="rounded-full bg-border px-2 py-0.5 text-xs text-muted">
                                   Paused
                                 </span>
