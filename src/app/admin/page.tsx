@@ -26,7 +26,11 @@ export default async function AdminDashboardPage() {
   // updates (the old failure mode: the token request just came back null
   // with no explanation).
   const { data: tier } = await supabase.rpc("fn_org_effective_tier", { p_org_id: orgId });
-  const isGrowth = tier === "growth";
+  // Enterprise includes everything Growth has ("Everything in Growth" on
+  // the pricing page isn't just marketing copy) -- checked as its own
+  // distinct tier value throughout the app specifically so an
+  // Enterprise-only feature can still tell the two apart when it needs to.
+  const isGrowth = tier === "growth" || tier === "enterprise";
 
   const thirtyDaysAgo = daysAgoIso(30);
   const fourteenDaysAgo = daysAgoIso(14);

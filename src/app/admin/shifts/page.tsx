@@ -19,10 +19,85 @@ function shiftPeriod(startTime: string): "morning" | "evening" {
   return hour < 12 ? "morning" : "evening";
 }
 
-const PERIOD_BADGE = {
-  morning: { label: "Morning", className: "bg-accent/15 text-accent" },
-  evening: { label: "Evening", className: "bg-success/15 text-success" },
-} as const;
+// Icon, not color -- explicit user follow-up: color is reserved
+// exclusively for real attendance status (on-time/overtime/late, the
+// Enterprise pass below), so it always means "pay attention" and never
+// doubles as a category. Morning/evening is just a fact about the
+// schedule, not something that needs to compete for that channel.
+const PERIOD_ICON = { morning: "☀️", evening: "🌙" } as const;
+
+// Enterprise (explicit user request, 2026-09-22): compares a shift
+// scheduled for TODAY against the driver's real sessions for today
+// (sessions.start_time -- the actual GPS-validated moment they started
+// driving, not something self-reported). Grace period mirrors the
+// 15-minute "active" window fleet-map.tsx already uses elsewhere in
+// this app for "is this vehicle currently active" -- same tolerance,
+// same reasoning (GPS/clock jitter, not a hard deadline).
+const LATE_GRACE_MINUTES = 15;
+
+type AttendanceStatus = "on_time" | "late" | "overtime" | "upcoming" | null;
+
+function attendanceStatus(
+  shift: { start_time: string; end_time: string },
+  todaysSessions: { start_time: string | null; end_time: string | null }[],
+  now: Date,
+): AttendanceStatus {
+  const nowMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
+  const toMinutes = (t: string) => {
+    const [h, m] = t.split(":").map(Number);
+    return h * 60 + m;
+  };
+  const shiftStart = toMinutes(shift.start_time);
+  const shiftEnd = toMinutes(shift.end_time);
+
+  // REAL BUG FOUND AND FIXED WHILE VERIFYING LIVE: a driver with more
+  // than one shift today (e.g. a morning shift and a separate evening
+  // shift) has all of today's sessions passed in here, not just the one
+  // that belongs to THIS shift -- without this filter, an early-morning
+  // trip was being matched against a still-"upcoming" evening shift too,
+  // reading as "on time" for a shift that hadn't started yet. Only a
+  // session whose own start falls inside this shift's own window
+  // (with the same grace period) can belong to it.
+  const belongsToThisShift = (s: { start_time: string | null }) => {
+    if (!s.start_time) return false;
+    const d = new Date(s.start_time);
+    const startMinutes = d.getUTCHours() * 60 + d.getUTCMinutes();
+    return startMinutes >= shiftStart - LATE_GRACE_MINUTES && startMinutes <= shiftEnd;
+  };
+  const session = todaysSessions.find(belongsToThisShift);
+
+  if (!session) {
+    if (nowMinutes < shiftStart) return "upcoming";
+    if (nowMinutes > shiftStart + LATE_GRACE_MINUTES) return "late";
+    return "upcoming";
+  }
+
+  const sessionStartMinutes = session.start_time
+    ? (() => {
+        const d = new Date(session.start_time!);
+        return d.getUTCHours() * 60 + d.getUTCMinutes();
+      })()
+    : null;
+
+  const stillRunning = !session.end_time;
+  if (stillRunning && nowMinutes > shiftEnd) return "overtime";
+  if (session.end_time) {
+    const ended = new Date(session.end_time);
+    const endedMinutes = ended.getUTCHours() * 60 + ended.getUTCMinutes();
+    if (endedMinutes > shiftEnd) return "overtime";
+  }
+
+  if (sessionStartMinutes != null && sessionStartMinutes > shiftStart + LATE_GRACE_MINUTES) return "late";
+
+  return "on_time";
+}
+
+const ATTENDANCE_BADGE: Record<Exclude<AttendanceStatus, null>, { label: string; className: string }> = {
+  on_time: { label: "On time", className: "bg-success/15 text-success" },
+  overtime: { label: "Overtime", className: "bg-[#a16207]/15 text-[#a16207]" },
+  late: { label: "Late start", className: "bg-danger/15 text-danger" },
+  upcoming: { label: "Upcoming", className: "bg-border text-muted" },
+};
 
 function formatTimeOfDay(t: string, timeFormat: "12h" | "24h") {
   const [h, m] = t.split(":");
@@ -41,9 +116,14 @@ export default async function ShiftsPage() {
   if (!orgId) return null;
 
   const { data: tier } = await supabase.rpc("fn_org_effective_tier", { p_org_id: orgId });
-  const isGrowth = tier === "growth";
+  const isGrowth = tier === "growth" || tier === "enterprise";
+  const isEnterprise = tier === "enterprise";
 
-  const [{ data: shifts }, { data: driverMembers }, { data: vehicles }, { data: myProfile }] =
+  const now = new Date();
+  const todayDow = now.getUTCDay();
+  const todayDateKey = now.toISOString().slice(0, 10);
+
+  const [{ data: shifts }, { data: driverMembers }, { data: todaysSessions }, { data: vehicles }, { data: myProfile }] =
     await Promise.all([
       supabase
         .from("shifts")
@@ -59,6 +139,13 @@ export default async function ShiftsPage() {
         .eq("organization_id", orgId)
         .eq("member_role", "driver")
         .eq("is_active", true),
+      isEnterprise
+        ? supabase
+            .from("sessions")
+            .select("user_id, start_time, end_time")
+            .eq("organization_id", orgId)
+            .eq("date_key", todayDateKey)
+        : Promise.resolve({ data: [] as { user_id: string; start_time: string | null; end_time: string | null }[] }),
       supabase
         .from("vehicles")
         .select("id, nickname, make, model, display_id")
@@ -110,6 +197,13 @@ export default async function ShiftsPage() {
         <GrowthUpsell feature="Shift scheduling" />
       ) : (
         <>
+          {!isEnterprise && (
+            <div className="mb-6 rounded-xl border border-dashed border-border bg-surface p-4 text-sm text-muted">
+              <span className="font-medium text-foreground">Enterprise</span> adds live attendance
+              status — on time, late start, or running into overtime — checked against each
+              driver&apos;s real GPS trip start, not just the schedule.
+            </div>
+          )}
           <div className="mb-8">
             <ShiftForm orgId={orgId} drivers={drivers} vehicles={vehicleOptions} timeFormat={timeFormat} />
           </div>
@@ -133,21 +227,35 @@ export default async function ShiftsPage() {
                           <tr key={s.id} className="border-b border-border last:border-0">
                             <td className="px-4 py-2.5 font-medium">{DAY_LABELS[s.day_of_week]}</td>
                             <td className="px-4 py-2.5 text-muted">
+                              <span aria-hidden="true">{PERIOD_ICON[shiftPeriod(s.start_time)]}</span>{" "}
                               {formatTimeOfDay(s.start_time, timeFormat)}–{formatTimeOfDay(s.end_time, timeFormat)}
                             </td>
                             <td className="px-4 py-2.5 text-muted">{vehicleLabel(v) ?? "—"}</td>
                             <td className="px-4 py-2.5 text-muted">{s.notes ?? ""}</td>
                             <td className="px-4 py-2.5">
-                              {s.is_active ? (
-                                <span
-                                  className={`rounded-full px-2 py-0.5 text-xs font-medium ${PERIOD_BADGE[shiftPeriod(s.start_time)].className}`}
-                                >
-                                  {PERIOD_BADGE[shiftPeriod(s.start_time)].label}
-                                </span>
-                              ) : (
+                              {!s.is_active ? (
                                 <span className="rounded-full bg-border px-2 py-0.5 text-xs text-muted">
                                   Paused
                                 </span>
+                              ) : (
+                                isEnterprise &&
+                                s.day_of_week === todayDow &&
+                                (() => {
+                                  const status = attendanceStatus(
+                                    s,
+                                    (todaysSessions ?? []).filter((sess) => sess.user_id === s.driver_id),
+                                    now,
+                                  );
+                                  if (!status) return null;
+                                  const badge = ATTENDANCE_BADGE[status];
+                                  return (
+                                    <span
+                                      className={`rounded-full px-2 py-0.5 text-xs font-medium ${badge.className}`}
+                                    >
+                                      {badge.label}
+                                    </span>
+                                  );
+                                })()
                               )}
                             </td>
                             <td className="px-4 py-2.5">

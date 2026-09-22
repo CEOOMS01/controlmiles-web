@@ -49,7 +49,7 @@ export default async function ActivityPage() {
   // (audit_events itself has no tier-scoped RLS; nothing here was ever
   // technically broken, just uninformative).
   const { data: tier } = await supabase.rpc("fn_org_effective_tier", { p_org_id: orgId });
-  if (tier !== "growth") {
+  if (tier !== "growth" && tier !== "enterprise") {
     return (
       <main className="px-6 py-10 sm:px-10">
         <div className="mb-8">

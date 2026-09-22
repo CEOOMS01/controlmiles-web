@@ -19,7 +19,7 @@ export default async function ExportPage() {
   if (!orgId) return null;
 
   const { data: tier } = await supabase.rpc("fn_org_effective_tier", { p_org_id: orgId });
-  const isGrowth = tier === "growth";
+  const isGrowth = tier === "growth" || tier === "enterprise";
 
   return (
     <main className="px-6 py-10 sm:px-10">

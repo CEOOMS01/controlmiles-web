@@ -51,7 +51,7 @@ export async function getRealtimeAccessToken(): Promise<string | null> {
   const { data: tier } = await supabase.rpc("fn_org_effective_tier", {
     p_org_id: profile.default_org_id,
   });
-  if (tier !== "growth") return null;
+  if (tier !== "growth" && tier !== "enterprise") return null;
 
   return session.access_token;
 }
