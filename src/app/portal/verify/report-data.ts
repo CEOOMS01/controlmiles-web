@@ -43,6 +43,20 @@ export type PortalRoute = {
   points: PortalRoutePoint[];
 };
 
+// One row per trip (session) in the report's date range -- mirrors the
+// app's own PDF report (ReportService._buildGlobalTripsTableOnly): date,
+// gig app(s) with IRS purpose, distance, duration, odometer start/end.
+// Absent on a report generated before this field existed (old rows in
+// `reports.metadata` predate it) -- callers default to an empty array.
+export type PortalTrip = {
+  date_key: string;
+  apps_label: string;
+  total_miles: number;
+  duration_seconds: number;
+  start_odometer_value: number | null;
+  end_odometer_value: number | null;
+};
+
 export type PortalReport = {
   driver_display_name: string | null;
   driver_display_id: string | null;
@@ -54,6 +68,7 @@ export type PortalReport = {
   total_deduction_estimate: number;
   vehicles: PortalVehicle[];
   gig_app_breakdown: PortalGigAppBreakdown[];
+  trips: PortalTrip[];
   weekly_checkpoints: PortalWeeklyCheckpoint[];
   route_points: PortalRoute[];
 };

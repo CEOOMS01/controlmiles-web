@@ -19,7 +19,15 @@ function buildCsp(nonce: string) {
     // below -- only the fleet live map moved off it).
     // protomaps.github.io: sprite PNG for the fleet map's self-hosted
     // MapLibre basemap (see fleet-map-inner.tsx).
-    "img-src 'self' data: https://*.tile.openstreetmap.org https://protomaps.github.io",
+    // *.supabase.co: REAL BUG FOUND AND FIXED (2026-09-22, while
+    // verifying the report portal's weekly odometer photos) -- this
+    // domain was never in img-src at all. The Report Portal
+    // (portal/verify) has rendered <img src={photoUrl}> from Supabase
+    // Storage since that feature shipped, meaning every odometer photo
+    // was silently blocked by CSP the entire time, with nothing in the
+    // UI to explain why the tile stayed empty -- confirmed live via a
+    // console CSP violation while testing this exact page.
+    "img-src 'self' data: https://*.tile.openstreetmap.org https://protomaps.github.io https://*.supabase.co",
     "font-src 'self'",
     // MapLibre GL JS parses/renders vector tiles off the main thread via
     // a Web Worker constructed from a blob: URL internally -- without

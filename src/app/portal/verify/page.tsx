@@ -144,10 +144,23 @@ function formatWeekRange(startDate: string, endDate: string): string {
   return `${start} – ${end}`;
 }
 
+// Mirrors report_service.dart's own "Xh Ym" formatting so a trip's
+// duration reads the same on both surfaces.
+function formatDuration(seconds: number): string {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  return `${h}h ${m}m`;
+}
+
 function ReportView({ report, onReset }: { report: PortalReport; onReset: () => void }) {
+  // A report generated before the trips field existed has no `trips` key
+  // at all in its stored metadata JSON -- defends against that rather
+  // than assuming every PortalReport in the wild matches today's shape.
+  const trips = report.trips ?? [];
+
   return (
-    <main className="flex flex-1 justify-center px-4 py-16">
-      <div className="w-full max-w-xl">
+    <main className="flex flex-1 justify-center px-4 py-16 print:px-0 print:py-6">
+      <div className="w-full max-w-xl print:max-w-none">
         <div className="mb-6 flex items-start justify-between gap-4">
           <div>
             <p className="text-sm font-semibold tracking-wide text-accent uppercase">
@@ -160,14 +173,22 @@ function ReportView({ report, onReset }: { report: PortalReport; onReset: () => 
               <p className="text-sm text-muted">ID: {report.driver_display_id}</p>
             )}
           </div>
-          <p className="shrink-0 pt-1 text-right text-xs text-muted">
-            Generated
-            <br />
-            {new Date(report.generated_at).toLocaleString()}
-          </p>
+          <div className="flex shrink-0 flex-col items-end gap-2">
+            <button
+              onClick={() => window.print()}
+              className="print:hidden rounded-lg bg-accent px-3.5 py-2 text-sm font-semibold text-accent-foreground transition hover:opacity-90"
+            >
+              Download PDF
+            </button>
+            <p className="text-right text-xs text-muted">
+              Generated
+              <br />
+              {new Date(report.generated_at).toLocaleString()}
+            </p>
+          </div>
         </div>
 
-        <div className="rounded-xl border border-border bg-surface p-6">
+        <div className="rounded-xl border border-border bg-surface p-6 print:border-none print:p-0">
           <div className="grid grid-cols-2 gap-4 border-b border-border pb-4 sm:grid-cols-3">
             <Stat label="Period" value={formatPeriod(report.start_date, report.end_date)} />
             <Stat label="Total miles" value={report.total_miles.toFixed(1)} />
@@ -183,7 +204,9 @@ function ReportView({ report, onReset }: { report: PortalReport; onReset: () => 
 
           {report.vehicles.length > 0 && (
             <div className="border-b border-border py-4">
-              <h2 className="mb-2 text-sm font-semibold">Vehicles used</h2>
+              <h2 className="mb-2 text-xs font-semibold tracking-wide text-accent uppercase">
+                Vehicles used
+              </h2>
               <ul className="space-y-1 text-sm text-muted">
                 {report.vehicles.map((v, i) => (
                   <li key={i}>
@@ -196,9 +219,53 @@ function ReportView({ report, onReset }: { report: PortalReport; onReset: () => 
             </div>
           )}
 
+          {trips.length > 0 && (
+            <div className="border-b border-border py-4">
+              <h2 className="mb-2 text-xs font-semibold tracking-wide text-accent uppercase">
+                Trip log
+              </h2>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-muted">
+                      <th className="pb-1.5 font-medium">Date</th>
+                      <th className="pb-1.5 font-medium">Gig app(s)</th>
+                      <th className="pb-1.5 text-right font-medium">Distance</th>
+                      <th className="pb-1.5 text-right font-medium">Duration</th>
+                      <th className="pb-1.5 text-right font-medium">Odo start</th>
+                      <th className="pb-1.5 text-right font-medium">Odo end</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {trips.map((trip, i) => (
+                      <tr key={i} className="border-t border-border">
+                        <td className="py-1.5">{formatTripDate(trip.date_key)}</td>
+                        <td className="py-1.5 text-muted">{trip.apps_label || "—"}</td>
+                        <td className="py-1.5 text-right tabular-nums">
+                          {trip.total_miles.toFixed(2)} mi
+                        </td>
+                        <td className="py-1.5 text-right tabular-nums text-muted">
+                          {formatDuration(trip.duration_seconds)}
+                        </td>
+                        <td className="py-1.5 text-right tabular-nums text-muted">
+                          {trip.start_odometer_value?.toFixed(0) ?? "—"}
+                        </td>
+                        <td className="py-1.5 text-right tabular-nums text-muted">
+                          {trip.end_odometer_value?.toFixed(0) ?? "—"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
           {report.weekly_checkpoints.length > 0 && (
             <div className="border-b border-border py-4">
-              <h2 className="mb-2 text-sm font-semibold">Weekly odometer photos</h2>
+              <h2 className="mb-2 text-xs font-semibold tracking-wide text-accent uppercase">
+                Weekly odometer photos
+              </h2>
               <div className="space-y-3">
                 {report.weekly_checkpoints.map((cp, i) => (
                   <div key={i} className="rounded-lg border border-border p-3">
@@ -227,8 +294,15 @@ function ReportView({ report, onReset }: { report: PortalReport; onReset: () => 
           )}
 
           {report.route_points.length > 0 && (
-            <div className="border-b border-border py-4">
-              <h2 className="mb-2 text-sm font-semibold">Trip routes</h2>
+            // The interactive Leaflet map doesn't render meaningfully in a
+            // browser print/PDF pass (tiles load async, canvas often comes
+            // out blank) -- hidden on print rather than shipping a broken
+            // empty box in the downloaded PDF. The trip log table above
+            // already carries this same data for the printed report.
+            <div className="border-b border-border py-4 print:hidden">
+              <h2 className="mb-2 text-xs font-semibold tracking-wide text-accent uppercase">
+                Trip routes
+              </h2>
               <div className="space-y-3">
                 {report.route_points.map((route) => (
                   <div key={route.session_id} className="rounded-lg border border-border p-3">
@@ -244,7 +318,9 @@ function ReportView({ report, onReset }: { report: PortalReport; onReset: () => 
 
           {report.gig_app_breakdown.length > 0 && (
             <div className="pt-4">
-              <h2 className="mb-2 text-sm font-semibold">Trip purpose breakdown</h2>
+              <h2 className="mb-2 text-xs font-semibold tracking-wide text-accent uppercase">
+                Trip purpose breakdown
+              </h2>
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left text-muted">
@@ -279,7 +355,7 @@ function ReportView({ report, onReset }: { report: PortalReport; onReset: () => 
 
         <button
           onClick={onReset}
-          className="mt-6 text-sm text-accent hover:underline"
+          className="mt-6 text-sm text-accent hover:underline print:hidden"
         >
           Enter a different code
         </button>
