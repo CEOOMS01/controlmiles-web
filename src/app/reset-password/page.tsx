@@ -76,7 +76,7 @@ export default function ResetCodePage() {
 
         <p className="mt-8 text-center text-xs text-muted">
           <Link href="/forgot-password" className="text-accent hover:underline">
-            Request a new code
+            Back
           </Link>
         </p>
       </div>
