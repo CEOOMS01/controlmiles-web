@@ -16,7 +16,9 @@ export function ResetPasswordForm() {
           New password
         </label>
         <PasswordInput id="password" name="password" autoComplete="new-password" minLength={8} />
-        <p className="mt-1.5 text-xs text-muted">At least 8 characters.</p>
+        <p className="mt-1.5 text-xs text-muted">
+          At least 8 characters, with an uppercase letter, a number, and a symbol.
+        </p>
       </div>
 
       <div>

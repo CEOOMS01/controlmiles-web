@@ -1,8 +1,9 @@
 "use server";
 
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { AppError } from "@/lib/errors";
+import { PENDING_RESET_EMAIL_COOKIE } from "@/lib/auth/reset-email-cookie";
 
 export type ForgotPasswordState = { error: string | null; sent: boolean };
 
@@ -36,7 +37,7 @@ export async function requestPasswordReset(
   const origin = host ? `${protocol}://${host}` : "https://controlmiles.com";
 
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${origin}/auth/confirm?next=/reset-password`,
+    redirectTo: `${origin}/auth/confirm?next=/reset-password/new`,
   });
 
   // Only a real, non-enumeration error (rate limit, malformed email)
@@ -45,6 +46,15 @@ export async function requestPasswordReset(
   if (error && error.code !== "user_not_found") {
     return { error: AppError.from(error).display(), sent: false };
   }
+
+  const cookieStore = await cookies();
+  cookieStore.set(PENDING_RESET_EMAIL_COOKIE, email, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 15 * 60,
+    path: "/",
+  });
 
   return { error: null, sent: true };
 }

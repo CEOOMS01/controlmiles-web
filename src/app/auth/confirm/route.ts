@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
   const tokenHash = searchParams.get("token_hash");
   const type = searchParams.get("type") as EmailOtpType | null;
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/reset-password";
+  const next = searchParams.get("next") ?? "/reset-password/new";
 
   if (tokenHash && type) {
     const supabase = await createClient();

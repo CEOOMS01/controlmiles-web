@@ -49,6 +49,13 @@ export default function ForgotPasswordPage() {
               If an account exists for that email, we&apos;ve sent a link
               to reset your password. Check your inbox (and spam folder).
             </p>
+            <p className="mt-3 text-xs text-muted">
+              Can&apos;t click the link? The email also includes a code — go{" "}
+              <Link href="/reset-password" className="text-accent hover:underline">
+                enter your code
+              </Link>{" "}
+              instead.
+            </p>
           </div>
         ) : (
           <form action={formAction} className="space-y-4">
