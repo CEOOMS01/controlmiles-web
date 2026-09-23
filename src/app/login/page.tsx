@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useActionState } from "react";
+import { Suspense, useActionState, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -34,8 +34,41 @@ function PasswordResetNotice() {
   );
 }
 
+const REMEMBERED_EMAIL_KEY = "cm_remembered_login_email";
+
 export default function LoginPage() {
   const [state, formAction, pending] = useActionState(signIn, { error: null });
+  const [email, setEmail] = useState("");
+  const [rememberEmail, setRememberEmail] = useState(false);
+
+  // Per-viewer convenience only, same class of thing as a remembered tab
+  // or a collapsed section -- never a credential, just the email string,
+  // so read/write is wrapped rather than trusted (a private window or
+  // blocked site data throws here, and the form must still work either
+  // way).
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(REMEMBERED_EMAIL_KEY);
+      if (saved) {
+        setEmail(saved);
+        setRememberEmail(true);
+      }
+    } catch {
+      // Storage unavailable -- form just starts blank, same as before this existed.
+    }
+  }, []);
+
+  function onSubmit() {
+    try {
+      if (rememberEmail && email) {
+        localStorage.setItem(REMEMBERED_EMAIL_KEY, email);
+      } else {
+        localStorage.removeItem(REMEMBERED_EMAIL_KEY);
+      }
+    } catch {
+      // Non-fatal -- sign-in itself doesn't depend on this succeeding.
+    }
+  }
 
   return (
     <main className="flex flex-1 items-center justify-center px-4 py-16">
@@ -68,7 +101,7 @@ export default function LoginPage() {
           <div className="h-px flex-1 bg-border" />
         </div>
 
-        <form action={formAction} className="space-y-4">
+        <form action={formAction} onSubmit={onSubmit} className="space-y-4">
           <div>
             <label htmlFor="email" className="mb-1.5 block text-sm font-medium">
               Email
@@ -79,8 +112,19 @@ export default function LoginPage() {
               type="email"
               required
               autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               className="w-full rounded-lg border border-border bg-surface px-3.5 py-2.5 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
             />
+            <label className="mt-1.5 flex items-center gap-1.5 text-xs text-muted">
+              <input
+                type="checkbox"
+                checked={rememberEmail}
+                onChange={(e) => setRememberEmail(e.target.checked)}
+                className="h-3.5 w-3.5 rounded border-border"
+              />
+              Remember my email
+            </label>
           </div>
 
           <div>
