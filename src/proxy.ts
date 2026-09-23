@@ -63,7 +63,15 @@ function isNonLocalizedRoute(pathname: string) {
     // Same reasoning, added proactively this time instead of found live:
     // /onboarding/organization lives directly under src/app/ too (the
     // post-Google-sign-in "create your fleet" step).
-    pathname.startsWith("/onboarding")
+    pathname.startsWith("/onboarding") ||
+    // REAL BUG FOUND LIVE (2026-09-23, exact same regression class this
+    // comment already warns about, TWICE): send-driver-invite's email
+    // has always linked to https://controlmiles.com/invite/<token>, and
+    // this route was missing here -- every single driver invite ever
+    // sent has 404'd on click, silently, since the feature shipped. The
+    // page itself (src/app/invite/[token]/) was ALSO never built until
+    // now; both halves of this bug had to be fixed for the flow to work.
+    pathname.startsWith("/invite")
   );
 }
 
