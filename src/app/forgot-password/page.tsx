@@ -86,6 +86,22 @@ export default function ForgotPasswordPage() {
             >
               {pending ? "Sending…" : "Send reset link"}
             </button>
+
+            {/* Explicit user request, 2026-09-23: for someone who already
+                requested a code, then lost/closed that page -- goes
+                straight to the code-entry step instead of making them
+                submit this form again. Submitting again would count as a
+                fresh resetPasswordForEmail call against Supabase (another
+                database write, another rate-limit hit) and would
+                invalidate their still-valid code by generating a new
+                one -- pure waste when the one they already have hasn't
+                expired yet. */}
+            <p className="text-center text-xs text-muted">
+              Already have a code?{" "}
+              <Link href="/reset-password" className="text-accent hover:underline">
+                Enter it
+              </Link>
+            </p>
           </form>
         )}
 
