@@ -66,7 +66,7 @@ export async function bulkAddVehicles(
     results.push({ row, ok: !error, error: error ? AppError.from(error).display() : null });
   }
 
-  revalidatePath("/admin/vehicles");
+  revalidatePath("/admin/roster");
   return { error: null, results };
 }
 

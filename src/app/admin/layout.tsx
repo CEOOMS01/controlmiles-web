@@ -127,11 +127,13 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
           {/* Explicit user request, 2026-09-18: Team (formerly "Roster" --
               renamed so it doesn't read as a near-match for "Routes" right
               below it) moved directly under Dashboard, with Routes right
-              after it -- the two most-used day-to-day screens first. */}
+              after it -- the two most-used day-to-day screens first.
+              2026-09-23: Vehicles folded into this same page/nav item
+              (who's driving what was always one question asked from two
+              directions) -- no separate "Vehicles" link anymore. */}
           <AdminNavLink href="/admin/roster">Team</AdminNavLink>
           <AdminNavLink href="/admin/routes">Routes</AdminNavLink>
           <AdminNavLink href="/admin/shifts">Shifts</AdminNavLink>
-          <AdminNavLink href="/admin/vehicles">Vehicles</AdminNavLink>
           <AdminNavLink href="/admin/geofences">Geofences</AdminNavLink>
           <AdminNavLink href="/admin/import">Import</AdminNavLink>
           {/* Everything below here is outside an Operator's real RLS/RPC

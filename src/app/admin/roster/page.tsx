@@ -8,7 +8,20 @@ import { GenerateReportButton } from "./generate-report-button";
 import { OperatorButton } from "./operator-button";
 import { AdminButton } from "./admin-button";
 import { RowActionsMenu } from "./row-actions-menu";
+import { DriverVehicleSelect } from "./driver-vehicle-select";
+import { AddVehicleForm } from "../vehicles/add-vehicle-form";
+import { ArchiveButton } from "../vehicles/vehicle-row-actions";
 
+// Team+Vehicles unification (explicit user request, 2026-09-23): this
+// used to be two separate pages/nav items -- "who's on the team" and
+// "which vehicles exist" were really the same fleet-admin question asked
+// from two directions, and answering "who's driving what" meant jumping
+// between them. One page now: each driver row carries its own vehicle
+// picker (DriverVehicleSelect, the inverse of the old AssignDriverSelect
+// vehicle-row component, still used below for vehicles nobody's
+// driving). /admin/vehicles itself now just redirects here (see that
+// page's own comment) rather than disappearing outright, in case
+// anything still links to the old URL.
 export default async function RosterPage() {
   const supabase = await createClient();
   const { user, profile } = await getAuthedProfile();
@@ -16,7 +29,7 @@ export default async function RosterPage() {
   const orgId = profile?.default_org_id;
   if (!orgId) return null;
 
-  const [{ data: members }, { data: allSlots }] = await Promise.all([
+  const [{ data: members }, { data: allSlots }, { data: vehicles }] = await Promise.all([
     supabase
       .from("organization_members")
       .select(
@@ -39,12 +52,32 @@ export default async function RosterPage() {
       .select("id, first_name, last_name, display_id, created_at, claimed_by")
       .eq("organization_id", orgId)
       .order("created_at", { ascending: false }),
+    supabase
+      .from("vehicles")
+      .select("id, display_id, nickname, make, model, year, plate, assigned_driver_id")
+      .eq("organization_id", orgId)
+      .eq("is_archived", false)
+      .order("created_at", { ascending: false }),
   ]);
 
   const slots = (allSlots ?? []).filter((s) => !s.claimed_by);
   const displayIdByUserId = new Map(
     (allSlots ?? []).filter((s) => s.claimed_by).map((s) => [s.claimed_by as string, s.display_id]),
   );
+
+  const vehicleLabel = (v: { nickname: string | null; make: string | null; model: string | null; display_id: string | null; year?: number | null }) => {
+    const name = [v.year && String(v.year), v.make, v.model].filter(Boolean).join(" ");
+    return v.display_id ? `${name || v.nickname || "Vehicle"} (${v.display_id})` : name || v.nickname || "Vehicle";
+  };
+  const vehicleOptions = (vehicles ?? []).map((v) => ({
+    id: v.id,
+    label: vehicleLabel(v),
+    assignedToDriverId: v.assigned_driver_id,
+  }));
+  const vehicleByDriverId = new Map(
+    (vehicles ?? []).filter((v) => v.assigned_driver_id).map((v) => [v.assigned_driver_id as string, v]),
+  );
+  const unassignedVehicles = (vehicles ?? []).filter((v) => !v.assigned_driver_id);
 
   // Explicit user request, 2026-09-18: only an admin/owner can see the
   // "Make operator" control -- an operator could otherwise see the
@@ -65,15 +98,16 @@ export default async function RosterPage() {
         <p className="text-sm font-semibold tracking-wide text-accent uppercase">
           Team
         </p>
-        <h1 className="mt-1 text-2xl font-semibold">Drivers</h1>
+        <h1 className="mt-1 text-2xl font-semibold">Drivers &amp; vehicles</h1>
       </div>
 
-      <div className="mb-6 grid gap-4 sm:grid-cols-2">
+      <div className="mb-6 grid gap-4 sm:grid-cols-3">
         <InviteForm
           orgId={orgId}
           callerRole={callerRole === "owner" || callerRole === "admin" || callerRole === "operator" ? callerRole : "operator"}
         />
         <AddDriverSlotForm orgId={orgId} />
+        <AddVehicleForm orgId={orgId} />
       </div>
 
       <div className="overflow-x-auto rounded-xl border border-border bg-surface">
@@ -88,6 +122,7 @@ export default async function RosterPage() {
               <th className="px-4 py-3 font-medium">User ID</th>
               <th className="px-4 py-3 font-medium">Email</th>
               <th className="px-4 py-3 font-medium">Role</th>
+              <th className="px-4 py-3 font-medium">Vehicle</th>
               <th className="px-4 py-3 font-medium">Status</th>
               <th className="px-4 py-3" />
             </tr>
@@ -104,6 +139,17 @@ export default async function RosterPage() {
                   </td>
                   <td className="px-4 py-3 text-muted">{p?.email ?? "—"}</td>
                   <td className="px-4 py-3 capitalize text-muted">{m.member_role}</td>
+                  <td className="px-4 py-3">
+                    {m.member_role === "driver" && m.is_active ? (
+                      <DriverVehicleSelect
+                        driverId={m.user_id}
+                        currentVehicleId={vehicleByDriverId.get(m.user_id)?.id ?? null}
+                        vehicles={vehicleOptions}
+                      />
+                    ) : (
+                      <span className="text-muted">—</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3">
                     <StatusPill active={m.is_active} />
                   </td>
@@ -144,6 +190,7 @@ export default async function RosterPage() {
                 <td className="px-4 py-3 font-mono text-xs text-muted">{s.display_id}</td>
                 <td className="px-4 py-3 text-muted">—</td>
                 <td className="px-4 py-3 capitalize text-muted">driver</td>
+                <td className="px-4 py-3 text-muted">—</td>
                 <td className="px-4 py-3">
                   <span className="inline-flex items-center rounded-full bg-accent/15 px-2.5 py-0.5 text-xs font-medium text-accent">
                     Unclaimed
@@ -158,13 +205,51 @@ export default async function RosterPage() {
             ))}
             {(members ?? []).length === 0 && slots.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-muted">
+                <td colSpan={7} className="px-4 py-8 text-center text-muted">
                   No drivers yet.
                 </td>
               </tr>
             )}
           </tbody>
         </table>
+      </div>
+
+      <div className="mt-10">
+        <h2 className="mb-3 text-lg font-semibold">Unassigned vehicles</h2>
+        <div className="overflow-x-auto rounded-xl border border-border bg-surface">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border text-left text-muted">
+                <th className="px-4 py-3 font-medium">ID</th>
+                <th className="px-4 py-3 font-medium">Vehicle</th>
+                <th className="px-4 py-3 font-medium">Plate</th>
+                <th className="px-4 py-3" />
+              </tr>
+            </thead>
+            <tbody>
+              {unassignedVehicles.map((v) => (
+                <tr key={v.id} className="border-b border-border last:border-0">
+                  <td className="px-4 py-3 font-mono text-xs text-muted">{v.display_id}</td>
+                  <td className="px-4 py-3">
+                    {[v.year, v.make, v.model].filter(Boolean).join(" ") || "—"}
+                    {v.nickname ? ` "${v.nickname}"` : ""}
+                  </td>
+                  <td className="px-4 py-3 text-muted">{v.plate ?? "—"}</td>
+                  <td className="px-4 py-3 text-right">
+                    <ArchiveButton vehicleId={v.id} />
+                  </td>
+                </tr>
+              ))}
+              {unassignedVehicles.length === 0 && (
+                <tr>
+                  <td colSpan={4} className="px-4 py-8 text-center text-muted">
+                    {(vehicles ?? []).length === 0 ? "No vehicles yet." : "Every vehicle is assigned to a driver."}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </main>
   );
