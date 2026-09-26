@@ -1,8 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { getAuthedProfile } from "@/lib/supabase/org-context";
-import { InviteForm } from "./invite-form";
+import { AddDriverForm } from "./add-driver-form";
 import { RemoveButton } from "./remove-button";
-import { AddDriverSlotForm } from "./add-driver-slot-form";
+import { ResendInviteButton } from "./resend-invite-button";
+import { describeInvite, latestInviteBySlot, type InviteRow } from "@/lib/invites";
 import { RemoveSlotButton } from "./remove-slot-button";
 import { GenerateReportButton } from "./generate-report-button";
 import { OperatorButton } from "./operator-button";
@@ -29,7 +30,7 @@ export default async function RosterPage() {
   const orgId = profile?.default_org_id;
   if (!orgId) return null;
 
-  const [{ data: members }, { data: allSlots }, { data: vehicles }] = await Promise.all([
+  const [{ data: members }, { data: allSlots }, { data: vehicles }, { data: inviteRows }] = await Promise.all([
     supabase
       .from("organization_members")
       .select(
@@ -58,9 +59,20 @@ export default async function RosterPage() {
       .eq("organization_id", orgId)
       .eq("is_archived", false)
       .order("created_at", { ascending: false }),
+    // Email invitations (never the token hash): what turns an "Unclaimed"
+    // row into Invited / Invite expired, with a Resend action. Operators can
+    // read these too (see migration 20260926120000).
+    supabase
+      .from("driver_invites")
+      .select("id, email, status, expires_at, created_at, slot_id, intended_role")
+      .eq("organization_id", orgId)
+      .in("status", ["pending", "expired"])
+      .order("created_at", { ascending: false }),
   ]);
 
   const slots = (allSlots ?? []).filter((s) => !s.claimed_by);
+  const inviteBySlot = latestInviteBySlot((inviteRows ?? []) as InviteRow[]);
+  const nowMs = new Date().getTime();
   const displayIdByUserId = new Map(
     (allSlots ?? []).filter((s) => s.claimed_by).map((s) => [s.claimed_by as string, s.display_id]),
   );
@@ -101,12 +113,11 @@ export default async function RosterPage() {
         <h1 className="mt-1 text-2xl font-semibold">Drivers &amp; vehicles</h1>
       </div>
 
-      <div className="mb-6 grid gap-4 sm:grid-cols-3">
-        <InviteForm
+      <div className="mb-6 grid gap-4 sm:grid-cols-2">
+        <AddDriverForm
           orgId={orgId}
           callerRole={callerRole === "owner" || callerRole === "admin" || callerRole === "operator" ? callerRole : "operator"}
         />
-        <AddDriverSlotForm orgId={orgId} />
         <AddVehicleForm orgId={orgId} />
       </div>
 
@@ -184,25 +195,31 @@ export default async function RosterPage() {
                 </tr>
               );
             })}
-            {slots.map((s) => (
-              <tr key={s.id} className="border-b border-border last:border-0">
-                <td className="px-4 py-3">{[s.first_name, s.last_name].join(" ")}</td>
-                <td className="px-4 py-3 font-mono text-xs text-muted">{s.display_id}</td>
-                <td className="px-4 py-3 text-muted">—</td>
-                <td className="px-4 py-3 capitalize text-muted">driver</td>
-                <td className="px-4 py-3 text-muted">—</td>
-                <td className="px-4 py-3">
-                  <span className="inline-flex items-center rounded-full bg-accent/15 px-2.5 py-0.5 text-xs font-medium text-accent">
-                    Unclaimed
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-right">
-                  <RowActionsMenu>
-                    <RemoveSlotButton slotId={s.id} />
-                  </RowActionsMenu>
-                </td>
-              </tr>
-            ))}
+            {slots.map((s) => {
+              const invite = describeInvite(inviteBySlot.get(s.id), nowMs);
+              return (
+                <tr key={s.id} className="border-b border-border last:border-0">
+                  <td className="px-4 py-3">{[s.first_name, s.last_name].join(" ")}</td>
+                  <td className="px-4 py-3 font-mono text-xs text-muted">{s.display_id}</td>
+                  <td className="px-4 py-3 text-muted">{invite?.email ?? "—"}</td>
+                  <td className="px-4 py-3 capitalize text-muted">{invite?.role ?? "driver"}</td>
+                  <td className="px-4 py-3 text-muted">—</td>
+                  <td className="px-4 py-3">
+                    <InviteStatusPill invite={invite} />
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <RowActionsMenu>
+                      {invite && <ResendInviteButton inviteId={invite.inviteId} />}
+                      <RemoveSlotButton
+                        slotId={s.id}
+                        label={invite ? "Cancel invitation" : "Remove"}
+                        busyLabel={invite ? "Cancelling…" : "Removing…"}
+                      />
+                    </RowActionsMenu>
+                  </td>
+                </tr>
+              );
+            })}
             {(members ?? []).length === 0 && slots.length === 0 && (
               <tr>
                 <td colSpan={7} className="px-4 py-8 text-center text-muted">
@@ -265,6 +282,36 @@ function StatusPill({ active }: { active: boolean }) {
       }`}
     >
       {active ? "Active" : "Pending"}
+    </span>
+  );
+}
+
+// A driver row that has not joined yet: an email invitation that is live
+// ("Invited", with the days left), one whose link expired, or a code-only
+// driver who has not linked their account.
+function InviteStatusPill({ invite }: { invite: ReturnType<typeof describeInvite> }) {
+  if (!invite) {
+    return (
+      <span className="inline-flex items-center rounded-full bg-accent/15 px-2.5 py-0.5 text-xs font-medium text-accent">
+        Unclaimed
+      </span>
+    );
+  }
+  if (invite.kind === "expired") {
+    return (
+      <span className="inline-flex items-center rounded-full bg-danger/15 px-2.5 py-0.5 text-xs font-medium text-danger">
+        Invite expired
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <span className="inline-flex items-center rounded-full bg-accent/15 px-2.5 py-0.5 text-xs font-medium text-accent">
+        Invited
+      </span>
+      <span className="text-xs text-muted">
+        {invite.daysLeft === 1 ? "expires in 1 day" : `expires in ${invite.daysLeft} days`}
+      </span>
     </span>
   );
 }

@@ -4,50 +4,82 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { AppError } from "@/lib/errors";
 
-export type InviteState = { error: string | null; success: boolean };
+// Explicit user request, 2026-09-26: "Add driver" and "Invite driver" used
+// to be two separate cards (one emailed an invitation, the other produced a
+// one-time code to hand over by hand). It is ONE form now: name + email and
+// the invitation is emailed -- like Motive's Fleet Users. The one-time code
+// remains available, inside the same form, for a driver who has no email
+// (delivery = "code"): same RPCs, same authorization, nothing removed.
+export type AddDriverResult =
+  | { kind: "invited"; email: string }
+  | { kind: "code"; displayId: string; claimCode: string };
 
-// Real fix, not a caveat left in place (explicit user request,
-// 2026-09-18): create_driver_invite/resolve_driver_invite/
-// accept_driver_invite (migration 20260904060000_driver_invites.sql) and
-// send-driver-invite (the branded Resend email, see its own header
-// comment) were both fully built and working, but nothing anywhere ever
-// called create_driver_invite -- the invite dialog called the OLDER,
-// strictly weaker invite_member_by_email instead, which only works for
-// an email that already has a ControlMiles account. This IS that missing
-// call site: create the invite (gets back a one-time token), then invoke
-// the edge function to actually send it. supabase.functions.invoke()
-// carries the caller's own session as the Authorization header
-// automatically -- the same identity send-driver-invite re-verifies
-// server-side before it will send anything (see its own header comment
-// on why it never trusts a client-supplied email/org).
-export async function inviteMember(
-  _prevState: InviteState,
+export type AddDriverState = { error: string | null; result: AddDriverResult | null };
+
+const SEND_FAILED_MESSAGE =
+  "The driver was added, but the invitation email did not go out. Use “Resend invitation” on their row.";
+
+// Delivers the invitation email for a token create_driver_invite /
+// resend_driver_invite just returned. supabase.functions.invoke() carries the
+// caller's own session as the Authorization header automatically -- the same
+// identity send-driver-invite re-verifies server-side before it will send
+// anything (it never trusts a client-supplied email/org, only the token).
+async function deliverInvite(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  token: string,
+): Promise<boolean> {
+  const { error } = await supabase.functions.invoke("send-driver-invite", { body: { token } });
+  return !error;
+}
+
+export async function addDriver(
+  _prevState: AddDriverState,
   formData: FormData,
-): Promise<InviteState> {
+): Promise<AddDriverState> {
   const orgId = String(formData.get("org_id") ?? "");
   const email = String(formData.get("email") ?? "").trim();
   const firstName = String(formData.get("first_name") ?? "").trim();
   const lastName = String(formData.get("last_name") ?? "").trim();
-  // Explicit user request, 2026-09-18: same form now invites straight
-  // into Operator/Admin, not just Driver -- authorization for WHICH
-  // roles this caller may actually grant lives server-side in
-  // create_driver_invite itself (owner-only for 'admin', admin-or-owner
-  // for 'operator'), never trusted from this form value alone.
+  // Which roles THIS caller may actually grant lives server-side in
+  // create_driver_invite itself (owner-only for 'admin', admin-or-owner for
+  // 'operator'); the form's role list is only UX.
   const role = String(formData.get("role") ?? "driver").trim();
+  const viaCode = String(formData.get("delivery") ?? "email") === "code";
 
-  if (!orgId || !email || !firstName || !lastName) {
-    return { error: "Enter a first name, last name, and email address.", success: false };
+  if (!orgId || !firstName || !lastName) {
+    return { error: "Enter a first and last name.", result: null };
   }
 
   const supabase = await createClient();
-  // Real fix, not a caveat left in place (explicit user request,
-  // 2026-09-17): the driver's ControlMiles ID (CM-D####, what they'll log
-  // in with once fleet_driver accounts stop using email/password -- see
-  // resolve-driver-login) used to only exist for the in-person claim-code
-  // path -- an email-invited driver never got one. create_driver_invite
-  // now reserves it up front from the name given here, same trigger/
-  // format as the claim-code path (fn_assign_driver_slot_display_id, see
-  // migration 20260917220000_driver_id_login.sql).
+
+  if (viaCode) {
+    // In-person path: a slot plus a one-time code, no email involved.
+    const { data, error } = await supabase.rpc("create_driver_slot", {
+      p_org_id: orgId,
+      p_first_name: firstName,
+      p_last_name: lastName,
+    });
+    if (error) {
+      return { error: AppError.from(error).display(), result: null };
+    }
+    const row = data?.[0];
+    if (!row) {
+      return { error: "Could not create the driver. Try again.", result: null };
+    }
+    revalidatePath("/admin/roster");
+    return { error: null, result: { kind: "code", displayId: row.display_id, claimCode: row.claim_code } };
+  }
+
+  if (!email) {
+    return {
+      error: "Enter an email address, or choose the one-time code option.",
+      result: null,
+    };
+  }
+
+  // The driver's ControlMiles ID (CM-D####, what they log in with once the
+  // fleet_driver account exists) is reserved up front from the name given
+  // here -- see create_driver_invite.
   const { data: token, error: createError } = await supabase.rpc("create_driver_invite", {
     p_org_id: orgId,
     p_email: email,
@@ -57,27 +89,42 @@ export async function inviteMember(
   });
 
   if (createError) {
-    // The RPC's own exceptions are already user-facing sentences
-    // ("This person already owns their own fleet...", etc.) --
-    // AppError.from recognizes these aren't raw Postgres internals and
-    // routes them to the 450 (business rule rejection) code instead of
-    // downgrading to a generic message.
-    return { error: AppError.from(createError).display(), success: false };
+    // The RPC's own exceptions are already user-facing sentences; AppError
+    // recognizes them as business-rule rejections instead of raw Postgres.
+    return { error: AppError.from(createError).display(), result: null };
   }
 
-  const { error: sendError } = await supabase.functions.invoke("send-driver-invite", {
-    body: { token },
-  });
-
-  if (sendError) {
-    return {
-      error: "Invite created but the email failed to send. Try again.",
-      success: false,
-    };
-  }
-
+  const sent = await deliverInvite(supabase, token as string);
+  // Revalidate either way: the driver row exists now, so it must show up on
+  // the roster (as Invited) even if the email needs a resend.
   revalidatePath("/admin/roster");
-  return { error: null, success: true };
+  if (!sent) {
+    return { error: SEND_FAILED_MESSAGE, result: null };
+  }
+  return { error: null, result: { kind: "invited", email: email.toLowerCase() } };
+}
+
+// Explicit user request, 2026-09-26: a pending invitation is shown on the
+// roster as "Invited" with a Resend action. resend_driver_invite issues a
+// fresh link for the SAME driver row (it never mints another CM-D####) and
+// expires the previous link; same authority hierarchy as creating it.
+export async function resendDriverInvite(inviteId: string): Promise<{ error: string | null }> {
+  if (!inviteId) return { error: "Invitation not found." };
+
+  const supabase = await createClient();
+  const { data: token, error } = await supabase.rpc("resend_driver_invite", {
+    p_invite_id: inviteId,
+  });
+  if (error) {
+    return { error: AppError.from(error).display() };
+  }
+
+  const sent = await deliverInvite(supabase, token as string);
+  revalidatePath("/admin/roster");
+  if (!sent) {
+    return { error: "A new link was created, but the email did not go out. Try again." };
+  }
+  return { error: null };
 }
 
 // Real feature, not a caveat left in place (explicit user request,
@@ -149,43 +196,6 @@ export async function removeMember(membershipId: string): Promise<{ error: strin
   }
   revalidatePath("/admin/roster");
   return { error: null };
-}
-
-export type AddSlotState = {
-  error: string | null;
-  result: { displayId: string; claimCode: string } | null;
-};
-
-export async function addDriverSlot(
-  _prevState: AddSlotState,
-  formData: FormData,
-): Promise<AddSlotState> {
-  const orgId = String(formData.get("org_id") ?? "");
-  const firstName = String(formData.get("first_name") ?? "").trim();
-  const lastName = String(formData.get("last_name") ?? "").trim();
-
-  if (!orgId || !firstName || !lastName) {
-    return { error: "Enter a first and last name.", result: null };
-  }
-
-  const supabase = await createClient();
-  const { data, error } = await supabase.rpc("create_driver_slot", {
-    p_org_id: orgId,
-    p_first_name: firstName,
-    p_last_name: lastName,
-  });
-
-  if (error) {
-    return { error: AppError.from(error).display(), result: null };
-  }
-
-  const row = data?.[0];
-  if (!row) {
-    return { error: "Could not create the driver slot. Try again.", result: null };
-  }
-
-  revalidatePath("/admin/roster");
-  return { error: null, result: { displayId: row.display_id, claimCode: row.claim_code } };
 }
 
 export async function removeDriverSlot(slotId: string): Promise<{ error: string | null }> {

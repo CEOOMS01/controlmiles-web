@@ -3,7 +3,15 @@
 import { useState, useTransition } from "react";
 import { removeDriverSlot } from "./actions";
 
-export function RemoveSlotButton({ slotId }: { slotId: string }) {
+export function RemoveSlotButton({
+  slotId,
+  label = "Remove",
+  busyLabel = "Removing…",
+}: {
+  slotId: string;
+  label?: string;
+  busyLabel?: string;
+}) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -22,7 +30,7 @@ export function RemoveSlotButton({ slotId }: { slotId: string }) {
         disabled={pending}
         className="block w-full rounded-lg px-3 py-2 text-left text-sm text-danger transition hover:bg-background disabled:opacity-60"
       >
-        {pending ? "Removing…" : "Remove"}
+        {pending ? busyLabel : label}
       </button>
       {error && (
         <p role="alert" className="px-3 text-xs text-danger">
