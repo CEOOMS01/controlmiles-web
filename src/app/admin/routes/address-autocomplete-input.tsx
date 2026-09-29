@@ -41,8 +41,12 @@ type PhotonFeature = {
 
 function toSuggestion(f: PhotonFeature): Suggestion {
   const p = f.properties;
-  const primary = [p.housenumber, p.street].filter(Boolean).join(" ") || p.name || "";
-  const secondary = [p.city, p.state, p.country].filter(Boolean).join(", ");
+  // Found live 2026-09-29: "Miami International Airport" listed four
+  // "Bus Plaza Road" rows -- the venue's street won over its name. A named
+  // place leads with its name, like Uber does, with the street under it.
+  const street = [p.housenumber, p.street].filter(Boolean).join(" ");
+  const primary = p.name || street;
+  const secondary = [p.name ? street : "", p.city, p.state, p.country].filter(Boolean).join(", ");
   return {
     primary: primary || secondary || "Unknown location",
     secondary: primary ? secondary : "",
@@ -119,7 +123,16 @@ export function AddressAutocompleteInput({
       })
       .then((data) => {
         const usOnly = data.features.filter((f) => f.properties.countrycode === "US");
-        setSuggestions(usOnly.slice(0, 5).map(toSuggestion));
+        // Several OSM features share one label (a venue's gates, stops...);
+        // show each place once.
+        const seen = new Set<string>();
+        const unique = usOnly.map(toSuggestion).filter((sg) => {
+          const key = fullLabel(sg);
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+        setSuggestions(unique.slice(0, 5));
         setSearched(true);
         setOpen(true);
         setActiveIndex(-1);
