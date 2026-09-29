@@ -111,6 +111,10 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    // .well-known/ and robots/sitemap: static files served from public/.
+    // REAL BUG (2026-09-29): /.well-known/assetlinks.json went through
+    // next-intl, got rewritten to /[locale]/.well-known/... and 404'd in
+    // production, so Android never verified the /invite App Link.
+    "/((?!_next/static|_next/image|favicon.ico|\\.well-known/|robots\\.txt|sitemap\\.xml|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

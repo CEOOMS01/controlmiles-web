@@ -1,25 +1,14 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { useTransition } from "react";
+import { signOut } from "./actions";
 
 export function SignOutButton() {
-  const router = useRouter();
-  const [pending, setPending] = useState(false);
-
-  async function onSignOut() {
-    if (pending) return;
-    setPending(true);
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push("/login");
-    router.refresh();
-  }
+  const [pending, startTransition] = useTransition();
 
   return (
     <button
-      onClick={onSignOut}
+      onClick={() => startTransition(() => signOut())}
       disabled={pending}
       className="text-xs text-muted transition hover:text-accent disabled:opacity-60"
     >

@@ -33,3 +33,13 @@ export async function createOrganization(
 
   redirect("/admin");
 }
+
+// REAL BUG (2026-09-29): sign-out used the browser client, which can't
+// see middleware.ts's httpOnly auth cookies -- once the session had been
+// refreshed once, signOut() found no session, cleared nothing and the
+// admin stayed signed in. The server client reads and clears them.
+export async function signOut() {
+  const supabase = await createClient();
+  await supabase.auth.signOut();
+  redirect("/login");
+}
