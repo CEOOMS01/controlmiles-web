@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { BackToHome } from "@/components/back-to-home";
 import { GenerateForm } from "./generate-form";
 
 export default async function GenerateReportCodePage() {
@@ -17,6 +18,7 @@ export default async function GenerateReportCodePage() {
 
   return (
     <main className="flex flex-1 items-center justify-center px-4 py-16">
+      <BackToHome href="/admin" label="Dashboard" ariaLabel="Back to the fleet dashboard" />
       <div className="w-full max-w-md">
         <div className="mb-8">
           <p className="text-sm font-semibold tracking-wide text-accent uppercase">

@@ -15,11 +15,17 @@
 
 import Link from "next/link";
 
-export function BackToHome() {
+// href/label: the report page (/portal/generate) points it at the fleet
+// dashboard instead of the landing page (user request, 2026-09-29).
+export function BackToHome({
+  href = "/",
+  label = "Back",
+  ariaLabel = "Back to ControlMiles",
+}: { href?: string; label?: string; ariaLabel?: string } = {}) {
   return (
     <Link
-      href="/"
-      aria-label="Back to ControlMiles"
+      href={href}
+      aria-label={ariaLabel}
       className="fixed left-4 top-4 z-10 inline-flex items-center gap-1.5 rounded-full py-2 pl-2.5 pr-3.5 text-sm font-medium text-muted transition hover:bg-surface hover:text-foreground sm:left-6 sm:top-6"
     >
       <svg
@@ -36,7 +42,7 @@ export function BackToHome() {
         <path d="M19 12H5" />
         <path d="M12 19l-7-7 7-7" />
       </svg>
-      Back
+      {label}
     </Link>
   );
 }
