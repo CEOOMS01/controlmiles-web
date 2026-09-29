@@ -231,7 +231,7 @@ async function Hero() {
 async function StatsStrip() {
   const t = await getTranslations("home.stats");
   const stats = [
-    { value: "10", unit: t("languagesUnit"), label: t("languagesLabel") },
+    { value: "11", unit: t("languagesUnit"), label: t("languagesLabel") },
     { value: "51", unit: t("statesUnit"), label: t("statesLabel") },
     { value: "0", unit: t("guessworkUnit"), label: t("guessworkLabel") },
   ];
