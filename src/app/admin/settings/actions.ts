@@ -175,3 +175,26 @@ export async function setScheduleSettings(
   revalidatePath("/admin", "layout");
   return { error: null, success: true };
 }
+
+export type IndustryTemplateState = { error: string | null; success: boolean };
+
+// Industry template (2026-09-29). organizations_update_admin (RLS) limits
+// this to the fleet's owner/admin; the DB check constraint limits values.
+export async function setIndustryTemplate(
+  _prevState: IndustryTemplateState,
+  formData: FormData,
+): Promise<IndustryTemplateState> {
+  const orgId = String(formData.get("org_id") ?? "");
+  const template = String(formData.get("industry_template") ?? "");
+  if (!orgId || (template !== "general" && template !== "driving_school")) {
+    return { error: "Invalid selection.", success: false };
+  }
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("organizations")
+    .update({ industry_template: template })
+    .eq("id", orgId);
+  if (error) return { error: AppError.from(error).display(), success: false };
+  revalidatePath("/admin", "layout");
+  return { error: null, success: true };
+}

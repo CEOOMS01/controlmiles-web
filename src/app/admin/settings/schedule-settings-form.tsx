@@ -20,10 +20,13 @@ export function ScheduleSettingsForm({
   orgId,
   timezone,
   windowMinutes,
+  showClassWindow,
 }: {
   orgId: string;
   timezone: string;
   windowMinutes: number;
+  // The class start window only exists for the Driving school template.
+  showClassWindow: boolean;
 }) {
   const [state, formAction, pending] = useActionState(setScheduleSettings, initialState);
   const zones = US_ZONES.some((z) => z.value === timezone)
@@ -35,10 +38,11 @@ export function ScheduleSettingsForm({
   return (
     <form action={formAction} className="rounded-xl border border-border bg-surface p-5">
       <input type="hidden" name="org_id" value={orgId} />
-      <p className="text-sm font-medium">Class schedule</p>
+      <p className="text-sm font-medium">{showClassWindow ? "Schedule & classes" : "Schedule"}</p>
       <p className="mt-1 text-sm text-muted">
-        Shift and class times are your fleet&apos;s local time. The start window is how early and
-        how late a driver can start a class; starting after its start time is marked late.
+        Shift times are your fleet&apos;s local time.
+        {showClassWindow &&
+          " The start window is how early and how late a driver can start a class; starting after its start time is marked late."}
       </p>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -52,8 +56,8 @@ export function ScheduleSettingsForm({
             ))}
           </select>
         </div>
-        <div>
-          <label className="mb-1.5 block text-sm font-medium">Start window (minutes)</label>
+        <div className={showClassWindow ? "" : "hidden"}>
+          <label className="mb-1.5 block text-sm font-medium">Class start window (minutes)</label>
           <input
             name="shift_start_window_minutes"
             type="number"

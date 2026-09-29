@@ -3,6 +3,7 @@ import { getAuthedProfile } from "@/lib/supabase/org-context";
 import { RenameOrgForm } from "./rename-org-form";
 import { VehicleAssignmentModeForm } from "./vehicle-assignment-mode-form";
 import { ScheduleSettingsForm } from "./schedule-settings-form";
+import { IndustryTemplateForm } from "./industry-template-form";
 import { DeleteOrgForm } from "./delete-org-form";
 import { BillingSection } from "./billing-section";
 import { TimeFormatForm } from "./time-format-form";
@@ -18,7 +19,7 @@ export default async function SettingsPage() {
     supabase
       .from("organizations")
       .select(
-        "name, compliance_mode, created_at, vehicle_assignment_mode, subscription_tier, subscription_status, timezone, shift_start_window_minutes",
+        "name, compliance_mode, created_at, vehicle_assignment_mode, subscription_tier, subscription_status, timezone, shift_start_window_minutes, industry_template",
       )
       .eq("id", orgId)
       .maybeSingle(),
@@ -64,6 +65,12 @@ export default async function SettingsPage() {
           title="Fleet operations"
           description="How drivers and vehicles work day to day."
         >
+          <div className="mb-4">
+            <IndustryTemplateForm
+              orgId={orgId}
+              current={org.industry_template === "driving_school" ? "driving_school" : "general"}
+            />
+          </div>
           <VehicleAssignmentModeForm
             orgId={orgId}
             currentMode={org.vehicle_assignment_mode === "open" ? "open" : "fixed"}
@@ -73,6 +80,7 @@ export default async function SettingsPage() {
               orgId={orgId}
               timezone={org.timezone ?? "America/New_York"}
               windowMinutes={org.shift_start_window_minutes ?? 10}
+              showClassWindow={org.industry_template === "driving_school"}
             />
           </div>
         </SettingsSection>

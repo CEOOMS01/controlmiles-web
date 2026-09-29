@@ -197,7 +197,7 @@ export default async function ShiftsPage({
 
   const { data: orgRow } = await supabase
     .from("organizations")
-    .select("timezone, shift_start_window_minutes")
+    .select("timezone, shift_start_window_minutes, industry_template")
     .eq("id", orgId)
     .maybeSingle();
   const timeZone = orgRow?.timezone ?? "America/New_York";
@@ -213,7 +213,9 @@ export default async function ShiftsPage({
   const requested = (await searchParams).date;
   const selectedDate =
     typeof requested === "string" && /^\d{4}-\d{2}-\d{2}$/.test(requested) ? requested : local.date;
-  const { data: dayBlocks } = isGrowth
+  // Classes exist only for the Driving school industry template.
+  const hasClasses = orgRow?.industry_template === "driving_school";
+  const { data: dayBlocks } = isGrowth && hasClasses
     ? await supabase.rpc("get_org_shift_day", { p_org: orgId, p_date: selectedDate })
     : { data: [] as ClassBlock[] };
 
@@ -282,8 +284,9 @@ export default async function ShiftsPage({
         <p className="text-sm font-semibold tracking-wide text-accent uppercase">Shifts</p>
         <h1 className="mt-1 text-2xl font-semibold">Work schedule</h1>
         <p className="mt-2 max-w-2xl text-sm text-muted">
-          When each driver works: a weekly template plus hourly classes on specific dates (for
-          example a driving school). Separate from Routes, which dispatches a specific trip.
+          {hasClasses
+            ? "When each instructor works: a weekly template plus hourly classes on specific dates. Separate from Routes, which dispatches a specific trip."
+            : "A recurring weekly schedule per driver. Separate from Routes, which dispatches a specific trip on a specific date."}
         </p>
       </div>
 
@@ -298,6 +301,7 @@ export default async function ShiftsPage({
               driver&apos;s real GPS trip start, not just the schedule.
             </div>
           )}
+          {hasClasses && (<>
           {/* Day schedule: hourly classes for one date (driving-school
               style) -- the weekly template below materialized for that
               date plus one-off classes. See migration
@@ -416,6 +420,7 @@ export default async function ShiftsPage({
           </section>
 
           <h2 className="mb-3 text-lg font-semibold">Weekly template</h2>
+          </>)}
           <div className="mb-8">
             <ShiftForm orgId={orgId} drivers={drivers} vehicles={vehicleOptions} timeFormat={timeFormat} />
           </div>
