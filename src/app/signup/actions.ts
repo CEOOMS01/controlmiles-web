@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { AppError } from "@/lib/errors";
+import { LEGAL_TERMS_VERSION } from "@/lib/legal-version";
 
 export async function signUp(
   _prevState: { error: string | null },
@@ -12,6 +13,9 @@ export async function signUp(
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
 
+  if (formData.get("accept_legal") !== "on") {
+    return { error: "Please confirm you are 18 or older and accept the Terms." };
+  }
   if (!orgName) {
     return { error: "Enter your company or fleet name." };
   }
@@ -59,6 +63,9 @@ export async function signUp(
   }
 
   if (data.session) {
+    // Record the 18+/Terms confirmation now; without a session (email
+    // confirmation required) /onboarding/terms asks once on first sign-in.
+    await supabase.rpc("accept_legal_terms", { p_version: LEGAL_TERMS_VERSION });
     redirect("/admin");
   }
 

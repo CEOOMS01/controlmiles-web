@@ -6,6 +6,7 @@ import Link from "next/link";
 import { signUp } from "./actions";
 import { PasswordInput } from "@/components/password-input";
 import { GoogleSignInButton } from "@/components/google-sign-in-button";
+import { AgeTermsCheckbox } from "@/components/age-terms-checkbox";
 
 export default function SignupPage() {
   const [state, formAction, pending] = useActionState(signUp, { error: null });
@@ -60,6 +61,8 @@ export default function SignupPage() {
             <PasswordInput id="password" name="password" autoComplete="new-password" minLength={8} />
             <p className="mt-1.5 text-xs text-muted">At least 8 characters.</p>
           </div>
+
+          <AgeTermsCheckbox />
 
           {state.error && (
             <p role="alert" className="text-sm text-danger">

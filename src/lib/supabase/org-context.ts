@@ -28,7 +28,7 @@ export const getAuthedProfile = cache(async () => {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("default_org_id, first_name, account_type")
+    .select("default_org_id, first_name, account_type, legal_accepted_at")
     .eq("id", user.id)
     .maybeSingle();
 

@@ -17,6 +17,12 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
     redirect("/login");
   }
 
+  // 18+ / Terms acceptance must be on record before the dashboard
+  // (2026-09-29) -- covers Google sign-ups and pre-existing accounts.
+  if (!profile?.legal_accepted_at) {
+    redirect("/onboarding/terms");
+  }
+
   if (!profile?.default_org_id) {
     return <CreateOrgForm />;
   }
