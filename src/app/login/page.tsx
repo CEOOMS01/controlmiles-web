@@ -1,14 +1,13 @@
 "use client";
 
+import { AuthShell } from "@/components/auth-shell";
 import { STAY_SIGNED_IN_COOKIE } from "@/lib/auth/session-persistence";
 import { Suspense, useActionState, useEffect, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { signIn } from "./actions";
 import { PasswordInput } from "@/components/password-input";
 import { GoogleSignInButton } from "@/components/google-sign-in-button";
-import { BackToHome } from "@/components/back-to-home";
 
 // useSearchParams() needs its own Suspense boundary -- split out so it
 // wraps only the bit that reads the URL, not the whole page.
@@ -84,23 +83,10 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex flex-1 items-center justify-center px-4 py-16">
-      <BackToHome />
-      <div className="w-full max-w-sm">
-        <div className="mb-8 text-center">
-          <Image
-            src="/logo_controlmiles.png"
-            alt="ControlMiles"
-            width={64}
-            height={64}
-            className="mx-auto rounded-xl"
-            priority
-          />
-          <h1 className="mt-4 text-2xl font-semibold">Fleet Admin</h1>
-          <p className="mt-2 text-sm text-muted">
-            This dashboard is for fleet administrators.
-          </p>
-        </div>
+    <AuthShell
+      title="Welcome back"
+      subtitle="Sign in to your fleet dashboard. Drivers sign in from the ControlMiles app."
+    >
 
         <Suspense fallback={null}>
           <PasswordResetNotice />
@@ -188,7 +174,6 @@ export default function LoginPage() {
             Create one
           </Link>
         </p>
-      </div>
-    </main>
+    </AuthShell>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
+import { AuthShell } from "@/components/auth-shell";
 import { useActionState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { signUp } from "./actions";
 import { PasswordInput } from "@/components/password-input";
@@ -11,23 +11,10 @@ export default function SignupPage() {
   const [state, formAction, pending] = useActionState(signUp, { error: null });
 
   return (
-    <main className="flex flex-1 items-center justify-center px-4 py-16">
-      <div className="w-full max-w-sm">
-        <div className="mb-8 text-center">
-          <Image
-            src="/logo_controlmiles.png"
-            alt="ControlMiles"
-            width={64}
-            height={64}
-            className="mx-auto rounded-xl"
-            priority
-          />
-          <h1 className="mt-4 text-2xl font-semibold">Create your fleet account</h1>
-          <p className="mt-2 text-sm text-muted">
-            Set up your organization and start managing drivers and
-            vehicles from this dashboard.
-          </p>
-        </div>
+    <AuthShell
+      title="Create your fleet account"
+      subtitle="Set up your organization, then add drivers and vehicles."
+    >
 
         <GoogleSignInButton />
 
@@ -95,7 +82,6 @@ export default function SignupPage() {
             Sign in
           </Link>
         </p>
-      </div>
-    </main>
+    </AuthShell>
   );
 }
