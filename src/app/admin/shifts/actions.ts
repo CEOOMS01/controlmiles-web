@@ -97,3 +97,80 @@ export async function deleteShift(shiftId: string): Promise<{ error: string | nu
   revalidatePath("/admin/shifts");
   return { error: null };
 }
+
+// ── Hourly class blocks (2026-09-29, driving-school scheduling) ─────
+// One-off blocks on a date. The weekly template above is materialized
+// into the same table by get_org_shift_day (see migration
+// 20260929170000_hourly_shift_blocks.sql).
+export type AddClassBlockState = { error: string | null; success: boolean };
+
+export async function addClassBlock(
+  _prevState: AddClassBlockState,
+  formData: FormData,
+): Promise<AddClassBlockState> {
+  const orgId = String(formData.get("org_id") ?? "");
+  const driverId = String(formData.get("driver_id") ?? "");
+  const vehicleId = String(formData.get("vehicle_id") ?? "").trim() || null;
+  const blockDate = String(formData.get("block_date") ?? "").trim();
+  const startTime = String(formData.get("start_time") ?? "").trim();
+  const endTime = String(formData.get("end_time") ?? "").trim();
+  const note = String(formData.get("note") ?? "").trim() || null;
+
+  if (!orgId || !driverId) return { error: "Pick a driver.", success: false };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(blockDate)) return { error: "Pick a date.", success: false };
+  if (!startTime || !endTime) return { error: "Enter a start and end time.", success: false };
+  if (endTime <= startTime) return { error: "The class must end after it starts.", success: false };
+
+  const tierError = await requireGrowth(orgId);
+  if (tierError) return { error: tierError, success: false };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated.", success: false };
+
+  const { error } = await supabase.from("shift_blocks").insert({
+    organization_id: orgId,
+    driver_id: driverId,
+    vehicle_id: vehicleId,
+    block_date: blockDate,
+    start_time: startTime,
+    end_time: endTime,
+    note,
+    source: "one_off",
+    created_by: user.id,
+  });
+  if (error) return { error: AppError.from(error).display(), success: false };
+
+  revalidatePath("/admin/shifts");
+  return { error: null, success: true };
+}
+
+export async function setClassBlockCancelled(
+  blockId: string,
+  cancelled: boolean,
+): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("shift_blocks")
+    .update({ status: cancelled ? "cancelled" : "scheduled" })
+    .eq("id", blockId)
+    .in("status", cancelled ? ["scheduled"] : ["cancelled"]);
+  if (error) return { error: AppError.from(error).display() };
+  revalidatePath("/admin/shifts");
+  return { error: null };
+}
+
+export async function deleteClassBlock(blockId: string): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("shift_blocks")
+    .delete()
+    .eq("id", blockId)
+    .eq("source", "one_off")
+    .eq("status", "scheduled");
+  if (error) return { error: AppError.from(error).display() };
+  revalidatePath("/admin/shifts");
+  return { error: null };
+}

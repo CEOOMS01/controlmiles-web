@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getAuthedProfile } from "@/lib/supabase/org-context";
 import { RenameOrgForm } from "./rename-org-form";
 import { VehicleAssignmentModeForm } from "./vehicle-assignment-mode-form";
+import { ScheduleSettingsForm } from "./schedule-settings-form";
 import { DeleteOrgForm } from "./delete-org-form";
 import { BillingSection } from "./billing-section";
 import { TimeFormatForm } from "./time-format-form";
@@ -17,7 +18,7 @@ export default async function SettingsPage() {
     supabase
       .from("organizations")
       .select(
-        "name, compliance_mode, created_at, vehicle_assignment_mode, subscription_tier, subscription_status",
+        "name, compliance_mode, created_at, vehicle_assignment_mode, subscription_tier, subscription_status, timezone, shift_start_window_minutes",
       )
       .eq("id", orgId)
       .maybeSingle(),
@@ -67,6 +68,13 @@ export default async function SettingsPage() {
             orgId={orgId}
             currentMode={org.vehicle_assignment_mode === "open" ? "open" : "fixed"}
           />
+          <div className="mt-4">
+            <ScheduleSettingsForm
+              orgId={orgId}
+              timezone={org.timezone ?? "America/New_York"}
+              windowMinutes={org.shift_start_window_minutes ?? 10}
+            />
+          </div>
         </SettingsSection>
 
         <SettingsSection

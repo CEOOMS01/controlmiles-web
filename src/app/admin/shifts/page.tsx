@@ -3,6 +3,8 @@ import { getAuthedProfile } from "@/lib/supabase/org-context";
 import { GrowthUpsell } from "../growth-upsell";
 import { ShiftForm } from "./shift-form";
 import { ShiftRowActions } from "./shift-row-actions";
+import { ClassBlockForm } from "./class-block-form";
+import { ClassBlockActions } from "./class-block-actions";
 import { driverLabel, fleetDriverIds } from "@/lib/driver-label";
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -109,7 +111,80 @@ function formatTimeOfDay(t: string, timeFormat: "12h" | "24h") {
   return `${hour12}:${m} ${period}`;
 }
 
-export default async function ShiftsPage() {
+// The fleet's own wall clock (organizations.timezone). Shift times are
+// local times, so "today", "now" and the weekday must come from the
+// fleet's timezone, not the server's UTC.
+function localNow(timeZone: string) {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat("en-CA", {
+      timeZone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+      weekday: "short",
+    })
+      .formatToParts(new Date())
+      .map((p) => [p.type, p.value]),
+  );
+  const date = `${parts.year}-${parts.month}-${parts.day}`;
+  return {
+    date,
+    minutes: Number(parts.hour) * 60 + Number(parts.minute),
+    dow: new Date(`${date}T00:00:00Z`).getUTCDay(),
+  };
+}
+
+function toMinutes(t: string) {
+  const [h, m] = t.split(":").map(Number);
+  return h * 60 + m;
+}
+
+function shiftDate(date: string, days: number) {
+  const d = new Date(`${date}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+type ClassBlock = {
+  id: string;
+  driver_id: string;
+  vehicle_id: string | null;
+  block_date: string;
+  start_time: string;
+  end_time: string;
+  note: string | null;
+  source: "template" | "one_off";
+  status: "scheduled" | "in_progress" | "done" | "cancelled";
+  late_minutes: number | null;
+};
+
+// Scheduled blocks get a live label from the start window (the same rule
+// start_shift_block enforces); the rest show their recorded status.
+function classBlockBadge(
+  b: ClassBlock,
+  today: { date: string; minutes: number },
+  windowMin: number,
+): { label: string; className: string } {
+  const late = b.late_minutes && b.late_minutes > 0 ? ` · ${b.late_minutes} min late` : "";
+  if (b.status === "in_progress") return { label: `In class${late}`, className: "bg-accent/15 text-accent" };
+  if (b.status === "done") return { label: `Done${late}`, className: "bg-success/15 text-success" };
+  if (b.status === "cancelled") return { label: "Cancelled", className: "bg-border text-muted" };
+  const start = toMinutes(b.start_time);
+  const past = b.block_date < today.date || (b.block_date === today.date && today.minutes > start + windowMin);
+  if (past) return { label: "Missed", className: "bg-danger/15 text-danger" };
+  if (b.block_date === today.date && today.minutes >= start - windowMin)
+    return { label: "Open to start", className: "bg-warning/15 text-warning" };
+  return { label: "Scheduled", className: "bg-border text-muted" };
+}
+
+export default async function ShiftsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ date?: string | string[] }>;
+}) {
   const supabase = await createClient();
   const { user, profile } = await getAuthedProfile();
   if (!user) return null;
@@ -120,9 +195,27 @@ export default async function ShiftsPage() {
   const isGrowth = tier === "growth" || tier === "enterprise";
   const isEnterprise = tier === "enterprise";
 
+  const { data: orgRow } = await supabase
+    .from("organizations")
+    .select("timezone, shift_start_window_minutes")
+    .eq("id", orgId)
+    .maybeSingle();
+  const timeZone = orgRow?.timezone ?? "America/New_York";
+  const windowMin = orgRow?.shift_start_window_minutes ?? 10;
+  const local = localNow(timeZone);
+
   const now = new Date();
-  const todayDow = now.getUTCDay();
-  const todayDateKey = now.toISOString().slice(0, 10);
+  // Was getUTCDay()/toISOString(): in the evening (US) that is already
+  // tomorrow in UTC, so "today's" attendance looked at the wrong day.
+  const todayDow = local.dow;
+  const todayDateKey = local.date;
+
+  const requested = (await searchParams).date;
+  const selectedDate =
+    typeof requested === "string" && /^\d{4}-\d{2}-\d{2}$/.test(requested) ? requested : local.date;
+  const { data: dayBlocks } = isGrowth
+    ? await supabase.rpc("get_org_shift_day", { p_org: orgId, p_date: selectedDate })
+    : { data: [] as ClassBlock[] };
 
   const [{ data: shifts }, { data: driverMembers }, { data: todaysSessions }, { data: vehicles }, { data: myProfile }, fleetIds] =
     await Promise.all([
@@ -205,6 +298,124 @@ export default async function ShiftsPage() {
               driver&apos;s real GPS trip start, not just the schedule.
             </div>
           )}
+          {/* Day schedule: hourly classes for one date (driving-school
+              style) -- the weekly template below materialized for that
+              date plus one-off classes. See migration
+              20260929170000_hourly_shift_blocks.sql. */}
+          <section className="mb-10">
+            <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-semibold">Day schedule</h2>
+                <p className="text-sm text-muted">
+                  Hourly classes for one day. Drivers can start a class from {windowMin} min before
+                  to {windowMin} min after its start; between classes nothing is tracked and their
+                  day stays open until they end it.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <a
+                  href={`?date=${shiftDate(selectedDate, -1)}`}
+                  className="rounded-lg border border-border px-3 py-1.5 hover:border-accent"
+                  aria-label="Previous day"
+                >
+                  ←
+                </a>
+                <form method="get" className="flex items-center gap-2">
+                  <input
+                    type="date"
+                    name="date"
+                    defaultValue={selectedDate}
+                    className="rounded-lg border border-border bg-background px-3 py-1.5"
+                  />
+                  <button type="submit" className="rounded-lg border border-border px-3 py-1.5 hover:border-accent">
+                    Go
+                  </button>
+                </form>
+                <a
+                  href={`?date=${shiftDate(selectedDate, 1)}`}
+                  className="rounded-lg border border-border px-3 py-1.5 hover:border-accent"
+                  aria-label="Next day"
+                >
+                  →
+                </a>
+                {selectedDate !== local.date && (
+                  <a href="?" className="text-accent hover:underline">
+                    Today
+                  </a>
+                )}
+              </div>
+            </div>
+
+            <div className="mb-4">
+              <ClassBlockForm
+                orgId={orgId}
+                drivers={drivers}
+                vehicles={vehicleOptions}
+                timeFormat={timeFormat}
+                defaultDate={selectedDate}
+              />
+            </div>
+
+            {(() => {
+              const blocks = (dayBlocks ?? []) as ClassBlock[];
+              if (blocks.length === 0) {
+                return (
+                  <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted">
+                    No classes on this day.
+                  </div>
+                );
+              }
+              const driverNames = new Map(drivers.map((d) => [d.id, d.label]));
+              const vehicleNames = new Map(vehicleOptions.map((v) => [v.id, v.label]));
+              const byClassDriver = new Map<string, ClassBlock[]>();
+              for (const b of blocks) {
+                if (!byClassDriver.has(b.driver_id)) byClassDriver.set(b.driver_id, []);
+                byClassDriver.get(b.driver_id)!.push(b);
+              }
+              return (
+                <div className="space-y-4">
+                  {Array.from(byClassDriver.entries()).map(([driverId, rows]) => (
+                    <div key={driverId} className="overflow-hidden rounded-xl border border-border bg-surface">
+                      <div className="border-b border-border px-4 py-3">
+                        <p className="font-medium">{driverNames.get(driverId) ?? "Driver"}</p>
+                      </div>
+                      <table className="w-full text-sm">
+                        <tbody>
+                          {rows.map((b) => {
+                            const badge = classBlockBadge(b, local, windowMin);
+                            return (
+                              <tr key={b.id} className="border-b border-border last:border-0">
+                                <td className="px-4 py-2.5 font-medium whitespace-nowrap">
+                                  {formatTimeOfDay(b.start_time, timeFormat)}–{formatTimeOfDay(b.end_time, timeFormat)}
+                                </td>
+                                <td className="px-4 py-2.5 text-muted">
+                                  {b.vehicle_id ? vehicleNames.get(b.vehicle_id) ?? "Vehicle" : "—"}
+                                </td>
+                                <td className="px-4 py-2.5 text-muted">{b.note ?? ""}</td>
+                                <td className="px-4 py-2.5 text-xs text-muted">
+                                  {b.source === "template" ? "Weekly" : "One-off"}
+                                </td>
+                                <td className="px-4 py-2.5">
+                                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${badge.className}`}>
+                                    {badge.label}
+                                  </span>
+                                </td>
+                                <td className="px-4 py-2.5">
+                                  <ClassBlockActions blockId={b.id} status={b.status} isOneOff={b.source === "one_off"} />
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
+          </section>
+
+          <h2 className="mb-3 text-lg font-semibold">Weekly template</h2>
           <div className="mb-8">
             <ShiftForm orgId={orgId} drivers={drivers} vehicles={vehicleOptions} timeFormat={timeFormat} />
           </div>

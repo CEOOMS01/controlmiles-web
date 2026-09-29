@@ -146,3 +146,32 @@ export async function setTimeFormat(
   revalidatePath("/admin", "layout");
   return { error: null, success: true };
 }
+
+export type ScheduleSettingsState = { error: string | null; success: boolean };
+
+// Fleet clock + class start window (hourly shift blocks, 2026-09-29). Class
+// times are the fleet's local wall-clock; the DB validates the timezone
+// name (tr_organizations_validate_timezone) and the 0-120 min range.
+export async function setScheduleSettings(
+  _prevState: ScheduleSettingsState,
+  formData: FormData,
+): Promise<ScheduleSettingsState> {
+  const orgId = String(formData.get("org_id") ?? "");
+  const timezone = String(formData.get("timezone") ?? "").trim();
+  const windowMin = Number(formData.get("shift_start_window_minutes"));
+
+  if (!orgId || !timezone) return { error: "Pick a timezone.", success: false };
+  if (!Number.isInteger(windowMin) || windowMin < 0 || windowMin > 120) {
+    return { error: "The start window must be between 0 and 120 minutes.", success: false };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("organizations")
+    .update({ timezone, shift_start_window_minutes: windowMin })
+    .eq("id", orgId);
+  if (error) return { error: AppError.from(error).display(), success: false };
+
+  revalidatePath("/admin", "layout");
+  return { error: null, success: true };
+}
