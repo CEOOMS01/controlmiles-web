@@ -22,8 +22,25 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-export type DriverStartPoint = { date: string; hour: number };
-export type DriverStartSeries = { driverId: string; driverName: string; points: DriverStartPoint[] };
+type DriverStartPoint = { date: string; hour: number };
+// Raw trip start timestamps (ISO, UTC). REAL BUG (2026-09-29): the server
+// used to bucket these with getUTCHours(), so a driver starting at 8 AM in
+// Florida plotted at 12 PM. Days and hours are now worked out here, in the
+// viewer's own timezone.
+export type DriverStartSeries = { driverId: string; driverName: string; starts: string[] };
+
+// First start per local day.
+function firstStartsPerDay(starts: string[]): DriverStartPoint[] {
+  const byDay = new Map<string, number>();
+  for (const iso of starts) {
+    const d = new Date(iso);
+    const date = d.toLocaleDateString("en-CA"); // YYYY-MM-DD, local
+    const hour = d.getHours() + d.getMinutes() / 60;
+    const prev = byDay.get(date);
+    if (prev === undefined || hour < prev) byDay.set(date, hour);
+  }
+  return Array.from(byDay, ([date, hour]) => ({ date, hour }));
+}
 
 const LINE_COLORS = ["#2c6c99", "#bd5b26", "#5b8c5a", "#9b59b6", "#c0392b", "#16a085"];
 
@@ -39,7 +56,8 @@ function hourLabel(hour: number): string {
   return `${h12}:${m.toString().padStart(2, "0")} ${period}`;
 }
 
-export function DriverStartTimesChart({ series }: { series: DriverStartSeries[] }) {
+export function DriverStartTimesChart({ series: raw }: { series: DriverStartSeries[] }) {
+  const series = raw.map((s) => ({ ...s, points: firstStartsPerDay(s.starts) }));
   const hasData = series.some((s) => s.points.length > 0);
 
   // Recharts wants one array of rows keyed by date, each driver as its

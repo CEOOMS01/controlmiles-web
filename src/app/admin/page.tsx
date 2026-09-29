@@ -138,29 +138,20 @@ export default async function AdminDashboardPage() {
   // First session start time, per driver per day -- see
   // driver-start-times-chart.tsx's own header comment for why this (and
   // not "minutes late vs. schedule") is the honest metric available.
-  const byDriverDay = new Map<string, { driverId: string; driverName: string; date: string; hour: number }>();
+  const seriesMap = new Map<string, DriverStartSeries>();
   for (const row of sessionRows ?? []) {
     if (!row.start_time) continue;
-    const p = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
-    const driverName = driverLabel(p, fleetIds.get(row.user_id), "Driver");
-    const start = new Date(row.start_time);
-    const date = start.toISOString().slice(0, 10);
-    const hour = start.getUTCHours() + start.getUTCMinutes() / 60;
-    const key = `${row.user_id}|${date}`;
-    const existing = byDriverDay.get(key);
-    if (!existing || hour < existing.hour) {
-      byDriverDay.set(key, { driverId: row.user_id, driverName, date, hour });
+    if (!seriesMap.has(row.user_id)) {
+      const p = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
+      seriesMap.set(row.user_id, {
+        driverId: row.user_id,
+        driverName: driverLabel(p, fleetIds.get(row.user_id), "Driver"),
+        starts: [],
+      });
     }
-  }
-  const seriesMap = new Map<string, DriverStartSeries>();
-  for (const { driverId, driverName, date, hour } of byDriverDay.values()) {
-    if (!seriesMap.has(driverId)) {
-      seriesMap.set(driverId, { driverId, driverName, points: [] });
-    }
-    seriesMap.get(driverId)!.points.push({ date, hour });
+    seriesMap.get(row.user_id)!.starts.push(row.start_time);
   }
   const driverSeries = Array.from(seriesMap.values())
-    .map((s) => ({ ...s, points: s.points.sort((a, b) => a.date.localeCompare(b.date)) }))
     .slice(0, 6); // keep the chart legible -- see Baymard-style "avoid dashboard fatigue" note in the chart's own header
 
   return (
