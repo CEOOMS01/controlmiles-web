@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { STAY_SIGNED_IN_COOKIE, authCookieOptions, staySignedInFrom } from "@/lib/auth/session-persistence";
 
 function buildCsp(nonce: string) {
   // React dev mode needs eval() for its debugging tools (stack
@@ -97,12 +98,13 @@ export async function updateSession(request: NextRequest) {
           });
           supabaseResponse.headers.set("Content-Security-Policy", csp);
           cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, {
-              ...options,
-              httpOnly: true,
-              secure: process.env.NODE_ENV === "production",
-              sameSite: "lax",
-            }),
+            supabaseResponse.cookies.set(
+              name,
+              value,
+              // "Keep me signed in": persistent (90 d) or browser-session
+              // cookie -- see session-persistence.ts. Always httpOnly.
+              authCookieOptions(options, staySignedInFrom(request.cookies.get(STAY_SIGNED_IN_COOKIE)?.value)),
+            ),
           );
         },
       },

@@ -1,5 +1,6 @@
 "use client";
 
+import { STAY_SIGNED_IN_COOKIE } from "@/lib/auth/session-persistence";
 import { Suspense, useActionState, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -40,6 +41,11 @@ export default function LoginPage() {
   const [state, formAction, pending] = useActionState(signIn, { error: null });
   const [email, setEmail] = useState("");
   const [rememberEmail, setRememberEmail] = useState(false);
+  // "Keep me signed in" -- off by default (shared office computers). The
+  // choice is a small non-secret preference cookie the server reads when it
+  // sets the auth cookies, for email and Google sign-in alike. See
+  // src/lib/auth/session-persistence.ts.
+  const [staySignedIn, setStaySignedIn] = useState(false);
 
   // Per-viewer convenience only, same class of thing as a remembered tab
   // or a collapsed section -- never a credential, just the email string,
@@ -56,7 +62,14 @@ export default function LoginPage() {
     } catch {
       // Storage unavailable -- form just starts blank, same as before this existed.
     }
+    setStaySignedIn(document.cookie.split("; ").includes(`${STAY_SIGNED_IN_COOKIE}=1`));
   }, []);
+
+  function onStaySignedInChange(checked: boolean) {
+    setStaySignedIn(checked);
+    const secure = location.protocol === "https:" ? "; secure" : "";
+    document.cookie = `${STAY_SIGNED_IN_COOKIE}=${checked ? "1" : "0"}; path=/; max-age=31536000; samesite=lax${secure}`;
+  }
 
   function onSubmit() {
     try {
@@ -138,6 +151,21 @@ export default function LoginPage() {
             </div>
             <PasswordInput id="password" name="password" autoComplete="current-password" />
           </div>
+
+          <label className="flex items-start gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={staySignedIn}
+              onChange={(e) => onStaySignedInChange(e.target.checked)}
+              className="mt-0.5 h-3.5 w-3.5 rounded border-border"
+            />
+            <span>
+              Keep me signed in
+              <span className="block text-xs text-muted">
+                Stay signed in for 90 days on this browser. Leave it off on a shared computer.
+              </span>
+            </span>
+          </label>
 
           {state.error && (
             <p role="alert" className="text-sm text-danger">
