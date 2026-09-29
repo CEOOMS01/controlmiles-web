@@ -3,6 +3,7 @@ import { getAuthedProfile } from "@/lib/supabase/org-context";
 import { GrowthUpsell } from "../growth-upsell";
 import { ShiftForm } from "./shift-form";
 import { ShiftRowActions } from "./shift-row-actions";
+import { driverLabel, fleetDriverIds } from "@/lib/driver-label";
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -123,7 +124,7 @@ export default async function ShiftsPage() {
   const todayDow = now.getUTCDay();
   const todayDateKey = now.toISOString().slice(0, 10);
 
-  const [{ data: shifts }, { data: driverMembers }, { data: todaysSessions }, { data: vehicles }, { data: myProfile }] =
+  const [{ data: shifts }, { data: driverMembers }, { data: todaysSessions }, { data: vehicles }, { data: myProfile }, fleetIds] =
     await Promise.all([
       supabase
         .from("shifts")
@@ -152,14 +153,14 @@ export default async function ShiftsPage() {
         .eq("organization_id", orgId)
         .eq("is_archived", false),
       supabase.from("profiles").select("time_format").eq("id", user.id).maybeSingle(),
+      fleetDriverIds(supabase, orgId),
     ]);
 
   const timeFormat: "12h" | "24h" = myProfile?.time_format === "24h" ? "24h" : "12h";
 
   const drivers = (driverMembers ?? []).map((m) => {
     const p = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles;
-    const name = [p?.first_name, p?.last_name].filter(Boolean).join(" ");
-    return { id: m.user_id, label: name || p?.email || m.user_id };
+    return { id: m.user_id, label: driverLabel(p, fleetIds.get(m.user_id), p?.email || m.user_id) };
   });
 
   const vehicleLabel = (v: { nickname: string | null; make: string | null; model: string | null; display_id: string | null } | null) => {
@@ -177,7 +178,7 @@ export default async function ShiftsPage() {
   >();
   for (const s of shifts ?? []) {
     const p = Array.isArray(s.profiles) ? s.profiles[0] : s.profiles;
-    const driverName = [p?.first_name, p?.last_name].filter(Boolean).join(" ") || "Driver";
+    const driverName = driverLabel(p, fleetIds.get(s.driver_id), "Driver");
     if (!byDriver.has(s.driver_id)) byDriver.set(s.driver_id, { driverName, rows: [] });
     byDriver.get(s.driver_id)!.rows.push(s);
   }

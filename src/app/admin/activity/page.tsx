@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getAuthedProfile } from "@/lib/supabase/org-context";
 import { GrowthUpsell } from "../growth-upsell";
+import { driverLabel, fleetDriverIds } from "@/lib/driver-label";
 
 // Real fix, not a pricing-copy edit (explicit user request, 2026-09-18):
 // the pricing page has promised a Growth-tier "activity log... protected
@@ -30,11 +31,6 @@ const EVENT_LABELS: Record<string, string> = {
   ODOMETER_END: "Odometer captured (end)",
 };
 
-function driverName(p: { first_name: string | null; last_name: string | null } | null) {
-  if (!p) return "—";
-  return [p.first_name, p.last_name].filter(Boolean).join(" ") || "—";
-}
-
 export default async function ActivityPage() {
   const supabase = await createClient();
   const { user, profile } = await getAuthedProfile();
@@ -61,9 +57,10 @@ export default async function ActivityPage() {
     );
   }
 
+  const fleetIds = await fleetDriverIds(supabase, orgId);
   const { data: events } = await supabase
     .from("audit_events")
-    .select("id, event_type, created_at, hash, prev_hash, profiles(first_name, last_name)")
+    .select("id, user_id, event_type, created_at, hash, prev_hash, profiles(first_name, last_name)")
     .eq("organization_id", orgId)
     .neq("event_type", "GPS_TICK")
     .order("created_at", { ascending: false })
@@ -104,7 +101,7 @@ export default async function ActivityPage() {
                   <td className="px-4 py-3 text-muted">
                     {new Date(e.created_at).toLocaleString()}
                   </td>
-                  <td className="px-4 py-3">{driverName(p)}</td>
+                  <td className="px-4 py-3">{driverLabel(p, fleetIds.get(e.user_id))}</td>
                   <td className="px-4 py-3">
                     <span className="inline-flex items-center rounded-full bg-accent/15 px-2.5 py-0.5 text-xs font-medium text-accent">
                       {EVENT_LABELS[e.event_type] ?? e.event_type}

@@ -2,11 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getAuthedProfile } from "@/lib/supabase/org-context";
 import { CreateRouteForm } from "./create-route-form";
 import { RouteRowActions } from "./route-row-actions";
-
-function driverName(p: { first_name: string | null; last_name: string | null } | null) {
-  if (!p) return "—";
-  return [p.first_name, p.last_name].filter(Boolean).join(" ") || "—";
-}
+import { driverLabel, fleetDriverIds } from "@/lib/driver-label";
 
 function vehicleLabel(v: { nickname: string | null; make: string | null; model: string | null; display_id: string | null } | null) {
   if (!v) return "—";
@@ -87,7 +83,7 @@ export default async function RoutesPage() {
   const orgId = profile?.default_org_id;
   if (!orgId) return null;
 
-  const [{ data: routes }, { data: myProfile }, { data: driverMembers }, { data: vehicles }, { data: shifts }] = await Promise.all([
+  const [{ data: routes }, { data: myProfile }, { data: driverMembers }, { data: vehicles }, { data: shifts }, fleetIds] = await Promise.all([
     supabase
       .from("routes")
       .select(
@@ -111,12 +107,12 @@ export default async function RoutesPage() {
       .from("shifts")
       .select("driver_id, day_of_week, start_time, end_time, is_active")
       .eq("organization_id", orgId),
+    fleetDriverIds(supabase, orgId),
   ]);
 
   const drivers = (driverMembers ?? []).map((m) => {
     const p = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles;
-    const name = [p?.first_name, p?.last_name].filter(Boolean).join(" ");
-    return { id: m.user_id, label: name || p?.email || m.user_id };
+    return { id: m.user_id, label: driverLabel(p, fleetIds.get(m.user_id), p?.email || m.user_id) };
   });
   const vehicleOptions = (vehicles ?? []).map((v) => ({ id: v.id, label: vehicleLabel(v) }));
   const timeFormat: "12h" | "24h" = myProfile?.time_format === "24h" ? "24h" : "12h";
@@ -160,7 +156,7 @@ export default async function RoutesPage() {
                       </p>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-muted">{driverName(p)}</td>
+                  <td className="px-4 py-3 text-muted">{driverLabel(p, r.assigned_driver_id ? fleetIds.get(r.assigned_driver_id) : null)}</td>
                   <td className="px-4 py-3 text-muted">{vehicleLabel(v)}</td>
                   <td className="px-4 py-3 text-muted">
                     {formatScheduledRange(r.scheduled_date, r.scheduled_start_time, r.scheduled_end_time, timeFormat)}

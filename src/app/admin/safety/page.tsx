@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getAuthedProfile } from "@/lib/supabase/org-context";
 import { daysAgoIso } from "@/lib/dates";
+import { driverLabel, fleetDriverIds } from "@/lib/driver-label";
 
 // Driver safety events -- harsh braking / hard acceleration / speeding,
 // detected client-side in the ControlMiles mobile app from GPS ticks
@@ -25,11 +26,6 @@ const EVENT_LABELS: Record<string, string> = {
   speeding: "Speeding",
 };
 
-function driverName(p: { first_name: string | null; last_name: string | null } | null) {
-  if (!p) return "—";
-  return [p.first_name, p.last_name].filter(Boolean).join(" ") || "—";
-}
-
 function vehicleLabel(v: { nickname: string | null; make: string | null; model: string | null; display_id: string | null } | null) {
   if (!v) return "—";
   const name = [v.make, v.model].filter(Boolean).join(" ");
@@ -50,10 +46,11 @@ export default async function SafetyPage() {
 
   const thirtyDaysAgo = daysAgoIso(30);
 
+  const fleetIds = await fleetDriverIds(supabase, orgId);
   const { data: events } = await supabase
     .from("driver_safety_events")
     .select(
-      "id, event_type, speed_mps, speed_limit_mps, speed_limit_source, recorded_at, profiles(first_name, last_name), vehicles(nickname, make, model, display_id)",
+      "id, user_id, event_type, speed_mps, speed_limit_mps, speed_limit_source, recorded_at, profiles(first_name, last_name), vehicles(nickname, make, model, display_id)",
     )
     .eq("organization_id", orgId)
     .gte("recorded_at", thirtyDaysAgo)
@@ -111,7 +108,7 @@ export default async function SafetyPage() {
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <p className="text-sm font-semibold">{driverName(p)}</p>
+                  <p className="text-sm font-semibold">{driverLabel(p, fleetIds.get(e.user_id))}</p>
                   <p className="text-xs text-muted">
                     {vehicleLabel(v)} · {speedLabel(e.speed_mps)}
                     {isSpeeding && e.speed_limit_source === "osm" && (

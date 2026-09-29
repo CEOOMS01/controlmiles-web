@@ -5,6 +5,7 @@ import { FleetMap, type FleetVehicle } from "./fleet-map";
 import { GrowthUpsell } from "./growth-upsell";
 import { RouteEfficiencyChart, type RouteStatusCount } from "./route-efficiency-chart";
 import { DriverStartTimesChart, type DriverStartSeries } from "./driver-start-times-chart";
+import { driverLabel, fleetDriverIds } from "@/lib/driver-label";
 
 export default async function AdminDashboardPage() {
   const supabase = await createClient();
@@ -47,6 +48,7 @@ export default async function AdminDashboardPage() {
     { data: routeRows },
     { data: sessionRows },
     { data: mapGeofences },
+    fleetIds,
   ] = await Promise.all([
     supabase
       .from("organization_members")
@@ -100,6 +102,7 @@ export default async function AdminDashboardPage() {
       .from("vehicle_geofences")
       .select("id, center_latitude, center_longitude, radius_meters, is_active")
       .eq("organization_id", orgId),
+    fleetDriverIds(supabase, orgId),
   ]);
 
   const pendingCount = (pendingInviteCount ?? 0) + (unclaimedSlotCount ?? 0);
@@ -139,7 +142,7 @@ export default async function AdminDashboardPage() {
   for (const row of sessionRows ?? []) {
     if (!row.start_time) continue;
     const p = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
-    const driverName = [p?.first_name, p?.last_name].filter(Boolean).join(" ") || "Driver";
+    const driverName = driverLabel(p, fleetIds.get(row.user_id), "Driver");
     const start = new Date(row.start_time);
     const date = start.toISOString().slice(0, 10);
     const hour = start.getUTCHours() + start.getUTCMinutes() / 60;

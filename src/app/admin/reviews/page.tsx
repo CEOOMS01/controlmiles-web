@@ -1,17 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
 import { getAuthedProfile } from "@/lib/supabase/org-context";
 import { inspectionCategoryLabel, incidentCategoryLabel } from "@/lib/inspection-catalog";
+import { driverLabel, fleetDriverIds } from "@/lib/driver-label";
 
 type InspectionItem = {
   category: string;
   status: "ok" | "defect";
   note?: string;
 };
-
-function driverName(p: { first_name: string | null; last_name: string | null } | null) {
-  if (!p) return "—";
-  return [p.first_name, p.last_name].filter(Boolean).join(" ") || "—";
-}
 
 function vehicleLabel(v: { nickname: string | null; make: string | null; model: string | null; display_id: string | null } | null) {
   if (!v) return "—";
@@ -26,11 +22,11 @@ export default async function ReviewsPage() {
   const orgId = profile?.default_org_id;
   if (!orgId) return null;
 
-  const [{ data: inspections }, { data: incidents }] = await Promise.all([
+  const [{ data: inspections }, { data: incidents }, fleetIds] = await Promise.all([
     supabase
       .from("vehicle_inspections")
       .select(
-        "id, inspection_type, overall_status, items, odometer, created_at, profiles(first_name, last_name), vehicles(nickname, make, model, display_id)",
+        "id, user_id, inspection_type, overall_status, items, odometer, created_at, profiles(first_name, last_name), vehicles(nickname, make, model, display_id)",
       )
       .eq("organization_id", orgId)
       .order("created_at", { ascending: false })
@@ -38,11 +34,12 @@ export default async function ReviewsPage() {
     supabase
       .from("trip_incidents")
       .select(
-        "id, category, description, created_at, profiles(first_name, last_name), vehicles(nickname, make, model, display_id)",
+        "id, user_id, category, description, created_at, profiles(first_name, last_name), vehicles(nickname, make, model, display_id)",
       )
       .eq("organization_id", orgId)
       .order("created_at", { ascending: false })
       .limit(50),
+    fleetDriverIds(supabase, orgId),
   ]);
 
   return (
@@ -75,7 +72,7 @@ export default async function ReviewsPage() {
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
-                    <p className="text-sm font-semibold">{driverName(p)}</p>
+                    <p className="text-sm font-semibold">{driverLabel(p, fleetIds.get(i.user_id))}</p>
                     <p className="text-xs text-muted">
                       {vehicleLabel(v)} · {i.inspection_type === "pre_trip" ? "Pre-trip" : "Post-trip"} ·{" "}
                       {new Date(i.created_at).toLocaleString()}
@@ -120,7 +117,7 @@ export default async function ReviewsPage() {
               <div key={inc.id} className="rounded-xl border border-danger/40 bg-surface p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
-                    <p className="text-sm font-semibold">{driverName(p)}</p>
+                    <p className="text-sm font-semibold">{driverLabel(p, fleetIds.get(inc.user_id))}</p>
                     <p className="text-xs text-muted">
                       {vehicleLabel(v)} · {new Date(inc.created_at).toLocaleString()}
                     </p>
