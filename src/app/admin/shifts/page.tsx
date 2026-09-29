@@ -282,8 +282,8 @@ export default async function ShiftsPage({
         <p className="text-sm font-semibold tracking-wide text-accent uppercase">Shifts</p>
         <h1 className="mt-1 text-2xl font-semibold">Work schedule</h1>
         <p className="mt-2 max-w-2xl text-sm text-muted">
-          A recurring weekly schedule per driver — separate from Routes, which dispatches a
-          specific trip on a specific date.
+          When each driver works: a weekly template plus hourly classes on specific dates (for
+          example a driving school). Separate from Routes, which dispatches a specific trip.
         </p>
       </div>
 
