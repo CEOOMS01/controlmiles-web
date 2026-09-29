@@ -28,7 +28,7 @@ export function AddVehicleForm({ orgId }: { orgId: string }) {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground transition hover:opacity-90"
+        className="self-start rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground transition hover:opacity-90"
       >
         Add vehicle
       </button>
@@ -39,7 +39,7 @@ export function AddVehicleForm({ orgId }: { orgId: string }) {
     <form
       ref={formRef}
       onSubmit={onSubmit}
-      className="grid gap-3 rounded-xl border border-border bg-surface p-5 sm:grid-cols-5"
+      className="grid content-start gap-3 rounded-xl border border-border bg-surface p-5 sm:grid-cols-2"
     >
       <input type="hidden" name="org_id" value={orgId} />
       <Field name="nickname" label="Nickname" placeholder="Van 1" />
@@ -49,12 +49,12 @@ export function AddVehicleForm({ orgId }: { orgId: string }) {
       <Field name="plate" label="Plate" placeholder="ABC-1234" />
 
       {error && (
-        <p role="alert" className="text-sm text-danger sm:col-span-5">
+        <p role="alert" className="text-sm text-danger sm:col-span-2">
           {error}
         </p>
       )}
 
-      <div className="flex gap-2 sm:col-span-5">
+      <div className="flex items-start gap-2 sm:col-span-2">
         <button
           type="submit"
           disabled={pending}

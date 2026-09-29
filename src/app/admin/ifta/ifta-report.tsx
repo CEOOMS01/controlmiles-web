@@ -9,11 +9,16 @@ type Vehicle = {
   make: string | null;
   model: string | null;
   year: number | null;
+  display_id: string | null;
+  plate: string | null;
 };
 
+// Found live 2026-09-29: a vehicle with no make/model/nickname showed as
+// a raw UUID fragment ("3ef1c9"). Fall back to plate, then its CM-T ID.
 function vehicleLabel(v: Vehicle) {
   const name = [v.year, v.make, v.model].filter(Boolean).join(" ");
-  return v.nickname ? `${name} "${v.nickname}"` : name || v.id.slice(0, 6);
+  const label = v.nickname ? `${name} "${v.nickname}"`.trim() : name || v.plate;
+  return label ? `${label} (${v.display_id ?? v.id.slice(0, 6)})` : v.display_id ?? v.id.slice(0, 6);
 }
 
 function currentQuarterRange(): { start: string; end: string } {

@@ -20,6 +20,16 @@ export async function addVehicle(
   if (!orgId) {
     return { error: "Missing organization.", success: false };
   }
+  // Found live 2026-09-29: an all-blank submit created a vehicle nobody
+  // could identify ("CM-T9837  —  —" in the roster).
+  if (!nickname && !plate && !make && !model) {
+    return { error: "Give the vehicle at least a nickname or a plate.", success: false };
+  }
+  const year = yearRaw ? Number(yearRaw) : null;
+  const maxYear = new Date().getFullYear() + 1;
+  if (year !== null && (!Number.isInteger(year) || year < 1980 || year > maxYear)) {
+    return { error: `Year must be between 1980 and ${maxYear}.`, success: false };
+  }
 
   const supabase = await createClient();
   // RLS (vehicles_insert) enforces that the caller is an admin/owner of
@@ -30,7 +40,7 @@ export async function addVehicle(
     nickname,
     make,
     model,
-    year: yearRaw ? Number(yearRaw) : null,
+    year,
     plate,
   });
 

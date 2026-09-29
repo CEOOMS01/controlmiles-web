@@ -11,7 +11,7 @@ export default async function IftaPage() {
 
   const { data: vehicles } = await supabase
     .from("vehicles")
-    .select("id, nickname, make, model, year")
+    .select("id, display_id, nickname, make, model, year, plate")
     .eq("organization_id", orgId)
     .eq("is_archived", false)
     .order("created_at", { ascending: false });

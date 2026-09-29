@@ -20,7 +20,7 @@ export function VehicleAssignmentModeForm({
       <p className="text-sm font-medium">Vehicle assignment</p>
       <p className="mt-1 text-sm text-muted">
         Fixed: each driver uses the one vehicle you assign them (Roster page).
-        Open: a driver picks any unclaimed fleet vehicle when they start their turno --
+        Open: a driver picks any unclaimed fleet vehicle when they start their shift --
         for a rotating fleet where vehicles aren&apos;t 1:1 with drivers.
       </p>
 
