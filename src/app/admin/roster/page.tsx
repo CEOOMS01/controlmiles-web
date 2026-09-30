@@ -55,7 +55,7 @@ export default async function RosterPage() {
       .order("created_at", { ascending: false }),
     supabase
       .from("vehicles")
-      .select("id, display_id, nickname, make, model, year, plate, assigned_driver_id")
+      .select("id, display_id, nickname, make, model, year, plate, assigned_driver_id, ownership")
       .eq("organization_id", orgId)
       .eq("is_archived", false)
       .order("created_at", { ascending: false }),
@@ -77,9 +77,11 @@ export default async function RosterPage() {
     (allSlots ?? []).filter((s) => s.claimed_by).map((s) => [s.claimed_by as string, s.display_id]),
   );
 
-  const vehicleLabel = (v: { nickname: string | null; make: string | null; model: string | null; display_id: string | null; year?: number | null }) => {
+  // "· driver-owned" marks an owner-operator's own vehicle (2026-09-30).
+  const vehicleLabel = (v: { nickname: string | null; make: string | null; model: string | null; display_id: string | null; year?: number | null; ownership?: string | null }) => {
     const name = [v.year && String(v.year), v.make, v.model].filter(Boolean).join(" ");
-    return v.display_id ? `${name || v.nickname || "Vehicle"} (${v.display_id})` : name || v.nickname || "Vehicle";
+    const base = v.display_id ? `${name || v.nickname || "Vehicle"} (${v.display_id})` : name || v.nickname || "Vehicle";
+    return v.ownership === "driver_owned" ? `${base} · driver-owned` : base;
   };
   const vehicleOptions = (vehicles ?? []).map((v) => ({
     id: v.id,

@@ -112,6 +112,28 @@ export async function setVehicleAssignmentMode(
   return { error: null, success: true };
 }
 
+export type OwnerOperatorState = { error: string | null; success: boolean };
+
+// Owner-operators (2026-09-30): lets drivers register their own vehicle in
+// the app (register_my_own_vehicle checks this flag server-side).
+export async function setAllowDriverOwnedVehicles(
+  _prevState: OwnerOperatorState,
+  formData: FormData,
+): Promise<OwnerOperatorState> {
+  const orgId = String(formData.get("org_id") ?? "");
+  if (!orgId) return { error: "Invalid selection.", success: false };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("organizations")
+    .update({ allow_driver_owned_vehicles: formData.get("allow") === "on" })
+    .eq("id", orgId);
+  if (error) return { error: AppError.from(error).display(), success: false };
+
+  revalidatePath("/admin", "layout");
+  return { error: null, success: true };
+}
+
 export type TimeFormatState = { error: string | null; success: boolean };
 
 // Personal preference (explicit user request, 2026-09-22), not an org

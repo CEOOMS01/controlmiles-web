@@ -19,7 +19,8 @@ export function VehicleAssignmentModeForm({
       <input type="hidden" name="org_id" value={orgId} />
       <p className="text-sm font-medium">Vehicle assignment</p>
       <p className="mt-1 text-sm text-muted">
-        Fixed: each driver uses the one vehicle you assign them (Roster page).
+        Fixed: each driver uses the vehicle you assign them (Team page), or the one on their
+        scheduled shift that day (Shifts page).
         Open: a driver picks any unclaimed fleet vehicle when they start their shift --
         for a rotating fleet where vehicles aren&apos;t 1:1 with drivers.
       </p>

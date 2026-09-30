@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getAuthedProfile } from "@/lib/supabase/org-context";
 import { RenameOrgForm } from "./rename-org-form";
 import { VehicleAssignmentModeForm } from "./vehicle-assignment-mode-form";
+import { OwnerOperatorForm } from "./owner-operator-form";
 import { ScheduleSettingsForm } from "./schedule-settings-form";
 import { IndustryTemplateForm } from "./industry-template-form";
 import { DeleteOrgForm } from "./delete-org-form";
@@ -19,7 +20,7 @@ export default async function SettingsPage() {
     supabase
       .from("organizations")
       .select(
-        "name, compliance_mode, created_at, vehicle_assignment_mode, subscription_tier, subscription_status, timezone, shift_start_window_minutes, industry_template",
+        "name, compliance_mode, created_at, vehicle_assignment_mode, subscription_tier, subscription_status, timezone, shift_start_window_minutes, industry_template, allow_driver_owned_vehicles",
       )
       .eq("id", orgId)
       .maybeSingle(),
@@ -75,6 +76,9 @@ export default async function SettingsPage() {
             orgId={orgId}
             currentMode={org.vehicle_assignment_mode === "open" ? "open" : "fixed"}
           />
+          <div className="mt-4">
+            <OwnerOperatorForm orgId={orgId} allowed={org.allow_driver_owned_vehicles === true} />
+          </div>
           <div className="mt-4">
             <ScheduleSettingsForm
               orgId={orgId}
