@@ -6,7 +6,7 @@
 // The panel reuses the website hero's navy + route-curve motif.
 
 import Image from "next/image";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import Link from "next/link";
 import { AuthBrandLogo, AuthRoad } from "@/components/auth-brand-intro";
 
@@ -35,13 +35,20 @@ export function AuthShell({
           <AuthRoad className="-mx-12 mb-8 w-[calc(100%+6rem)]" />
           <div className="max-w-md">
           <h2 className="text-4xl leading-tight font-semibold tracking-tight">
-            Every mile,
-            <br />
-            <span className="text-[#9cc9ea]">on the record.</span>
+            <span className="auth-rise block" style={{ "--d": "0.2s" } as CSSProperties}>
+              Every mile,
+            </span>
+            <span className="auth-rise block text-[#9cc9ea]" style={{ "--d": "0.4s" } as CSSProperties}>
+              on the record.
+            </span>
           </h2>
           <ul className="mt-8 space-y-3 text-sm text-white/80">
-            {POINTS.map((p) => (
-              <li key={p} className="flex gap-3">
+            {POINTS.map((p, i) => (
+              <li
+                key={p}
+                className="auth-rise flex gap-3"
+                style={{ "--d": `${0.75 + i * 0.15}s` } as CSSProperties}
+              >
                 <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#9cc9ea]" />
                 {p}
               </li>

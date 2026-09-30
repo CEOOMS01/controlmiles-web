@@ -23,7 +23,9 @@ export function AuthBrandLogo() {
           priority
         />
       </span>
-      <span className="text-lg font-semibold tracking-tight">ControlMiles</span>
+      <span className="auth-brand-name text-lg font-semibold tracking-tight">
+        <span className="auth-brand-name-sheen">ControlMiles</span>
+      </span>
     </div>
   );
 }

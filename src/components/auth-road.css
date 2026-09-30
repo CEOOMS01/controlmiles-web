@@ -111,13 +111,67 @@
   }
 }
 
+/* The name next to the logo (user request: it was static while the logo
+   animates): written in left to right right after the logo lands, with a
+   brief light sweep, so logo + name arrive as one moment. */
+.auth-brand-name {
+  clip-path: inset(0 100% 0 0);
+  animation: auth-name-wipe 0.7s cubic-bezier(0.22, 1, 0.36, 1) 2.95s forwards;
+}
+
+@keyframes auth-name-wipe {
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+.auth-brand-name-sheen {
+  animation: auth-name-glow 1.2s ease-out 3.3s both;
+}
+
+/* A soft light-blue glow that fades out once the name is written -- the
+   same "arrival confirmed" cue as the logo's glow. (A background-clip:text
+   sweep was tried first and left part of the word transparent.) */
+@keyframes auth-name-glow {
+  0% {
+    text-shadow: 0 0 0 rgba(156, 201, 234, 0);
+  }
+  35% {
+    text-shadow: 0 0 14px rgba(156, 201, 234, 0.95);
+  }
+  100% {
+    text-shadow: 0 0 0 rgba(156, 201, 234, 0);
+  }
+}
+
+/* Entrance for the headline and the capability list below the road
+   (user request): each line rises into place, staggered via --d, while the
+   car starts its drive -- the panel never looks empty while it waits. */
+.auth-rise {
+  opacity: 0;
+  transform: translateY(14px);
+  animation: auth-rise-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) var(--d, 0s) forwards;
+}
+
+@keyframes auth-rise-in {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .auth-road-surface,
   .auth-road-lit,
-  .auth-brand-logo {
+  .auth-brand-logo,
+  .auth-brand-name,
+  .auth-brand-name-sheen,
+  .auth-rise {
     animation: none;
     opacity: 1;
     stroke-dashoffset: 0;
+    clip-path: none;
+    transform: none;
   }
   .auth-road-car,
   .auth-road-car-bob,
