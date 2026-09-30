@@ -80,11 +80,11 @@ If you are a California resident, the California Consumer Privacy Act (CCPA), as
 
 Residents of other U.S. states with comparable privacy laws (for example Virginia, Colorado, Connecticut, and Utah) have similar rights, which we honor on the same basis.
 
-To exercise any of these rights, contact legal@controlmiles.com. We may need to verify your identity before responding.
+To exercise any of these rights, contact account@controlmiles.com. We may need to verify your identity before responding.
 
 9. INTERNATIONAL USERS
 
-If you access ControlMiles from outside the United States, your information will be transferred to and processed in the United States. If you are located in the European Economic Area, United Kingdom, or Switzerland, you may have additional rights under the GDPR or UK GDPR, including the right to access, correct, delete, or port your personal data, and the right to object to certain processing. Contact legal@controlmiles.com to exercise these rights.
+If you access ControlMiles from outside the United States, your information will be transferred to and processed in the United States. If you are located in the European Economic Area, United Kingdom, or Switzerland, you may have additional rights under the GDPR or UK GDPR, including the right to access, correct, delete, or port your personal data, and the right to object to certain processing. Contact account@controlmiles.com to exercise these rights.
 
 10. CHILDREN'S PRIVACY
 
@@ -100,7 +100,7 @@ We may update this Privacy Policy from time to time. Material changes will be re
 
 13. CONTACT US
 
-Questions about this policy: legal@controlmiles.com. Account requests (access, export or deletion of your data): account@controlmiles.com. Security issues: security@controlmiles.com. General inquiries: info@controlmiles.com. Support: support@controlmiles.com.
+Questions about this policy and account requests (access, export or deletion of your data): account@controlmiles.com. Security issues: security@controlmiles.com. General inquiries: info@controlmiles.com. Support: support@controlmiles.com.
 `;
 
 export default function PrivacyPage() {

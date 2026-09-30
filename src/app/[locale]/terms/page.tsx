@@ -76,13 +76,13 @@ You agree to indemnify, defend, and hold harmless Olympus Mont Systems LLC, its 
 
 Please read this section carefully. It affects your legal rights.
 
-Informal resolution first. Before filing a claim against ControlMiles, you agree to first contact us at legal@controlmiles.com and attempt in good faith to resolve the dispute informally for at least 30 days.
+Informal resolution first. Before filing a claim against ControlMiles, you agree to first contact us at info@controlmiles.com and attempt in good faith to resolve the dispute informally for at least 30 days.
 
 Binding arbitration. If a dispute is not resolved informally, you and Olympus Mont Systems LLC agree that it will be resolved by binding, individual arbitration administered by the American Arbitration Association (AAA) under its Consumer Arbitration Rules, rather than in court, except that either party may bring an individual claim in small claims court if it qualifies.
 
 Class action waiver. You and Olympus Mont Systems LLC agree that any arbitration or claim will be conducted on an individual basis only, not as a class, collective, or representative action, and the arbitrator may not consolidate more than one person's claims.
 
-Opt-out. You may opt out of this arbitration agreement by emailing legal@controlmiles.com within 30 days of first agreeing to these Terms, stating your name and that you opt out of arbitration.
+Opt-out. You may opt out of this arbitration agreement by emailing info@controlmiles.com within 30 days of first agreeing to these Terms, stating your name and that you opt out of arbitration.
 
 This section survives termination of your account and these Terms.
 
@@ -112,7 +112,7 @@ We may update these Terms from time to time. Continued use of ControlMiles after
 
 20. CONTACT US
 
-Questions about these Terms: legal@controlmiles.com. General inquiries: info@controlmiles.com. Support: support@controlmiles.com.
+Questions about these Terms and general inquiries: info@controlmiles.com. Support: support@controlmiles.com.
 `;
 
 export default function TermsPage() {
