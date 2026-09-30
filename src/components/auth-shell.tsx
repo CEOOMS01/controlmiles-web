@@ -13,7 +13,7 @@ import { AuthBrandLogo, AuthRoad } from "@/components/auth-brand-intro";
 const POINTS = [
   "Live fleet map, geofences and DVIR inspections",
   "Every trip GPS-logged and locked the moment it's saved",
-  "IFTA state mileage and one-click fleet exports",
+  "IFTA quarterly returns and one-click fleet exports",
 ];
 
 export function AuthShell({

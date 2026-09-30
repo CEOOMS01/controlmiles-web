@@ -10,11 +10,10 @@
 // mobile + web admin) antes de escribir una sola palabra de marketing --
 // cada capacidad listada abajo tiene una llamada RPC/tabla real detrás.
 // Deliberadamente NO se listan: invitación por deep-link (el botón que la
-// dispara no existe en ningún lado todavía), "filing" de IFTA (solo hay
-// millas por estado, no combustible por jurisdicción), alertas de velocidad
+// dispara no existe en ningún lado todavía), alertas de velocidad
 // por límite real de vía (es un umbral fijo), ni checkout de facturación
 // self-service (la página de precios es solo texto, sin Stripe real
-// conectado). Prometer cualquiera de esas cinco cosas frente a un cliente
+// conectado). Prometer cualquiera de esas cosas frente a un cliente
 // sería vender algo que no existe.
 //
 // Sin next-intl a propósito: es una pieza puntual en inglés para un
@@ -112,8 +111,8 @@ const CATEGORIES: Category[] = [
     name: "Reporting & export",
     items: [
       {
-        title: "State-by-state mileage breakdown",
-        body: "Computed server-side from real GPS trail data, filterable by vehicle and date range — built for IFTA mileage prep.",
+        title: "IFTA quarterly return, computed",
+        body: "Miles per state from real GPS trails, fuel receipts logged in the app, IFTA, Inc.'s published rates (surcharges included): fleet MPG, taxable gallons, tax-paid credits and net tax per jurisdiction, with gaps flagged before filing.",
       },
       {
         title: "Real CSV and PDF fleet export",
