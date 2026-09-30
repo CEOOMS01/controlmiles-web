@@ -87,7 +87,7 @@ export default async function AdminDashboardPage() {
       .gte("recorded_at", thirtyDaysAgo),
     supabase
       .from("vehicles")
-      .select("id, display_id, nickname, last_latitude, last_longitude, last_speed, last_location_at")
+      .select("id, display_id, nickname, last_latitude, last_longitude, last_speed, last_location_at, active_session_id")
       .eq("organization_id", orgId)
       .eq("is_archived", false)
       .not("last_latitude", "is", null)
@@ -121,6 +121,7 @@ export default async function AdminDashboardPage() {
     lon: v.last_longitude as number,
     speed: v.last_speed,
     lastLocationAt: v.last_location_at,
+    onTrip: v.active_session_id != null,
   }));
 
   const routeStatusOrder = ["draft", "active", "closed"];

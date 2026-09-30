@@ -37,9 +37,20 @@ export type FleetVehicle = {
   label: string;
   lat: number;
   lon: number;
+  /** m/s, as the phone reports it */
   speed: number | null;
   lastLocationAt: string | null;
+  /** A trip is open on this vehicle right now (vehicles.active_session_id). */
+  onTrip: boolean;
 };
+
+/** On trip and reporting / on trip but silent 15+ min / no trip open. */
+export type VehicleStatus = "on_trip" | "no_signal" | "parked";
+
+export function vehicleStatus(v: FleetVehicle): VehicleStatus {
+  if (!v.onTrip) return "parked";
+  return isRecent(v.lastLocationAt, 15) ? "on_trip" : "no_signal";
+}
 
 // Leaflet touches `window` at import time, so the whole map has to be
 // client-only -- dynamic-imported with ssr:false rather than just
@@ -114,6 +125,7 @@ export function FleetMap({
                 lon,
                 speed: (row.last_speed as number | null) ?? null,
                 lastLocationAt: (row.last_location_at as string | null) ?? null,
+                onTrip: row.active_session_id != null,
               };
               const exists = prev.some((v) => v.id === id);
               return exists ? prev.map((v) => (v.id === id ? next : v)) : [...prev, next];
@@ -141,7 +153,12 @@ export function FleetMap({
     };
   }, [orgId]);
 
-  const activeCount = vehicles.filter((v) => isRecent(v.lastLocationAt, 15)).length;
+  // Live status (2026-09-30): a parked vehicle keeps its last known spot on
+  // the map (where it was left, like Samsara/Motive), but it's grey and
+  // labelled Parked; tracking itself stops when the trip ends.
+  const onTripCount = vehicles.filter((v) => vehicleStatus(v) === "on_trip").length;
+  const noSignalCount = vehicles.filter((v) => vehicleStatus(v) === "no_signal").length;
+  const parkedCount = vehicles.length - onTripCount - noSignalCount;
 
   return (
     <div className="rounded-xl border border-border bg-surface p-5">
@@ -151,8 +168,19 @@ export function FleetMap({
           <p className="text-sm text-muted">
             {vehicles.length === 0
               ? "No vehicles reporting location yet."
-              : `${activeCount} of ${vehicles.length} vehicle${vehicles.length === 1 ? "" : "s"} active in the last 15 min.`}
+              : [
+                  `${onTripCount} on trip`,
+                  noSignalCount > 0 ? `${noSignalCount} no signal` : null,
+                  `${parkedCount} parked (last known spot)`,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
           </p>
+        </div>
+        <div className="flex flex-wrap gap-3 text-xs text-muted">
+          <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-[#2c6c99]" />On trip</span>
+          <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-[#d97706]" />No signal</span>
+          <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-[#94a3b8]" />Parked</span>
         </div>
       </div>
 

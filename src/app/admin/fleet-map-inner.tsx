@@ -33,7 +33,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import { Protocol } from "pmtiles";
 import { layers, namedFlavor } from "@protomaps/basemaps";
 import { circlePolygon } from "@/lib/geo-circle";
-import type { FleetVehicle } from "./fleet-map";
+import { vehicleStatus, type FleetVehicle, type VehicleStatus } from "./fleet-map";
 
 export type FleetGeofence = {
   id: string;
@@ -47,9 +47,25 @@ const PMTILES_URL =
   process.env.NEXT_PUBLIC_FLEET_MAP_PMTILES_URL ??
   "https://demo-bucket.protomaps.com/v4.pmtiles";
 
-function isRecent(iso: string | null, minutes: number): boolean {
-  if (!iso) return false;
-  return Date.now() - new Date(iso).getTime() < minutes * 60_000;
+const STATUS_COLOR: Record<VehicleStatus, string> = {
+  on_trip: "#2c6c99",
+  no_signal: "#d97706",
+  parked: "#94a3b8",
+};
+
+const STATUS_LABEL: Record<VehicleStatus, string> = {
+  on_trip: "On trip",
+  no_signal: "On trip · no signal for 15+ min",
+  parked: "Parked · last known spot",
+};
+
+/** "just now", "12 min ago", "3 h ago", "Sep 28, 2:36 PM". */
+function timeAgo(iso: string): string {
+  const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60_000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins} min ago`;
+  if (mins < 24 * 60) return `${Math.round(mins / 60)} h ago`;
+  return new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 }
 
 // Registered once per page load, not per map instance -- addProtocol is a
@@ -149,7 +165,7 @@ export default function FleetMapInner({
     const seen = new Set<string>();
     for (const v of vehicles) {
       seen.add(v.id);
-      const recent = isRecent(v.lastLocationAt, 15);
+      const status = vehicleStatus(v);
       let marker = markersRef.current.get(v.id);
 
       if (!marker) {
@@ -171,7 +187,8 @@ export default function FleetMapInner({
         marker.setLngLat([v.lon, v.lat]);
       }
 
-      marker.getElement().style.background = recent ? "#2c6c99" : "#94a3b8";
+      marker.getElement().style.background = STATUS_COLOR[status];
+      marker.getElement().style.opacity = status === "parked" ? "0.75" : "1";
       const popup = marker.getPopup();
       if (popup) {
         const content = document.createElement("div");
@@ -179,8 +196,9 @@ export default function FleetMapInner({
         content.innerHTML = `
           <p class="font-semibold">${escapeHtml(v.label)}</p>
           ${v.displayId ? `<p class="text-xs text-muted">${escapeHtml(v.displayId)}</p>` : ""}
-          ${v.speed != null ? `<p class="text-xs">${Math.round(v.speed)} mph</p>` : ""}
-          ${v.lastLocationAt ? `<p class="text-xs text-muted">${new Date(v.lastLocationAt).toLocaleTimeString()}</p>` : ""}
+          <p class="text-xs font-medium" style="color:${STATUS_COLOR[status]}">${STATUS_LABEL[status]}</p>
+          ${status === "on_trip" && v.speed != null ? `<p class="text-xs">${Math.round(Math.max(0, v.speed) * 2.23694)} mph</p>` : ""}
+          ${v.lastLocationAt ? `<p class="text-xs text-muted">${status === "parked" ? "Last seen" : "Updated"} ${escapeHtml(timeAgo(v.lastLocationAt))}</p>` : ""}
         `;
         popup.setDOMContent(content);
       }
