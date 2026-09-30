@@ -129,7 +129,7 @@ const fleetPlans = (t: Awaited<ReturnType<typeof getTranslations>>): Plan[] => [
       t("features.customReporting"),
       t("features.prioritySupport"),
     ],
-    cta: { label: "contact@controlmiles.com", href: "mailto:contact@controlmiles.com" },
+    cta: { label: "info@controlmiles.com", href: "mailto:info@controlmiles.com" },
   },
 ];
 

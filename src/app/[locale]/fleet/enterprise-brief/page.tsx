@@ -236,11 +236,11 @@ export default function EnterpriseBriefPage() {
             </Reveal>
           </div>
           <a
-            href="mailto:contact@controlmiles.com"
+            href="mailto:info@controlmiles.com"
             className="mt-10 inline-block rounded-full px-6 py-3 text-sm font-semibold text-white transition hover:opacity-90"
             style={{ background: "var(--lg-blue-deep)" }}
           >
-            contact@controlmiles.com
+            info@controlmiles.com
           </a>
         </div>
       </section>

@@ -42,7 +42,7 @@ If you still have ControlMiles installed: open the app, go to Settings, scroll t
 
 3. REQUEST DELETION WITHOUT THE APP
 
-If you no longer have ControlMiles installed, or prefer not to use the in-app flow, email privacy@controlmiles.com with the subject line "Delete my account" and include the email address associated with your ControlMiles account. We process manual requests within 30 days of verifying the request came from the account holder.
+If you no longer have ControlMiles installed, or prefer not to use the in-app flow, email account@controlmiles.com with the subject line "Delete my account" and include the email address associated with your ControlMiles account. We process manual requests within 30 days of verifying the request came from the account holder.
 
 4. WHAT GETS DELETED
 
@@ -60,7 +60,7 @@ In-app deletion is immediate. Email requests are processed within 30 days after 
 
 7. MORE INFORMATION
 
-See our Privacy Policy for full detail on what we collect and how we use it, or contact privacy@controlmiles.com with any questions about this process.
+See our Privacy Policy for full detail on what we collect and how we use it, or contact account@controlmiles.com with any questions about this process.
 `;
 
 export default function DeleteAccountPage() {

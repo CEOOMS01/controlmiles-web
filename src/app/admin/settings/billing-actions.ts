@@ -29,7 +29,7 @@ export async function startFleetCheckout(
     return { error: AppError.from(error).display(), url: null };
   }
   if (data?.configured === false) {
-    return { error: "Fleet billing isn't set up yet. Contact contact@controlmiles.com.", url: null };
+    return { error: "Fleet billing isn't set up yet. Contact support@controlmiles.com.", url: null };
   }
   if (!data?.url) {
     return { error: "Could not start checkout. Try again.", url: null };

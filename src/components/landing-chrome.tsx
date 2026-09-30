@@ -107,8 +107,13 @@ export async function LandingFooter() {
           <a href="mailto:support@controlmiles.com" className="transition hover:text-[var(--lg-ink)]">
             support@controlmiles.com
           </a>
-          <a href="mailto:contact@controlmiles.com" className="transition hover:text-[var(--lg-ink)]">
-            contact@controlmiles.com
+          {/* Public addresses (2026-09-30): support@ help, info@ general and
+              sales, jobs@ careers. security@ is in /.well-known/security.txt. */}
+          <a href="mailto:info@controlmiles.com" className="transition hover:text-[var(--lg-ink)]">
+            info@controlmiles.com
+          </a>
+          <a href="mailto:jobs@controlmiles.com" className="transition hover:text-[var(--lg-ink)]">
+            jobs@controlmiles.com
           </a>
         </nav>
         <span>{t("rights")}</span>
