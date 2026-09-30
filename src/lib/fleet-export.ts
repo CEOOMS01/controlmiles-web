@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { AppError } from "@/lib/errors";
+import { getBranchScope } from "@/lib/branch-scope";
 
 export type FleetExportRow = {
   user_id: string;
@@ -85,11 +86,16 @@ export async function loadFleetExportData(startDate: string, endDate: string): P
     throw new Error(AppError.from(error).display());
   }
 
+  // Branch filter (sidebar selector, 2026-09-30): the export follows the
+  // branch the admin is viewing -- its drivers (home branch or "any").
+  const scope = await getBranchScope(orgId);
+  const rows = ((data ?? []) as FleetExportRow[]).filter((r) => scope.driverIn(r.user_id));
+
   return {
-    orgName: org?.name ?? "Fleet",
+    orgName: scope.current ? `${org?.name ?? "Fleet"} · ${scope.current.name}` : (org?.name ?? "Fleet"),
     startDate,
     endDate,
-    rows: (data ?? []) as FleetExportRow[],
+    rows,
   };
 }
 
