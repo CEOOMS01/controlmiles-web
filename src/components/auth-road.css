@@ -4,10 +4,10 @@
    the car passes); the car drives it ONCE and, arriving, hands off to the
    logo, which pops into its usual spot at the top-left.
    Best practices followed: pure CSS motion path (offset-path, no animation
-   library, same as the landing), short (~3 s), runs a single time (plain
-   CSS, no loop; AuthBrandIntro skips it on later visits in the same
-   session via sessionStorage), and prefers-reduced-motion shows the final
-   state without movement. Timeline: 3.2 s total. */
+   library, same as the landing), short (~3 s), a single run on every page
+   load (plain CSS, no loop), and prefers-reduced-motion shows the final
+   state without movement. The road sits above the headline (user request).
+   Timeline: 3.2 s total. */
 
 .auth-road-surface {
   opacity: 0;
@@ -109,21 +109,6 @@
     opacity: 0;
     transform: scale(1.9);
   }
-}
-
-/* Already played this session, or the user prefers less motion: the final
-   state, no movement. */
-[data-auth-intro="done"] .auth-road-surface,
-[data-auth-intro="done"] .auth-road-lit,
-[data-auth-intro="done"] .auth-brand-logo {
-  animation: none;
-  opacity: 1;
-  stroke-dashoffset: 0;
-}
-[data-auth-intro="done"] .auth-road-car,
-[data-auth-intro="done"] .auth-brand-glow {
-  animation: none;
-  opacity: 0;
 }
 
 @media (prefers-reduced-motion: reduce) {

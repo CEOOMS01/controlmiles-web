@@ -8,7 +8,7 @@
 import Image from "next/image";
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { AuthBrandIntro } from "@/components/auth-brand-intro";
+import { AuthBrandLogo, AuthRoad } from "@/components/auth-brand-intro";
 
 const POINTS = [
   "Live fleet map, geofences and DVIR inspections",
@@ -28,8 +28,12 @@ export function AuthShell({
   return (
     <main className="grid min-h-screen w-full flex-1 lg:grid-cols-[1.05fr_1fr]">
       <aside className="relative hidden overflow-hidden bg-gradient-to-br from-[#0f2a44] to-[#1f5f8b] p-12 text-white lg:flex lg:flex-col lg:justify-between">
-        <AuthBrandIntro />
-        <div className="relative max-w-md">
+        <AuthBrandLogo />
+        <div className="relative">
+          {/* The road sits above the headline, full panel width (bleeds
+              past the panel padding), with the car driving it on load. */}
+          <AuthRoad className="-mx-12 mb-8 w-[calc(100%+6rem)]" />
+          <div className="max-w-md">
           <h2 className="text-4xl leading-tight font-semibold tracking-tight">
             Every mile,
             <br />
@@ -43,6 +47,7 @@ export function AuthShell({
               </li>
             ))}
           </ul>
+          </div>
         </div>
         <p className="relative text-xs text-white/50">© {new Date().getFullYear()} ControlMiles · Powered by Olimsys</p>
       </aside>
