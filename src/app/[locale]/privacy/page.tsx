@@ -80,7 +80,7 @@ If you are a California resident, the California Consumer Privacy Act (CCPA), as
 
 Residents of other U.S. states with comparable privacy laws (for example Virginia, Colorado, Connecticut, and Utah) have similar rights, which we honor on the same basis.
 
-To exercise any of these rights, contact account@controlmiles.com. We may need to verify your identity before responding.
+To exercise any of these rights, contact privacy@controlmiles.com. We may need to verify your identity before responding.
 
 9. INTERNATIONAL USERS
 
@@ -100,7 +100,7 @@ We may update this Privacy Policy from time to time. Material changes will be re
 
 13. CONTACT US
 
-Questions about this policy and account requests (access, export or deletion of your data): account@controlmiles.com. Security issues: security@controlmiles.com. General inquiries: info@controlmiles.com. Support: support@controlmiles.com.
+Questions about this policy and requests about your data (access, export or deletion): privacy@controlmiles.com. Account help: account@controlmiles.com. Security issues: security@controlmiles.com. General inquiries: info@controlmiles.com. Support: support@controlmiles.com.
 `;
 
 export default function PrivacyPage() {
