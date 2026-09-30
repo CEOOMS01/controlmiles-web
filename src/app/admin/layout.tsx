@@ -63,7 +63,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
       .maybeSingle(),
     supabase
       .from("organizations")
-      .select("id, name, compliance_mode")
+      .select("id, name, compliance_mode, fleet_type_confirmed_at")
       .eq("id", profile.default_org_id)
       .maybeSingle(),
     supabase
@@ -117,6 +117,13 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   }
 
   const isOperatorOnly = role === "operator";
+
+  // Onboarding (2026-09-30): the fleet type is chosen after sign-up, not
+  // during it -- an owner/admin whose fleet hasn't picked one yet goes
+  // there first.
+  if (!org.fleet_type_confirmed_at && !isOperatorOnly) {
+    redirect("/onboarding/fleet-type");
+  }
 
   return (
     <div className="flex flex-1">

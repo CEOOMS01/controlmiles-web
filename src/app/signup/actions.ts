@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { AppError } from "@/lib/errors";
 import { LEGAL_TERMS_VERSION } from "@/lib/legal-version";
-import { fleetTypeFrom } from "@/components/fleet-type-picker";
 
 export async function signUp(
   _prevState: { error: string | null },
@@ -52,7 +51,9 @@ export async function signUp(
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: { data: { pending_org_name: orgName, pending_industry_template: fleetTypeFrom(formData) } },
+    // One sign-up for every fleet: the fleet type is chosen afterwards,
+    // in onboarding (/onboarding/fleet-type), not here (2026-09-30).
+    options: { data: { pending_org_name: orgName } },
   });
 
   if (error) {

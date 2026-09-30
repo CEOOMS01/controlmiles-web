@@ -7,7 +7,6 @@ import { signUp } from "./actions";
 import { PasswordInput } from "@/components/password-input";
 import { GoogleSignInButton } from "@/components/google-sign-in-button";
 import { AgeTermsCheckbox } from "@/components/age-terms-checkbox";
-import { FleetTypePicker } from "@/components/fleet-type-picker";
 
 export default function SignupPage() {
   const [state, formAction, pending] = useActionState(signUp, { error: null });
@@ -40,8 +39,6 @@ export default function SignupPage() {
               className="w-full rounded-lg border border-border bg-surface px-3.5 py-2.5 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
             />
           </div>
-
-          <FleetTypePicker />
 
           <div>
             <label htmlFor="email" className="mb-1.5 block text-sm font-medium">
