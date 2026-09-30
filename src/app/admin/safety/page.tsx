@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getBranchScope } from "@/lib/branch-scope";
 import { createClient } from "@/lib/supabase/server";
 import { getAuthedProfile } from "@/lib/supabase/org-context";
 import { daysAgoIso } from "@/lib/dates";
@@ -92,7 +93,9 @@ export default async function SafetyPage({
     }),
   );
 
-  const rows = ((current ?? []) as ScoreRow[]).map((r) => ({ ...r, miles: Number(r.miles), score: r.score == null ? null : Number(r.score) }));
+  // Branch filter (sidebar, 2026-09-30): drivers of this branch.
+  const scope = await getBranchScope(orgId);
+  const rows = ((current ?? []) as ScoreRow[]).filter((r) => scope.driverIn(r.user_id)).map((r) => ({ ...r, miles: Number(r.miles), score: r.score == null ? null : Number(r.score) }));
   const prevByUser = new Map(((previous ?? []) as ScoreRow[]).map((r) => [r.user_id, r.score == null ? null : Number(r.score)]));
   const weeklyByUser = new Map<string, Map<string, number | null>>();
   for (const w of (weekly ?? []) as ScoreRow[]) {
@@ -114,13 +117,15 @@ export default async function SafetyPage({
   const rated = rows.filter((r) => r.score != null);
   const perHundred = (n: number, miles: number) => (miles > 0 ? ((n * 100) / miles).toFixed(1) : "—");
 
-  const feed = events ?? [];
+  const feed = (events ?? []).filter((e) => scope.driverIn(e.user_id));
 
   return (
     <main className="px-6 py-10 sm:px-10">
       <div className="mb-8">
         <p className="text-sm font-semibold tracking-wide text-accent uppercase">Safety</p>
-        <h1 className="mt-1 text-2xl font-semibold">Driver scorecard</h1>
+        <h1 className="mt-1 text-2xl font-semibold">
+          Driver scorecard{scope.current && <span className="text-muted"> · {scope.current.name}</span>}
+        </h1>
         <p className="mt-2 max-w-2xl text-sm text-muted">
           A 0–100 score per driver for the last {PERIOD_DAYS} days, from harsh braking, hard acceleration
           and speeding per 100 miles driven — detected from the phone&apos;s GPS during trips, no extra

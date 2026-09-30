@@ -4,6 +4,8 @@ import { RenameOrgForm } from "./rename-org-form";
 import { VehicleAssignmentModeForm } from "./vehicle-assignment-mode-form";
 import { OwnerOperatorForm } from "./owner-operator-form";
 import { isFleetProfile, moduleVisible } from "@/lib/fleet-profiles";
+import { getBranchScope } from "@/lib/branch-scope";
+import { BranchesManager } from "../branch-controls";
 import { ScheduleSettingsForm } from "./schedule-settings-form";
 import { IndustryTemplateForm } from "./industry-template-form";
 import { DeleteOrgForm } from "./delete-org-form";
@@ -21,7 +23,7 @@ export default async function SettingsPage() {
     supabase
       .from("organizations")
       .select(
-        "name, compliance_mode, created_at, vehicle_assignment_mode, subscription_tier, subscription_status, timezone, shift_start_window_minutes, industry_template, allow_driver_owned_vehicles, show_all_modules, require_pretrip_inspection",
+        "name, compliance_mode, created_at, vehicle_assignment_mode, subscription_tier, subscription_status, timezone, shift_start_window_minutes, industry_template, allow_driver_owned_vehicles, show_all_modules, require_pretrip_inspection, use_shift_schedules",
       )
       .eq("id", orgId)
       .maybeSingle(),
@@ -34,6 +36,7 @@ export default async function SettingsPage() {
   ]);
 
   if (!org) return null;
+  const branchScope = await getBranchScope(orgId);
 
   const createdDate = org.created_at
     ? new Date(org.created_at).toLocaleDateString(undefined, {
@@ -64,6 +67,13 @@ export default async function SettingsPage() {
         </SettingsSection>
 
         <SettingsSection
+          title="Branches"
+          description="Your business locations, to organize vehicles and drivers and filter the dashboard."
+        >
+          <BranchesManager branches={branchScope.branches} />
+        </SettingsSection>
+
+        <SettingsSection
           title="Fleet operations"
           description="How drivers and vehicles work day to day."
         >
@@ -73,6 +83,7 @@ export default async function SettingsPage() {
               current={isFleetProfile(org.industry_template) ? org.industry_template : "general"}
               showAll={org.show_all_modules === true}
               requirePretrip={org.require_pretrip_inspection !== false}
+              useShifts={org.use_shift_schedules === true}
             />
           </div>
           <VehicleAssignmentModeForm

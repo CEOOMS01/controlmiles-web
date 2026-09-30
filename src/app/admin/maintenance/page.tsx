@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getBranchScope } from "@/lib/branch-scope";
 import { getAuthedProfile } from "@/lib/supabase/org-context";
 
 const TYPE_LABELS: Record<string, string> = {
@@ -27,11 +28,14 @@ export default async function MaintenancePage() {
   const { data: records } = await supabase
     .from("vehicle_maintenance_records")
     .select(
-      "id, type, performed_at, odometer_at_service, next_due_date, next_due_odometer, cost, notes, vehicles(nickname, make, model, display_id)",
+      "id, vehicle_id, type, performed_at, odometer_at_service, next_due_date, next_due_odometer, cost, notes, vehicles(nickname, make, model, display_id)",
     )
     .eq("organization_id", orgId)
     .order("performed_at", { ascending: false })
     .limit(100);
+  // Branch filter (sidebar, 2026-09-30).
+  const scope = await getBranchScope(orgId);
+  const shown = (records ?? []).filter((r) => scope.vehicleIn(r.vehicle_id));
 
   return (
     <main className="px-6 py-10 sm:px-10">
@@ -58,7 +62,7 @@ export default async function MaintenancePage() {
             </tr>
           </thead>
           <tbody>
-            {(records ?? []).map((r) => {
+            {shown.map((r) => {
               const v = Array.isArray(r.vehicles) ? r.vehicles[0] : r.vehicles;
               return (
                 <tr key={r.id} className="border-b border-border last:border-0">
@@ -77,7 +81,7 @@ export default async function MaintenancePage() {
                 </tr>
               );
             })}
-            {(records ?? []).length === 0 && (
+            {shown.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-4 py-8 text-center text-muted">
                   No maintenance records yet.

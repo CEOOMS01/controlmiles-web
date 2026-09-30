@@ -12,6 +12,8 @@ import { RowActionsMenu } from "./row-actions-menu";
 import { DriverVehicleSelect } from "./driver-vehicle-select";
 import { AddVehicleForm } from "../vehicles/add-vehicle-form";
 import { ArchiveButton } from "../vehicles/vehicle-row-actions";
+import { getBranchScope } from "@/lib/branch-scope";
+import { MemberBranchSelect, VehicleBranchSelect } from "../branch-controls";
 
 // Team+Vehicles unification (explicit user request, 2026-09-23): this
 // used to be two separate pages/nav items -- "who's on the team" and
@@ -34,7 +36,7 @@ export default async function RosterPage() {
     supabase
       .from("organization_members")
       .select(
-        "id, user_id, member_role, is_active, invited_at, joined_at, profiles(first_name, last_name, email)",
+        "id, user_id, member_role, is_active, invited_at, joined_at, branch_id, any_branch, profiles(first_name, last_name, email)",
       )
       .eq("organization_id", orgId)
       .order("is_active", { ascending: false })
@@ -55,7 +57,7 @@ export default async function RosterPage() {
       .order("created_at", { ascending: false }),
     supabase
       .from("vehicles")
-      .select("id, display_id, nickname, make, model, year, plate, assigned_driver_id, ownership")
+      .select("id, display_id, nickname, make, model, year, plate, assigned_driver_id, ownership, branch_id")
       .eq("organization_id", orgId)
       .eq("is_archived", false)
       .order("created_at", { ascending: false }),
@@ -70,7 +72,14 @@ export default async function RosterPage() {
       .order("created_at", { ascending: false }),
   ]);
 
-  const slots = (allSlots ?? []).filter((s) => !s.claimed_by);
+  // Branch filter (sidebar): drivers of the branch (home or "any"),
+  // everyone who isn't a driver, and that branch's vehicles.
+  const scope = await getBranchScope(orgId);
+  const branchOptions = scope.branches.map((b) => ({ id: b.id, name: b.name }));
+  const branchName = new Map(scope.branches.map((b) => [b.id, b.name]));
+  const shownMembers = (members ?? []).filter((m) => m.member_role !== "driver" || scope.driverIn(m.user_id));
+  const shownVehicles = (vehicles ?? []).filter((v) => scope.vehicleIn(v.id));
+  const slots = scope.current ? [] : (allSlots ?? []).filter((s) => !s.claimed_by);
   const inviteBySlot = latestInviteBySlot((inviteRows ?? []) as InviteRow[]);
   const nowMs = new Date().getTime();
   const displayIdByUserId = new Map(
@@ -91,7 +100,12 @@ export default async function RosterPage() {
   const vehicleByDriverId = new Map(
     (vehicles ?? []).filter((v) => v.assigned_driver_id).map((v) => [v.assigned_driver_id as string, v]),
   );
-  const unassignedVehicles = (vehicles ?? []).filter((v) => !v.assigned_driver_id);
+  const driverNameById = new Map(
+    (members ?? []).map((m) => {
+      const p = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles;
+      return [m.user_id as string, [p?.first_name, p?.last_name].filter(Boolean).join(" ") || "—"];
+    }),
+  );
 
   // Explicit user request, 2026-09-18: only an admin/owner can see the
   // "Make operator" control -- an operator could otherwise see the
@@ -112,7 +126,9 @@ export default async function RosterPage() {
         <p className="text-sm font-semibold tracking-wide text-accent uppercase">
           Team
         </p>
-        <h1 className="mt-1 text-2xl font-semibold">Drivers &amp; vehicles</h1>
+        <h1 className="mt-1 text-2xl font-semibold">
+          Drivers &amp; vehicles{scope.current && <span className="text-muted"> · {scope.current.name}</span>}
+        </h1>
       </div>
 
       <div className="mb-6 grid gap-4 sm:grid-cols-2">
@@ -136,12 +152,13 @@ export default async function RosterPage() {
               <th className="px-4 py-3 font-medium">Email</th>
               <th className="px-4 py-3 font-medium">Role</th>
               <th className="px-4 py-3 font-medium">Vehicle</th>
+              {branchOptions.length > 0 && <th className="px-4 py-3 font-medium">Branch</th>}
               <th className="px-4 py-3 font-medium">Status</th>
               <th className="px-4 py-3" />
             </tr>
           </thead>
           <tbody>
-            {(members ?? []).map((m) => {
+            {shownMembers.map((m) => {
               const p = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles;
               const name = [p?.first_name, p?.last_name].filter(Boolean).join(" ") || "—";
               return (
@@ -163,6 +180,19 @@ export default async function RosterPage() {
                       <span className="text-muted">—</span>
                     )}
                   </td>
+                  {branchOptions.length > 0 && (
+                    <td className="px-4 py-3">
+                      {m.member_role === "driver" ? (
+                        <MemberBranchSelect
+                          userId={m.user_id}
+                          current={m.any_branch ? "any" : (m.branch_id ?? "")}
+                          branches={branchOptions}
+                        />
+                      ) : (
+                        <span className="text-muted">—</span>
+                      )}
+                    </td>
+                  )}
                   <td className="px-4 py-3">
                     <StatusPill active={m.is_active} />
                   </td>
@@ -206,6 +236,7 @@ export default async function RosterPage() {
                   <td className="px-4 py-3 text-muted">{invite?.email ?? "—"}</td>
                   <td className="px-4 py-3 capitalize text-muted">{invite?.role ?? "driver"}</td>
                   <td className="px-4 py-3 text-muted">—</td>
+                  {branchOptions.length > 0 && <td className="px-4 py-3 text-muted">—</td>}
                   <td className="px-4 py-3">
                     <InviteStatusPill invite={invite} />
                   </td>
@@ -222,9 +253,9 @@ export default async function RosterPage() {
                 </tr>
               );
             })}
-            {(members ?? []).length === 0 && slots.length === 0 && (
+            {shownMembers.length === 0 && slots.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-muted">
+                <td colSpan={8} className="px-4 py-8 text-center text-muted">
                   No drivers yet.
                 </td>
               </tr>
@@ -234,7 +265,7 @@ export default async function RosterPage() {
       </div>
 
       <div className="mt-10">
-        <h2 className="mb-3 text-lg font-semibold">Unassigned vehicles</h2>
+        <h2 className="mb-3 text-lg font-semibold">Vehicles</h2>
         <div className="overflow-x-auto rounded-xl border border-border bg-surface">
           <table className="w-full text-sm">
             <thead>
@@ -242,33 +273,54 @@ export default async function RosterPage() {
                 <th className="px-4 py-3 font-medium">ID</th>
                 <th className="px-4 py-3 font-medium">Vehicle</th>
                 <th className="px-4 py-3 font-medium">Plate</th>
+                <th className="px-4 py-3 font-medium">Driver</th>
+                {branchOptions.length > 0 && <th className="px-4 py-3 font-medium">Branch</th>}
                 <th className="px-4 py-3" />
               </tr>
             </thead>
             <tbody>
-              {unassignedVehicles.map((v) => (
+              {shownVehicles.map((v) => (
                 <tr key={v.id} className="border-b border-border last:border-0">
                   <td className="px-4 py-3 font-mono text-xs text-muted">{v.display_id}</td>
                   <td className="px-4 py-3">
                     {[v.year, v.make, v.model].filter(Boolean).join(" ") || "—"}
                     {v.nickname ? ` "${v.nickname}"` : ""}
+                    {v.ownership === "driver_owned" && (
+                      <span className="ml-2 rounded-full bg-accent/15 px-2 py-0.5 text-[11px] font-medium text-accent">
+                        driver-owned
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-muted">{v.plate ?? "—"}</td>
+                  <td className="px-4 py-3 text-muted">
+                    {v.assigned_driver_id ? driverNameById.get(v.assigned_driver_id) ?? "—" : "Unassigned"}
+                  </td>
+                  {branchOptions.length > 0 && (
+                    <td className="px-4 py-3">
+                      <VehicleBranchSelect vehicleId={v.id} current={v.branch_id} branches={branchOptions} />
+                    </td>
+                  )}
                   <td className="px-4 py-3 text-right">
-                    <ArchiveButton vehicleId={v.id} />
+                    {!v.assigned_driver_id && <ArchiveButton vehicleId={v.id} />}
                   </td>
                 </tr>
               ))}
-              {unassignedVehicles.length === 0 && (
+              {shownVehicles.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-4 py-8 text-center text-muted">
-                    {(vehicles ?? []).length === 0 ? "No vehicles yet." : "Every vehicle is assigned to a driver."}
+                  <td colSpan={6} className="px-4 py-8 text-center text-muted">
+                    {scope.current ? `No vehicles in ${scope.current.name} yet.` : "No vehicles yet."}
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
+        {branchOptions.length > 0 && scope.current === null && (
+          <p className="mt-2 text-xs text-muted">
+            {branchName.size} branch{branchName.size === 1 ? "" : "es"}. Pick one in the sidebar to see only its
+            drivers and vehicles.
+          </p>
+        )}
       </div>
     </main>
   );

@@ -15,11 +15,13 @@ export function IndustryTemplateForm({
   current,
   showAll,
   requirePretrip,
+  useShifts,
 }: {
   orgId: string;
   current: FleetProfile;
   showAll: boolean;
   requirePretrip: boolean;
+  useShifts: boolean;
 }) {
   const [state, formAction, pending] = useActionState(setIndustryTemplate, initialState);
   const [optState, optAction, optPending] = useActionState(setModuleOptions, initialState);
@@ -67,7 +69,7 @@ export function IndustryTemplateForm({
 
       {/* key: re-mount with fresh defaults when the profile changes them */}
       <form
-        key={`${showAll}-${requirePretrip}`}
+        key={`${showAll}-${requirePretrip}-${useShifts}`}
         action={optAction}
         className="space-y-3 rounded-xl border border-border bg-surface p-5"
       >
@@ -103,6 +105,24 @@ export function IndustryTemplateForm({
             <span className="block text-sm text-muted">
               Drivers must pass a pre-trip inspection (DVIR) each day before their first trip. Standard for
               trucks, construction and passenger transport; optional for cars and vans.
+            </span>
+          </span>
+        </label>
+        <label className="flex cursor-pointer items-start gap-3">
+          <input
+            type="checkbox"
+            name="use_shift_schedules"
+            defaultChecked={useShifts}
+            disabled={optPending}
+            onChange={(e) => e.currentTarget.form?.requestSubmit()}
+            className="mt-1 h-4 w-4"
+          />
+          <span>
+            <span className="block text-sm font-medium">Use shift schedules</span>
+            <span className="block text-sm text-muted">
+              Schedule drivers&apos; weekly shifts (and classes, for driving schools) on the Shifts page. The app
+              then uses the scheduled vehicle and you see who started late. Off: drivers just use their assigned
+              vehicle.
             </span>
           </span>
         </label>

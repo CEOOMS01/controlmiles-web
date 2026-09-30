@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getBranchScope } from "@/lib/branch-scope";
 import { createClient } from "@/lib/supabase/server";
 import { getAuthedProfile } from "@/lib/supabase/org-context";
 import {
@@ -97,7 +98,10 @@ export default async function IftaPage({
     ]);
 
   const canEdit = me?.member_role === "owner" || me?.member_role === "admin";
-  const vehicles: IftaVehicle[] = (vehicleRows ?? []).map((v) => ({
+  // Branch filter (sidebar, 2026-09-30): the return for this branch's
+  // vehicles (IFTA is filed per fleet -- "All branches" is the filing view).
+  const scope = await getBranchScope(orgId);
+  const vehicles: IftaVehicle[] = (vehicleRows ?? []).filter((v) => scope.vehicleIn(v.id)).map((v) => ({
     id: v.id,
     label: vehicleLabel(v),
     ifta_qualified: v.ifta_qualified,

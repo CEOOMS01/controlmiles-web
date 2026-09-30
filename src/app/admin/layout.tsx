@@ -7,6 +7,8 @@ import { CreateOrgForm } from "./create-org-form";
 import { SignOutButton } from "./sign-out-button";
 import { OrgSwitcher } from "./org-switcher";
 import { moduleVisible, type OptionalModule } from "@/lib/fleet-profiles";
+import { getBranchScope } from "@/lib/branch-scope";
+import { BranchSelector } from "./branch-controls";
 
 export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   const supabase = await createClient();
@@ -64,7 +66,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
       .maybeSingle(),
     supabase
       .from("organizations")
-      .select("id, name, compliance_mode, fleet_type_confirmed_at, industry_template, show_all_modules")
+      .select("id, name, compliance_mode, fleet_type_confirmed_at, industry_template, show_all_modules, use_shift_schedules")
       .eq("id", profile.default_org_id)
       .maybeSingle(),
     supabase
@@ -119,6 +121,10 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
 
   const isOperatorOnly = role === "operator";
   const show = (m: OptionalModule) => moduleVisible(org.industry_template, org.show_all_modules, m);
+  // Shift schedules are optional (2026-09-30): the menu item shows once
+  // the fleet turns them on in Settings.
+  const showShifts = org.use_shift_schedules || org.show_all_modules;
+  const branchScope = await getBranchScope(org.id);
 
   // Onboarding (2026-09-30): the fleet type is chosen after sign-up, not
   // during it -- an owner/admin whose fleet hasn't picked one yet goes
@@ -143,6 +149,10 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
           </p>
         </div>
         <OrgSwitcher currentOrgId={org.id} orgs={eligibleOrgs} />
+        <BranchSelector
+          branches={branchScope.branches.map((b) => ({ id: b.id, name: b.name }))}
+          current={branchScope.current?.id ?? null}
+        />
 
         <nav className="mt-6 space-y-1">
           <AdminNavLink href="/admin">Dashboard</AdminNavLink>
@@ -158,7 +168,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
               of fleet are hidden, never locked -- Settings > "Show all
               modules" brings them back, and the pages stay reachable. */}
           {show("routes") && <AdminNavLink href="/admin/routes">Routes</AdminNavLink>}
-          <AdminNavLink href="/admin/shifts">Shifts</AdminNavLink>
+          {showShifts && <AdminNavLink href="/admin/shifts">Shifts</AdminNavLink>}
           {show("geofences") && <AdminNavLink href="/admin/geofences">Geofences</AdminNavLink>}
           <AdminNavLink href="/admin/import">Import</AdminNavLink>
           {/* Everything below here is outside an Operator's real RLS/RPC

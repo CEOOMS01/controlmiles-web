@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getBranchScope } from "@/lib/branch-scope";
 import { getAuthedProfile } from "@/lib/supabase/org-context";
 import { daysAgoIso } from "@/lib/dates";
 import { FleetMap, type FleetVehicle } from "./fleet-map";
@@ -105,11 +106,14 @@ export default async function AdminDashboardPage() {
     fleetDriverIds(supabase, orgId),
   ]);
 
+  // Branch filter (sidebar, 2026-09-30).
+  const scope = await getBranchScope(orgId);
+
   const pendingCount = (pendingInviteCount ?? 0) + (unclaimedSlotCount ?? 0);
   const reviewCount = (failedInspectionCount ?? 0) + (incidentCount ?? 0);
   const safetyCount = safetyEventCount ?? 0;
 
-  const vehicles: FleetVehicle[] = (mapVehicles ?? []).map((v) => ({
+  const vehicles: FleetVehicle[] = (mapVehicles ?? []).filter((v) => scope.vehicleIn(v.id)).map((v) => ({
     id: v.id,
     displayId: v.display_id,
     label: v.nickname || v.display_id || "Vehicle",
@@ -140,7 +144,7 @@ export default async function AdminDashboardPage() {
   // not "minutes late vs. schedule") is the honest metric available.
   const seriesMap = new Map<string, DriverStartSeries>();
   for (const row of sessionRows ?? []) {
-    if (!row.start_time) continue;
+    if (!row.start_time || !scope.driverIn(row.user_id)) continue;
     if (!seriesMap.has(row.user_id)) {
       const p = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
       seriesMap.set(row.user_id, {
@@ -160,12 +164,14 @@ export default async function AdminDashboardPage() {
         <p className="text-sm font-semibold tracking-wide text-accent uppercase">
           {org?.name}
         </p>
-        <h1 className="mt-1 text-2xl font-semibold">Fleet dashboard</h1>
+        <h1 className="mt-1 text-2xl font-semibold">
+          Fleet dashboard{scope.current && <span className="text-muted"> · {scope.current.name}</span>}
+        </h1>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-4">
-        <StatCard label="Active drivers" value={memberCount ?? 0} />
-        <StatCard label="Vehicles" value={vehicleCount ?? 0} />
+        <StatCard label={scope.current ? "Drivers in branch" : "Active drivers"} value={scope.driverIds?.size ?? memberCount ?? 0} />
+        <StatCard label="Vehicles" value={scope.vehicleIds?.size ?? vehicleCount ?? 0} />
         <StatCard label="Pending drivers" value={pendingCount} />
         <StatCard label="Needs review" value={reviewCount} accent={reviewCount > 0} />
         <StatCard label="Safety events (30d)" value={safetyCount} accent={safetyCount > 0} />

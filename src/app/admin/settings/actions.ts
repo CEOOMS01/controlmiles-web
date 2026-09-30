@@ -235,6 +235,7 @@ export async function setModuleOptions(
     .update({
       show_all_modules: formData.get("show_all_modules") === "on",
       require_pretrip_inspection: formData.get("require_pretrip_inspection") === "on",
+      use_shift_schedules: formData.get("use_shift_schedules") === "on",
     })
     .eq("id", orgId);
   if (error) return { error: AppError.from(error).display(), success: false };

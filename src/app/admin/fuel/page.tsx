@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getBranchScope } from "@/lib/branch-scope";
 import { getAuthedProfile } from "@/lib/supabase/org-context";
 import { driverLabel, fleetDriverIds } from "@/lib/driver-label";
 import {
@@ -137,9 +138,11 @@ export default async function FuelPage({
     ]);
 
   const canEdit = me?.member_role === "owner" || me?.member_role === "admin";
-  const vehicles = (vehicleRows ?? []) as Vehicle[];
+  // Branch filter (sidebar, 2026-09-30): only this branch's vehicles.
+  const scope = await getBranchScope(orgId);
+  const vehicles = ((vehicleRows ?? []) as Vehicle[]).filter((v) => scope.vehicleIn(v.id));
   const vehicleById = new Map(vehicles.map((v) => [v.id, v]));
-  const purchases = purchaseRows ?? [];
+  const purchases = (purchaseRows ?? []).filter((p) => scope.vehicleIn(p.vehicle_id));
   const purchaseById = new Map(purchases.map((p) => [p.id, p]));
 
   // Receipt photos (the storage policy lets an owner/admin read the
@@ -161,7 +164,7 @@ export default async function FuelPage({
   // Per vehicle: miles from trips, gallons + spend from receipts.
   const milesByVehicle = new Map<string, number>();
   for (const s of sessionRows ?? []) {
-    if (!s.vehicle_id) continue;
+    if (!s.vehicle_id || !scope.vehicleIn(s.vehicle_id)) continue;
     milesByVehicle.set(s.vehicle_id, (milesByVehicle.get(s.vehicle_id) ?? 0) + Number(s.total_miles ?? 0));
   }
   const rows = vehicles
@@ -207,7 +210,7 @@ export default async function FuelPage({
       ? priced.reduce((a, p) => a + Number(p.price_per_gallon_usd), 0) / priced.length
       : FALLBACK_PRICE_PER_GALLON;
 
-  const idleEvents = (idleRows ?? []) as IdleEvent[];
+  const idleEvents = ((idleRows ?? []) as IdleEvent[]).filter((e) => scope.vehicleIn(e.vehicle_id));
   const idleFleet = emptyTotals();
   const idleByVehicle = new Map<string, IdleTotals>();
   const idleByDriver = new Map<string, IdleTotals>();
@@ -224,6 +227,7 @@ export default async function FuelPage({
   const tripMinByVehicle = new Map<string, number>();
   const tripMinByDriver = new Map<string, number>();
   for (const s of sessionRows ?? []) {
+    if (!scope.vehicleIn(s.vehicle_id)) continue;
     const m = Number(s.total_duration_seconds ?? 0) / 60;
     if (s.vehicle_id) tripMinByVehicle.set(s.vehicle_id, (tripMinByVehicle.get(s.vehicle_id) ?? 0) + m);
     if (s.user_id) tripMinByDriver.set(s.user_id, (tripMinByDriver.get(s.user_id) ?? 0) + m);
@@ -245,7 +249,7 @@ export default async function FuelPage({
     .sort((a, b) => b.minutes - a.minutes)
     .slice(0, 10);
 
-  const anomalies = anomalyRows ?? [];
+  const anomalies = (anomalyRows ?? []).filter((a) => scope.vehicleIn(a.vehicle_id));
   const open = anomalies.filter((a) => a.status === "open");
   const reviewed = anomalies.filter((a) => a.status !== "open");
   const rank: Record<string, number> = { high: 0, medium: 1, low: 2 };
@@ -292,7 +296,9 @@ export default async function FuelPage({
       <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-sm font-semibold tracking-wide text-accent uppercase">Fuel</p>
-          <h1 className="mt-1 text-2xl font-semibold">Consumption, idling &amp; alerts</h1>
+          <h1 className="mt-1 text-2xl font-semibold">
+            Consumption, idling &amp; alerts{scope.current && <span className="text-muted"> · {scope.current.name}</span>}
+          </h1>
           <p className="mt-2 max-w-2xl text-sm text-muted">
             Every receipt a driver logs is checked against the vehicle&apos;s GPS trips and its usual
             consumption. Admins get a daily email when something new looks off.

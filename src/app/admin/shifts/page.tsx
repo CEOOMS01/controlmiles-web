@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getBranchScope } from "@/lib/branch-scope";
 import { getAuthedProfile } from "@/lib/supabase/org-context";
 import { GrowthUpsell } from "../growth-upsell";
 import { ShiftForm } from "./shift-form";
@@ -271,7 +272,10 @@ export default async function ShiftsPage({
     string,
     { driverName: string; rows: NonNullable<typeof shifts>[number][] }
   >();
+  // Branch filter (sidebar, 2026-09-30): this branch's drivers.
+  const scope = await getBranchScope(orgId);
   for (const s of shifts ?? []) {
+    if (!scope.driverIn(s.driver_id)) continue;
     const p = Array.isArray(s.profiles) ? s.profiles[0] : s.profiles;
     const driverName = driverLabel(p, fleetIds.get(s.driver_id), "Driver");
     if (!byDriver.has(s.driver_id)) byDriver.set(s.driver_id, { driverName, rows: [] });
@@ -373,6 +377,7 @@ export default async function ShiftsPage({
               const vehicleNames = new Map(vehicleOptions.map((v) => [v.id, v.label]));
               const byClassDriver = new Map<string, ClassBlock[]>();
               for (const b of blocks) {
+                if (!scope.driverIn(b.driver_id)) continue;
                 if (!byClassDriver.has(b.driver_id)) byClassDriver.set(b.driver_id, []);
                 byClassDriver.get(b.driver_id)!.push(b);
               }
