@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { createOrganization, type CreateOrgState } from "./actions";
+import { FleetTypePicker } from "@/components/fleet-type-picker";
 
 const initialState: CreateOrgState = { error: null };
 
@@ -45,6 +46,7 @@ export function CreateOrgForm() {
             </p>
           )}
 
+          <FleetTypePicker />
           <button
             type="submit"
             disabled={pending}

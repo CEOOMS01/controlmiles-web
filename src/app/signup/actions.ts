@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { AppError } from "@/lib/errors";
 import { LEGAL_TERMS_VERSION } from "@/lib/legal-version";
+import { fleetTypeFrom } from "@/components/fleet-type-picker";
 
 export async function signUp(
   _prevState: { error: string | null },
@@ -51,7 +52,7 @@ export async function signUp(
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: { data: { pending_org_name: orgName } },
+    options: { data: { pending_org_name: orgName, pending_industry_template: fleetTypeFrom(formData) } },
   });
 
   if (error) {

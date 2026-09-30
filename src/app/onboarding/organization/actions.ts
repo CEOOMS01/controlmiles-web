@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { AppError } from "@/lib/errors";
+import { fleetTypeFrom } from "@/components/fleet-type-picker";
 
 export type CreateOrgState = { error: string | null };
 
@@ -27,7 +28,10 @@ export async function createOrganization(
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.rpc("create_organization", { p_name: orgName });
+  const { error } = await supabase.rpc("create_organization", {
+    p_name: orgName,
+    p_industry_template: fleetTypeFrom(formData),
+  });
 
   if (error) {
     return { error: AppError.from(error).display() };
