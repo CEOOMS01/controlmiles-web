@@ -111,9 +111,11 @@ export async function updateSession(request: NextRequest) {
     },
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // getClaims(): verifies the session JWT locally (ES256 signing key) and
+  // still refreshes an expired session through the cookie handlers above --
+  // no Supabase Auth round trip on every request (see org-context.ts).
+  const { data: claimsData } = await supabase.auth.getClaims();
+  const user = claimsData?.claims?.sub ? claimsData.claims : null;
 
   const isProtectedRoute =
     request.nextUrl.pathname.startsWith("/portal/generate") ||

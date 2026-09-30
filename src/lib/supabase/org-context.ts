@@ -16,15 +16,21 @@ import { createClient } from "./server";
 // documented pattern for sharing data between a layout and its page
 // without prop-drilling. Calling this from both layout.tsx and a page.tsx
 // during the same request now hits Supabase once, not twice.
+// getClaims() instead of getUser() (2026-09-29, "Fleet tarda mucho en
+// cargar"): this project signs sessions with an asymmetric key (ES256), so
+// the JWT is verified locally against the cached public key -- no round
+// trip to Supabase Auth on every page (the web ran in iad1, Supabase is in
+// us-west-2: each call crossed the country). Same guarantee: a forged or
+// expired token is rejected; RLS still guards every query.
 export const getAuthedProfile = cache(async () => {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data } = await supabase.auth.getClaims();
+  const claims = data?.claims;
 
-  if (!user) {
+  if (!claims?.sub) {
     return { user: null, profile: null };
   }
+  const user = { id: claims.sub as string, email: (claims.email as string | undefined) ?? null };
 
   const { data: profile } = await supabase
     .from("profiles")
