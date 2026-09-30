@@ -3,6 +3,7 @@ import { getAuthedProfile } from "@/lib/supabase/org-context";
 import { RenameOrgForm } from "./rename-org-form";
 import { VehicleAssignmentModeForm } from "./vehicle-assignment-mode-form";
 import { OwnerOperatorForm } from "./owner-operator-form";
+import { isFleetProfile, moduleVisible } from "@/lib/fleet-profiles";
 import { ScheduleSettingsForm } from "./schedule-settings-form";
 import { IndustryTemplateForm } from "./industry-template-form";
 import { DeleteOrgForm } from "./delete-org-form";
@@ -20,7 +21,7 @@ export default async function SettingsPage() {
     supabase
       .from("organizations")
       .select(
-        "name, compliance_mode, created_at, vehicle_assignment_mode, subscription_tier, subscription_status, timezone, shift_start_window_minutes, industry_template, allow_driver_owned_vehicles",
+        "name, compliance_mode, created_at, vehicle_assignment_mode, subscription_tier, subscription_status, timezone, shift_start_window_minutes, industry_template, allow_driver_owned_vehicles, show_all_modules, require_pretrip_inspection",
       )
       .eq("id", orgId)
       .maybeSingle(),
@@ -69,16 +70,20 @@ export default async function SettingsPage() {
           <div className="mb-4">
             <IndustryTemplateForm
               orgId={orgId}
-              current={org.industry_template === "driving_school" ? "driving_school" : "general"}
+              current={isFleetProfile(org.industry_template) ? org.industry_template : "general"}
+              showAll={org.show_all_modules === true}
+              requirePretrip={org.require_pretrip_inspection !== false}
             />
           </div>
           <VehicleAssignmentModeForm
             orgId={orgId}
             currentMode={org.vehicle_assignment_mode === "open" ? "open" : "fixed"}
           />
-          <div className="mt-4">
-            <OwnerOperatorForm orgId={orgId} allowed={org.allow_driver_owned_vehicles === true} />
-          </div>
+          {moduleVisible(org.industry_template, org.show_all_modules, "owner_operators") && (
+            <div className="mt-4">
+              <OwnerOperatorForm orgId={orgId} allowed={org.allow_driver_owned_vehicles === true} />
+            </div>
+          )}
           <div className="mt-4">
             <ScheduleSettingsForm
               orgId={orgId}

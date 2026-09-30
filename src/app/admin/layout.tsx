@@ -6,6 +6,7 @@ import { getAuthedProfile } from "@/lib/supabase/org-context";
 import { CreateOrgForm } from "./create-org-form";
 import { SignOutButton } from "./sign-out-button";
 import { OrgSwitcher } from "./org-switcher";
+import { moduleVisible, type OptionalModule } from "@/lib/fleet-profiles";
 
 export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   const supabase = await createClient();
@@ -63,7 +64,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
       .maybeSingle(),
     supabase
       .from("organizations")
-      .select("id, name, compliance_mode, fleet_type_confirmed_at")
+      .select("id, name, compliance_mode, fleet_type_confirmed_at, industry_template, show_all_modules")
       .eq("id", profile.default_org_id)
       .maybeSingle(),
     supabase
@@ -117,6 +118,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   }
 
   const isOperatorOnly = role === "operator";
+  const show = (m: OptionalModule) => moduleVisible(org.industry_template, org.show_all_modules, m);
 
   // Onboarding (2026-09-30): the fleet type is chosen after sign-up, not
   // during it -- an owner/admin whose fleet hasn't picked one yet goes
@@ -152,9 +154,12 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
               (who's driving what was always one question asked from two
               directions) -- no separate "Vehicles" link anymore. */}
           <AdminNavLink href="/admin/roster">Team</AdminNavLink>
-          <AdminNavLink href="/admin/routes">Routes</AdminNavLink>
+          {/* Fleet profile (2026-09-30): modules that don't fit this kind
+              of fleet are hidden, never locked -- Settings > "Show all
+              modules" brings them back, and the pages stay reachable. */}
+          {show("routes") && <AdminNavLink href="/admin/routes">Routes</AdminNavLink>}
           <AdminNavLink href="/admin/shifts">Shifts</AdminNavLink>
-          <AdminNavLink href="/admin/geofences">Geofences</AdminNavLink>
+          {show("geofences") && <AdminNavLink href="/admin/geofences">Geofences</AdminNavLink>}
           <AdminNavLink href="/admin/import">Import</AdminNavLink>
           {/* Everything below here is outside an Operator's real RLS/RPC
               scope (IFTA, Reviews, Safety, Activity, Maintenance, Export,
@@ -174,7 +179,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
                   )}
                 </span>
               </AdminNavLink>
-              <AdminNavLink href="/admin/ifta">IFTA</AdminNavLink>
+              {show("ifta") && <AdminNavLink href="/admin/ifta">IFTA</AdminNavLink>}
               <AdminNavLink href="/admin/reviews">Reviews</AdminNavLink>
               <AdminNavLink href="/admin/safety">Safety</AdminNavLink>
               <AdminNavLink href="/admin/activity">Activity</AdminNavLink>

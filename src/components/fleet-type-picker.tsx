@@ -1,45 +1,36 @@
-// "What kind of fleet is it?" -- asked when a fleet is created (2026-09-29,
-// industry templates: ask the business type up front like HubSpot/Jobber,
-// then switch on only what fits). Submits `industry_template`; changeable
-// later in Settings. Default General, so skipping it is harmless.
+// "What kind of fleet is it?" -- asked in onboarding, after sign-up
+// (2026-09-30: one sign-up for everyone; the profile picks which modules
+// show). Submits `industry_template`; changeable later in Settings.
 
-export const FLEET_TYPES = [
-  {
-    value: "general",
-    title: "General fleet",
-    body: "Delivery, service, sales or a mixed fleet.",
-  },
-  {
-    value: "driving_school",
-    title: "Driving school",
-    body: "Adds hourly classes per instructor and vehicle.",
-  },
-] as const;
+import { FLEET_PROFILES, isFleetProfile, type FleetProfile } from "@/lib/fleet-profiles";
 
-export function FleetTypePicker() {
+export function FleetTypePicker({ defaultValue = "delivery" }: { defaultValue?: FleetProfile }) {
   return (
     <fieldset>
       <legend className="mb-1.5 block text-sm font-medium">What kind of fleet is it?</legend>
       <div className="grid gap-2 sm:grid-cols-2">
-        {FLEET_TYPES.map((t, i) => (
+        {FLEET_PROFILES.map((t) => (
           <label
             key={t.value}
             className="cursor-pointer rounded-lg border border-border p-3 text-sm transition hover:border-accent/50 has-[:checked]:border-accent has-[:checked]:bg-accent/10"
           >
             <span className="flex items-center gap-2 font-semibold">
-              <input type="radio" name="industry_template" value={t.value} defaultChecked={i === 0} />
+              <input type="radio" name="industry_template" value={t.value} defaultChecked={t.value === defaultValue} />
               {t.title}
             </span>
             <span className="mt-0.5 block text-xs text-muted">{t.body}</span>
           </label>
         ))}
       </div>
-      <p className="mt-1.5 text-xs text-muted">You can change it anytime in Settings.</p>
+      <p className="mt-1.5 text-xs text-muted">
+        It only decides which tools show up first. You can change it, or show every module, anytime in Settings.
+      </p>
     </fieldset>
   );
 }
 
-/** Server-side: the submitted value, or 'general' for anything else. */
-export function fleetTypeFrom(formData: FormData): "general" | "driving_school" {
-  return formData.get("industry_template") === "driving_school" ? "driving_school" : "general";
+/** Server-side: the submitted profile, or 'general' for anything else. */
+export function fleetTypeFrom(formData: FormData): FleetProfile {
+  const v = formData.get("industry_template");
+  return isFleetProfile(v) ? v : "general";
 }
