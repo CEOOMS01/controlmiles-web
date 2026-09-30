@@ -8,26 +8,13 @@
 import Image from "next/image";
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { AuthBrandIntro } from "@/components/auth-brand-intro";
 
 const POINTS = [
   "Live fleet map, geofences and DVIR inspections",
   "Every trip GPS-logged and locked the moment it's saved",
   "IFTA state mileage and one-click fleet exports",
 ];
-
-function RouteCurve({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 600 200" fill="none" className={className} aria-hidden="true">
-      <path
-        d="M-20 170 C 120 40, 220 210, 360 110 S 540 60, 620 90"
-        stroke="currentColor"
-        strokeWidth="4"
-        strokeLinecap="round"
-      />
-      <circle cx="360" cy="110" r="8" fill="currentColor" />
-    </svg>
-  );
-}
 
 export function AuthShell({
   title,
@@ -41,11 +28,7 @@ export function AuthShell({
   return (
     <main className="grid min-h-screen w-full flex-1 lg:grid-cols-[1.05fr_1fr]">
       <aside className="relative hidden overflow-hidden bg-gradient-to-br from-[#0f2a44] to-[#1f5f8b] p-12 text-white lg:flex lg:flex-col lg:justify-between">
-        <RouteCurve className="pointer-events-none absolute top-24 left-0 w-full text-white/10" />
-        <div className="relative flex items-center gap-3">
-          <Image src="/logo_controlmiles.png" alt="" width={40} height={40} className="rounded-lg" priority />
-          <span className="text-lg font-semibold tracking-tight">ControlMiles</span>
-        </div>
+        <AuthBrandIntro />
         <div className="relative max-w-md">
           <h2 className="text-4xl leading-tight font-semibold tracking-tight">
             Every mile,

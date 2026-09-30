@@ -1,0 +1,143 @@
+/* Sign-in / sign-up brand panel intro (2026-09-29, user request): the curve
+   behind "Every mile, on the record." becomes a road with the landing hero's
+   design (landing.css: surface + dashed center line + lane that lights up as
+   the car passes); the car drives it ONCE and, arriving, hands off to the
+   logo, which pops into its usual spot at the top-left.
+   Best practices followed: pure CSS motion path (offset-path, no animation
+   library, same as the landing), short (~3 s), runs a single time (plain
+   CSS, no loop; AuthBrandIntro skips it on later visits in the same
+   session via sessionStorage), and prefers-reduced-motion shows the final
+   state without movement. Timeline: 3.2 s total. */
+
+.auth-road-surface {
+  opacity: 0;
+  animation: auth-road-fade 0.5s ease-out 0.1s forwards;
+}
+
+@keyframes auth-road-fade {
+  to {
+    opacity: 1;
+  }
+}
+
+.auth-road-lit {
+  stroke-dasharray: 1200;
+  stroke-dashoffset: 1200;
+  animation: auth-road-lit 2.2s cubic-bezier(0.4, 0, 0.2, 1) 0.45s forwards;
+}
+
+@keyframes auth-road-lit {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.auth-road-car {
+  offset-path: path("M -10 190 C 90 190, 110 70, 210 70 S 340 190, 420 140 S 520 50, 610 80");
+  offset-rotate: auto;
+  offset-distance: 0%;
+  transform-box: fill-box;
+  transform-origin: center;
+  opacity: 0;
+  filter: drop-shadow(0 0 6px rgba(156, 201, 234, 0.6));
+  animation: auth-road-car 2.75s cubic-bezier(0.4, 0, 0.2, 1) 0.45s forwards;
+}
+
+@keyframes auth-road-car {
+  0% {
+    offset-distance: 0%;
+    opacity: 0;
+    transform: scale(1);
+  }
+  4% {
+    opacity: 1;
+  }
+  80% {
+    offset-distance: 100%;
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    offset-distance: 100%;
+    opacity: 0;
+    transform: scale(0.2);
+  }
+}
+
+.auth-road-car-bob {
+  animation: auth-road-bob 0.5s ease-in-out 6;
+}
+
+@keyframes auth-road-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-1.5px);
+  }
+}
+
+/* The logo arrives when the car does: same overshoot + confirmation glow as
+   the landing's pin. `backwards` keeps it hidden until its turn. */
+.auth-brand-logo {
+  animation: auth-logo-pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 2.75s backwards;
+}
+
+@keyframes auth-logo-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.auth-brand-glow {
+  opacity: 0;
+  animation: auth-logo-glow 0.9s ease-out 2.9s forwards;
+}
+
+@keyframes auth-logo-glow {
+  0% {
+    opacity: 0.6;
+    transform: scale(0.8);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.9);
+  }
+}
+
+/* Already played this session, or the user prefers less motion: the final
+   state, no movement. */
+[data-auth-intro="done"] .auth-road-surface,
+[data-auth-intro="done"] .auth-road-lit,
+[data-auth-intro="done"] .auth-brand-logo {
+  animation: none;
+  opacity: 1;
+  stroke-dashoffset: 0;
+}
+[data-auth-intro="done"] .auth-road-car,
+[data-auth-intro="done"] .auth-brand-glow {
+  animation: none;
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-road-surface,
+  .auth-road-lit,
+  .auth-brand-logo {
+    animation: none;
+    opacity: 1;
+    stroke-dashoffset: 0;
+  }
+  .auth-road-car,
+  .auth-road-car-bob,
+  .auth-brand-glow {
+    animation: none;
+    opacity: 0;
+  }
+}
