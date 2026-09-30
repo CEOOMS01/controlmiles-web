@@ -52,6 +52,8 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
     // so the sidebar can offer a switcher instead of being stuck on
     // whichever org happened to be active last.
     { data: eligibleMemberships },
+    // Open fuel alerts, for the badge on "Fuel" (2026-09-30).
+    { count: openFuelAlerts },
   ] = await Promise.all([
     supabase
       .from("organization_members")
@@ -70,6 +72,11 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
       .eq("user_id", user.id)
       .in("member_role", ["owner", "admin", "operator"])
       .eq("is_active", true),
+    supabase
+      .from("fuel_anomalies")
+      .select("id", { count: "exact", head: true })
+      .eq("organization_id", profile.default_org_id)
+      .eq("status", "open"),
   ]);
 
   const eligibleOrgs = (eligibleMemberships ?? [])
@@ -150,6 +157,16 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
               empty because RLS filtered everything out from under it. */}
           {!isOperatorOnly && (
             <>
+              <AdminNavLink href="/admin/fuel">
+                <span className="flex items-center justify-between">
+                  Fuel
+                  {(openFuelAlerts ?? 0) > 0 && (
+                    <span className="rounded-full bg-danger px-1.5 py-0.5 text-[10px] leading-none font-bold text-white">
+                      {openFuelAlerts}
+                    </span>
+                  )}
+                </span>
+              </AdminNavLink>
               <AdminNavLink href="/admin/ifta">IFTA</AdminNavLink>
               <AdminNavLink href="/admin/reviews">Reviews</AdminNavLink>
               <AdminNavLink href="/admin/safety">Safety</AdminNavLink>
@@ -179,7 +196,9 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
         </div>
       </aside>
 
-      <div className="flex-1">{children}</div>
+      {/* min-w-0: without it a wide table (IFTA, Fuel) stretches the whole
+          page sideways instead of scrolling inside its own box. */}
+      <div className="min-w-0 flex-1">{children}</div>
     </div>
   );
 }

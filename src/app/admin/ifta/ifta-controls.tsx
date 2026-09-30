@@ -88,10 +88,12 @@ export function VehicleIftaRow({ vehicle, canEdit }: { vehicle: IftaVehicle; can
 export function PurchaseIftaRow({
   purchase,
   vehicleLabel,
+  photoUrl,
   canEdit,
 }: {
   purchase: IftaPurchase;
   vehicleLabel: string;
+  photoUrl?: string;
   canEdit: boolean;
 }) {
   const [state, setState] = useState(purchase.state_code ?? "");
@@ -161,6 +163,13 @@ export function PurchaseIftaRow({
           onChange={(e) => save({ state, fuel, taxPaid: e.target.checked })}
           className="h-4 w-4"
         />
+      </td>
+      <td className="px-4 py-2.5 text-right">
+        {photoUrl && (
+          <a href={photoUrl} target="_blank" rel="noreferrer" className="text-xs font-semibold text-accent hover:underline">
+            Receipt
+          </a>
+        )}
       </td>
     </tr>
   );

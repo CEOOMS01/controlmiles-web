@@ -78,7 +78,7 @@ export default async function IftaPage({
       }),
       supabase
         .from("fuel_purchases")
-        .select("id, vehicle_id, purchase_date, state_code, gallons, fuel_type, tax_paid, vendor_name, total_cost_usd")
+        .select("id, vehicle_id, purchase_date, state_code, gallons, fuel_type, tax_paid, vendor_name, total_cost_usd, receipt_path")
         .eq("organization_id", orgId)
         .gte("purchase_date", start)
         .lte("purchase_date", end)
@@ -104,7 +104,16 @@ export default async function IftaPage({
     ifta_fuel_type: v.ifta_fuel_type as IftaFuel,
   }));
   const labelById = new Map(vehicles.map((v) => [v.id, v.label]));
-  const purchases = (purchaseRows ?? []) as IftaPurchase[];
+  const purchases = (purchaseRows ?? []) as (IftaPurchase & { receipt_path: string | null })[];
+
+  // Receipt photos -- readable by an owner/admin through the fleet
+  // receipts storage policy (20260930120000_fuel_anomalies.sql).
+  const photoByPath = new Map<string, string>();
+  const receiptPaths = purchases.map((p) => p.receipt_path).filter((p): p is string => !!p);
+  if (canEdit && receiptPaths.length > 0) {
+    const { data: signed } = await supabase.storage.from("fuel_receipts").createSignedUrls(receiptPaths, 3600);
+    for (const s of signed ?? []) if (s.path && s.signedUrl) photoByPath.set(s.path, s.signedUrl);
+  }
 
   const ret = computeIftaReturn({
     quarter,
@@ -306,6 +315,7 @@ export default async function IftaPage({
                       <th className="px-4 py-3 font-medium">State</th>
                       <th className="px-4 py-3 font-medium">Fuel</th>
                       <th className="px-4 py-3 font-medium">Tax paid</th>
+                      <th className="px-4 py-3 font-medium" />
                     </tr>
                   </thead>
                   <tbody>
@@ -314,6 +324,7 @@ export default async function IftaPage({
                         key={p.id}
                         purchase={p}
                         vehicleLabel={labelById.get(p.vehicle_id) ?? "—"}
+                        photoUrl={p.receipt_path ? photoByPath.get(p.receipt_path) : undefined}
                         canEdit={canEdit}
                       />
                     ))}
