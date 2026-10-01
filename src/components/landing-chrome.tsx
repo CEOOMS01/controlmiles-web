@@ -104,6 +104,9 @@ export async function LandingFooter() {
           <Link href="/terms" className="transition hover:text-[var(--lg-ink)]">
             {t("terms")}
           </Link>
+          <Link href="/terms-of-use" className="transition hover:text-[var(--lg-ink)]">
+            {t("termsOfUse")}
+          </Link>
           <a href="mailto:support@controlmiles.com" className="transition hover:text-[var(--lg-ink)]">
             support@controlmiles.com
           </a>
