@@ -12,7 +12,11 @@ export function AgeTermsCheckbox({ name = "accept_legal" }: { name?: string }) {
         <Link href="/terms" target="_blank" className="text-accent hover:underline">
           Terms of Service
         </Link>{" "}
-        and{" "}
+        (for organizations, also the{" "}
+        <Link href="/terms/fleet" target="_blank" className="text-accent hover:underline">
+          Fleet Terms
+        </Link>
+        ) and{" "}
         <Link href="/privacy" target="_blank" className="text-accent hover:underline">
           Privacy Policy
         </Link>

@@ -1,5 +1,6 @@
 // Olympus Mont Systems LLC - ControlMiles
-// src/app/[locale]/privacy/page.tsx -- Privacy Policy (all users).
+// src/app/[locale]/privacy/fleet/page.tsx -- Fleet Privacy Policy, 2026-10-01;
+// before this it only existed in the app.
 // Text lives in src/lib/legal-texts.ts, word for word the app's
 // lib/legal/legal_documents.dart.
 
@@ -7,15 +8,15 @@ import type { Metadata } from "next";
 import { Fraunces, Public_Sans, IBM_Plex_Mono } from "next/font/google";
 import { LandingNav, LandingFooter } from "@/components/landing-chrome";
 import { LegalDocument } from "@/components/legal-document";
-import { PRIVACY_POLICY, LEGAL_LAST_UPDATED } from "@/lib/legal-texts";
-import "../landing.css";
+import { FLEET_PRIVACY_POLICY, LEGAL_LAST_UPDATED } from "@/lib/legal-texts";
+import "../../landing.css";
 
 const display = Fraunces({ subsets: ["latin"], weight: ["500", "600", "700"], variable: "--font-display" });
 const plexSans = Public_Sans({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-plex-sans" });
 const plexMono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-mono-plex" });
 
 export const metadata: Metadata = {
-  title: "Privacy Policy — ControlMiles",
+  title: "Fleet Privacy Policy — ControlMiles",
 };
 
 export default function Page() {
@@ -26,10 +27,10 @@ export default function Page() {
     >
       <LandingNav />
       <LegalDocument
-        title="Privacy Policy"
+        title="Fleet Privacy Policy"
         lastUpdated={LEGAL_LAST_UPDATED}
-        body={PRIVACY_POLICY}
-        related={[{ href: "/privacy/fleet", label: "Fleet Privacy Policy" }, { href: "/terms", label: "Terms of Service" }]}
+        body={FLEET_PRIVACY_POLICY}
+        related={[{ href: "/privacy", label: "Privacy Policy" }, { href: "/terms/fleet", label: "Fleet Terms of Service" }]}
       />
       <LandingFooter />
     </main>

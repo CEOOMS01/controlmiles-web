@@ -14,6 +14,8 @@
 // changed and why (assembled against public competitor ToS/Privacy
 // documents and general legal-drafting practice, not attorney-reviewed).
 
+import Link from "next/link";
+
 const SECTION_HEADER = /^\d+\.\s+[A-Z]/;
 
 function parseSections(body: string): { heading: string; paragraphs: string[] }[] {
@@ -37,10 +39,12 @@ export function LegalDocument({
   title,
   lastUpdated,
   body,
+  related = [],
 }: {
   title: string;
   lastUpdated: string;
   body: string;
+  related?: { href: string; label: string }[];
 }) {
   const sections = parseSections(body);
 
@@ -49,6 +53,19 @@ export function LegalDocument({
       <h1 className="display text-3xl font-bold tracking-wide sm:text-4xl">{title}</h1>
       <p className="mt-3 text-sm text-[var(--lg-ink-dim)]">Last updated: {lastUpdated}</p>
       <p className="text-sm text-[var(--lg-ink-dim)]">© 2026 ControlMiles. All rights reserved.</p>
+      {related.length > 0 && (
+        <p className="mt-3 text-sm text-[var(--lg-ink-dim)]">
+          See also:{" "}
+          {related.map((r, i) => (
+            <span key={r.href}>
+              {i > 0 && " · "}
+              <Link href={r.href} className="underline hover:text-[var(--lg-ink)]">
+                {r.label}
+              </Link>
+            </span>
+          ))}
+        </p>
+      )}
 
       <div className="mt-10 space-y-8">
         {sections.map((section) => (
@@ -58,7 +75,8 @@ export function LegalDocument({
             </h2>
             <div className="mt-2 space-y-3 text-sm leading-relaxed text-[var(--lg-ink-dim)]">
               {section.paragraphs.map((p, i) => (
-                <p key={i}>{p}</p>
+                // pre-line: one-item-per-line lists keep their breaks.
+                <p key={i} className="whitespace-pre-line">{p}</p>
               ))}
             </div>
           </section>

@@ -9,6 +9,7 @@ import { OrgSwitcher } from "./org-switcher";
 import { moduleVisible, type OptionalModule } from "@/lib/fleet-profiles";
 import { getBranchScope } from "@/lib/branch-scope";
 import { BranchSelector } from "./branch-controls";
+import { LEGAL_TERMS_VERSION } from "@/lib/legal-version";
 
 export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   const supabase = await createClient();
@@ -22,7 +23,9 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
 
   // 18+ / Terms acceptance must be on record before the dashboard
   // (2026-09-29) -- covers Google sign-ups and pre-existing accounts.
-  if (!profile?.legal_accepted_at) {
+  // Since 2026-10-01 it must be the CURRENT version: a material update
+  // (bump LEGAL_TERMS_VERSION) asks admins to accept again, once.
+  if (!profile?.legal_accepted_at || profile.legal_terms_version !== LEGAL_TERMS_VERSION) {
     redirect("/onboarding/terms");
   }
 
