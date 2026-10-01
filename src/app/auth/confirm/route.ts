@@ -40,7 +40,11 @@ export async function GET(request: NextRequest) {
   const tokenHash = searchParams.get("token_hash");
   const type = searchParams.get("type") as EmailOtpType | null;
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/reset-password/new";
+  // Same-site paths only: never redirect to another host ("//evil.com").
+  const rawNext = searchParams.get("next") ?? "/reset-password/new";
+  const next = rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/";
+  // Sign-up confirmation (type email/signup) vs password recovery.
+  const isSignupConfirm = type === "email" || type === "signup";
 
   if (tokenHash && type) {
     const supabase = await createClient();
@@ -48,7 +52,7 @@ export async function GET(request: NextRequest) {
     if (!error) {
       redirect(next);
     }
-    redirect("/forgot-password?expired=1");
+    redirect(isSignupConfirm ? "/auth/email-confirmed?error=1" : "/forgot-password?expired=1");
   }
 
   if (code) {
