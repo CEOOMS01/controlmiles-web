@@ -64,9 +64,9 @@
     "subtitle": "Individual gig drivers subscribe from the app. Fleet admins manage billing and rostering from this dashboard.",
     "mostPopular": "MOST POPULAR",
     "forDrivers": "For gig drivers",
-    "forDriversNote": "Billed in-app on the App Store or Google Play. Cancel anytime.",
+    "forDriversNote": "15-day free trial, no card needed. Then billed in the Android app through Google Play. Cancel anytime.",
     "forFleets": "For fleets",
-    "forFleetsNote": "Priced per vehicle. Set up and manage entirely from controlmiles.com.",
+    "forFleetsNote": "Priced per vehicle, 5-day free trial. Set up and manage entirely from controlmiles.com.",
     "getApp": "Get the app",
     "signInFleet": "Sign in as fleet admin",
     "perDriver": "/ driver / month",
@@ -88,13 +88,13 @@
       "gpsCarousel": "GPS trip tracking, start/stop from the gig-app carousel",
       "perAppTagging": "Per-gig-app trip tagging",
       "monthlySummary": "Monthly mileage summary",
-      "pdfExport": "PDF export",
+      "pdfExport": "PDF export (2 per month)",
       "everythingBasic": "Everything in Basic",
       "autoDetection": "Automatic trip detection (auto-start, no tapping in)",
       "odometerPhoto": "Odometer photo verification, read automatically",
       "tamperEvident": "A trip record that can't be quietly edited later",
       "portalCodes": "Report Portal access codes (no login needed to verify)",
-      "unlimitedHistory": "Unlimited report history",
+      "unlimitedHistory": "Unlimited PDF exports & report history",
       "rosters": "Driver roster & vehicle roster",
       "gpsPerDriver": "GPS trip tracking per driver",
       "odometerVerification": "Odometer photo verification",
@@ -110,9 +110,11 @@
       "everythingGrowth": "Everything in Growth",
       "onboarding": "Dedicated onboarding",
       "customReporting": "Custom reporting & integrations",
-      "prioritySupport": "Priority support"
+      "prioritySupport": "Priority support",
+      "oneVehicle": "1 vehicle",
+      "fiveVehicles": "Up to 5 vehicles"
     },
-    "disclaimer": "Prices shown are current estimates and subject to change before checkout is enabled. Not tax or financial advice."
+    "disclaimer": "Prices in USD; taxes may apply. Fleet plans are billed monthly for the vehicles on file. Not tax or financial advice."
   },
   "portalCta": {
     "eyebrow": "REPORT PORTAL",

@@ -23,7 +23,7 @@ export default async function SettingsPage() {
     supabase
       .from("organizations")
       .select(
-        "name, compliance_mode, created_at, vehicle_assignment_mode, subscription_tier, subscription_status, timezone, shift_start_window_minutes, industry_template, allow_driver_owned_vehicles, show_all_modules, require_pretrip_inspection, use_shift_schedules",
+        "name, compliance_mode, created_at, vehicle_assignment_mode, subscription_tier, subscription_status, subscription_vehicle_count, timezone, shift_start_window_minutes, industry_template, allow_driver_owned_vehicles, show_all_modules, require_pretrip_inspection, use_shift_schedules",
       )
       .eq("id", orgId)
       .maybeSingle(),
@@ -121,6 +121,7 @@ export default async function SettingsPage() {
             vehicleCount={vehicleCount ?? 0}
             currentTier={org.subscription_tier === "growth" ? "growth" : org.subscription_tier === "starter" ? "starter" : null}
             currentStatus={org.subscription_status}
+            billedVehicles={org.subscription_vehicle_count ?? null}
           />
         </SettingsSection>
 

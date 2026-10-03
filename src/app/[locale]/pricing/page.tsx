@@ -1,6 +1,12 @@
 // Olympus Mont Systems LLC - ControlMiles
 // src/app/pricing/page.tsx
 //
+// 2026-10-03 pre-launch audit: every bullet below was checked against the
+// code that enforces it -- Basic's PDF export is 2/month
+// (check_and_log_pdf_export), Basic/Started cap at 1 vehicle and Premium at
+// 5 (fn_enforce_vehicle_count_limit), personal plans are Google Play only
+// (no iOS build yet), fleet checkout is live (create-checkout-session).
+//
 // Explicit user requirement (2026-09-09): add pricing to the web, for
 // fleet admins, display-only for now (no real Stripe checkout yet --
 // user chose "solo mostrar planes por ahora"). Numbers below are the
@@ -68,6 +74,7 @@ const gigPlans = (t: Awaited<ReturnType<typeof getTranslations>>): Plan[] => [
       t("features.perAppTagging"),
       t("features.monthlySummary"),
       t("features.pdfExport"),
+      t("features.oneVehicle"),
     ],
     cta: { label: t("getApp"), href: "/app-required" },
   },
@@ -80,6 +87,7 @@ const gigPlans = (t: Awaited<ReturnType<typeof getTranslations>>): Plan[] => [
       t("features.everythingBasic"),
       t("features.autoDetection"),
       t("features.unlimitedHistory"),
+      t("features.fiveVehicles"),
     ],
     cta: { label: t("getApp"), href: "/app-required" },
     highlight: true,

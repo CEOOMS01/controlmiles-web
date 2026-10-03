@@ -13,19 +13,38 @@ import { AppError } from "@/lib/errors";
 // Actions instead, same pattern as roster/actions.ts's own
 // send-driver-invite call.
 
+// FunctionsHttpError keeps the edge function's JSON body on .context.
+async function readFunctionError(error: unknown): Promise<string | null> {
+  try {
+    const ctx = (error as { context?: Response }).context;
+    if (ctx && typeof ctx.json === "function") {
+      const body = await ctx.json();
+      return typeof body?.error === "string" ? body.error : null;
+    }
+  } catch {
+    // Not a JSON body -- fall back to the generic message.
+  }
+  return null;
+}
+
 export type CheckoutState = { error: string | null; url: string | null };
 
 export async function startFleetCheckout(
   orgId: string,
   tier: "starter" | "growth",
-  vehicleCount: number,
 ): Promise<CheckoutState> {
   const supabase = await createClient();
+  // The seat count is computed server-side from the org's vehicles; the
+  // browser never chooses how many vehicles are billed.
   const { data, error } = await supabase.functions.invoke("create-checkout-session", {
-    body: { scope: "fleet", organization_id: orgId, tier, vehicle_count: vehicleCount },
+    body: { scope: "fleet", organization_id: orgId, tier },
   });
 
   if (error) {
+    const body = await readFunctionError(error);
+    if (body === "ALREADY_SUBSCRIBED") {
+      return { error: "This fleet already has an active plan. Use Manage billing to change it.", url: null };
+    }
     return { error: AppError.from(error).display(), url: null };
   }
   if (data?.configured === false) {

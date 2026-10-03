@@ -64,9 +64,9 @@
     "subtitle": "Los conductores gig se suscriben desde la app. Los administradores de flota gestionan facturación y plantilla desde este panel.",
     "mostPopular": "MÁS POPULAR",
     "forDrivers": "Para conductores gig",
-    "forDriversNote": "Se cobra dentro de la app, en App Store o Google Play. Cancela cuando quieras.",
+    "forDriversNote": "15 días de prueba gratis, sin tarjeta. Luego se cobra en la app de Android a través de Google Play. Cancela cuando quieras.",
     "forFleets": "Para flotas",
-    "forFleetsNote": "Precio por vehículo. Se configura y gestiona íntegramente desde controlmiles.com.",
+    "forFleetsNote": "Precio por vehículo, 5 días de prueba gratis. Se configura y gestiona íntegramente desde controlmiles.com.",
     "getApp": "Descargar la app",
     "signInFleet": "Entrar como admin de flota",
     "perDriver": "/ conductor / mes",
@@ -88,13 +88,13 @@
       "gpsCarousel": "Rastreo GPS de viajes, con inicio y fin desde el carrusel de apps gig",
       "perAppTagging": "Etiquetado de viajes por app gig",
       "monthlySummary": "Resumen mensual de millas",
-      "pdfExport": "Exportación a PDF",
+      "pdfExport": "Exportación a PDF (2 al mes)",
       "everythingBasic": "Todo lo de Basic",
       "autoDetection": "Detección automática de viajes (arranca solo, sin tocar nada)",
       "odometerPhoto": "Verificación por foto del odómetro, leída automáticamente",
       "tamperEvident": "Un registro de viajes que no se puede editar a escondidas",
       "portalCodes": "Códigos del Portal de Reportes (verificar no requiere cuenta)",
-      "unlimitedHistory": "Historial de reportes ilimitado",
+      "unlimitedHistory": "Exportaciones PDF e historial de reportes ilimitados",
       "rosters": "Plantilla de conductores y de vehículos",
       "gpsPerDriver": "Rastreo GPS de viajes por conductor",
       "odometerVerification": "Verificación por foto del odómetro",
@@ -110,9 +110,11 @@
       "everythingGrowth": "Todo lo de Growth",
       "onboarding": "Puesta en marcha acompañada",
       "customReporting": "Reportes e integraciones a medida",
-      "prioritySupport": "Soporte prioritario"
+      "prioritySupport": "Soporte prioritario",
+      "oneVehicle": "1 vehículo",
+      "fiveVehicles": "Hasta 5 vehículos"
     },
-    "disclaimer": "Los precios mostrados son estimaciones actuales y pueden cambiar antes de habilitar el pago. Esto no es asesoramiento fiscal ni financiero."
+    "disclaimer": "Precios en USD; pueden aplicar impuestos. Los planes de flota se cobran mensualmente por los vehículos registrados. Esto no es asesoramiento fiscal ni financiero."
   },
   "portalCta": {
     "eyebrow": "PORTAL DE REPORTES",
