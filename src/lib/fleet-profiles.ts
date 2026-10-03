@@ -26,6 +26,12 @@ export function isFleetProfile(v: unknown): v is FleetProfile {
   return FLEET_PROFILES.some((p) => p.value === v);
 }
 
+/** Server-side: the submitted profile, or null when none was picked. */
+export function fleetTypeFrom(formData: FormData): FleetProfile | null {
+  const v = formData.get("industry_template");
+  return isFleetProfile(v) ? v : null;
+}
+
 export function profileTitle(v: string | null | undefined): string {
   return FLEET_PROFILES.find((p) => p.value === v)?.title ?? "Mixed / other";
 }
@@ -43,6 +49,24 @@ const MODULES_BY_PROFILE: Record<FleetProfile, OptionalModule[]> = {
   sales: ["geofences"],
   driving_school: [],
 };
+
+const MODULE_LABELS: Record<OptionalModule, string> = {
+  ifta: "IFTA fuel-tax reports",
+  routes: "Routes",
+  geofences: "Geofences",
+  owner_operators: "Owner-operator vehicles",
+};
+
+// Mirrors fn_profile_requires_pretrip in the database.
+const PRETRIP_BY_DEFAULT: ReadonlySet<FleetProfile> = new Set(["general", "trucking", "construction", "passenger"]);
+
+/** What a fleet type turns on -- shown before the owner confirms it (it's locked afterwards). */
+export function profileSummary(profile: FleetProfile): string[] {
+  const lines = MODULES_BY_PROFILE[profile].map((m) => MODULE_LABELS[m]);
+  if (profile === "driving_school") lines.push("Hourly classes per instructor and vehicle");
+  lines.push(PRETRIP_BY_DEFAULT.has(profile) ? "Daily pre-trip inspection required" : "Pre-trip inspection optional");
+  return lines;
+}
 
 export function moduleVisible(
   profile: string | null | undefined,

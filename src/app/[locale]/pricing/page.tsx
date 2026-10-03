@@ -4,8 +4,9 @@
 // 2026-10-03 pre-launch audit: every bullet below was checked against the
 // code that enforces it -- Basic's PDF export is 2/month
 // (check_and_log_pdf_export), Basic/Started cap at 1 vehicle and Premium at
-// 5 (fn_enforce_vehicle_count_limit), personal plans are Google Play only
-// (no iOS build yet), fleet checkout is live (create-checkout-session).
+// 5 (fn_enforce_vehicle_count_limit), fleet checkout is live
+// (create-checkout-session), fleet trial is 15 days (fn_org_effective_tier).
+// The App Store mention stays: the iOS build is in progress (user, 2026-10-03).
 //
 // Explicit user requirement (2026-09-09): add pricing to the web, for
 // fleet admins, display-only for now (no real Stripe checkout yet --

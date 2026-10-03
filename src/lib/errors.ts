@@ -42,7 +42,7 @@ export class AppError {
   static readonly emailAlreadyExists = new AppError(401, "This email is already registered.");
   static readonly sessionExpired = new AppError(402, "Your session expired. Please sign in again.");
   static readonly vehicleLimitReached = new AppError(410, "You've reached your plan's vehicle limit.");
-  static readonly freeTrialExpired = new AppError(411, "Your 30-day free trial is over.");
+  static readonly freeTrialExpired = new AppError(411, "Your 15-day free trial is over.");
   static readonly orgMembershipRevoked = new AppError(412, "Your fleet admin has removed your access.");
   static readonly fleetSubscriptionRequired = new AppError(
     413,
@@ -52,6 +52,11 @@ export class AppError {
     414,
     "This feature needs the Growth plan. Upgrade to unlock it.",
   );
+  static readonly fleetTypeLocked = new AppError(
+    423,
+    "This fleet's type is set. To change it, contact support@controlmiles.com.",
+  );
+  static readonly fleetTypeOwnerOnly = new AppError(424, "Only the fleet owner can choose the fleet type.");
   static readonly rateLimited = new AppError(420, "Too many attempts. Try again in a few minutes.");
   static readonly duplicateEntry = new AppError(430, "This already exists.");
   static readonly subscriptionsNotConfigured = new AppError(440, "Subscriptions are not available yet.");
@@ -140,6 +145,8 @@ export class AppError {
     if (text.includes("ORG_MEMBERSHIP_REVOKED")) return AppError.orgMembershipRevoked;
     if (text.includes("FLEET_SUBSCRIPTION_REQUIRED")) return AppError.fleetSubscriptionRequired;
     if (text.includes("FLEET_GROWTH_REQUIRED")) return AppError.fleetGrowthRequired;
+    if (text.includes("FLEET_TYPE_LOCKED")) return AppError.fleetTypeLocked;
+    if (text.includes("FLEET_TYPE_OWNER_ONLY")) return AppError.fleetTypeOwnerOnly;
     if (text.includes("already own a fleet organization")) return AppError.alreadyOwnFleet;
     if (text.includes("Invalid login credentials") || text.includes("Invalid credentials")) {
       return AppError.invalidCredentials;

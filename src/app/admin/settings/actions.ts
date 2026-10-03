@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { AppError } from "@/lib/errors";
-import { isFleetProfile } from "@/lib/fleet-profiles";
 
 export type RenameOrgState = { error: string | null; success: boolean };
 
@@ -200,27 +199,6 @@ export async function setScheduleSettings(
 }
 
 export type IndustryTemplateState = { error: string | null; success: boolean };
-
-// Fleet profile (2026-09-30, was "industry template"). set_fleet_type
-// checks owner/admin and applies the profile's pre-trip inspection default.
-export async function setIndustryTemplate(
-  _prevState: IndustryTemplateState,
-  formData: FormData,
-): Promise<IndustryTemplateState> {
-  const orgId = String(formData.get("org_id") ?? "");
-  const template = formData.get("industry_template");
-  if (!orgId || !isFleetProfile(template)) {
-    return { error: "Invalid selection.", success: false };
-  }
-  const supabase = await createClient();
-  const { error } = await supabase.rpc("set_fleet_type", {
-    p_organization_id: orgId,
-    p_industry_template: template,
-  });
-  if (error) return { error: AppError.from(error).display(), success: false };
-  revalidatePath("/admin", "layout");
-  return { error: null, success: true };
-}
 
 // "Show all modules" / "Require a pre-trip inspection" (2026-09-30).
 export async function setModuleOptions(

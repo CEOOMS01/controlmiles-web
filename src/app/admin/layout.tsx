@@ -129,10 +129,10 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   const showShifts = org.use_shift_schedules || org.show_all_modules;
   const branchScope = await getBranchScope(org.id);
 
-  // Onboarding (2026-09-30): the fleet type is chosen after sign-up, not
-  // during it -- an owner/admin whose fleet hasn't picked one yet goes
-  // there first.
-  if (!org.fleet_type_confirmed_at && !isOperatorOnly) {
+  // Onboarding (2026-09-30): the fleet type is chosen right after sign-up,
+  // before the dashboard. Only the owner chooses it (2026-10-03: it's
+  // locked afterwards), so only the owner is sent there.
+  if (!org.fleet_type_confirmed_at && role === "owner") {
     redirect("/onboarding/fleet-type");
   }
 

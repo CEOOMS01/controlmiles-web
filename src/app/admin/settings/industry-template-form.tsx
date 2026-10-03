@@ -1,71 +1,66 @@
 "use client";
 
 import { useActionState } from "react";
-import { FLEET_PROFILES, type FleetProfile } from "@/lib/fleet-profiles";
-import { setIndustryTemplate, setModuleOptions, type IndustryTemplateState } from "./actions";
+import { profileSummary, profileTitle, type FleetProfile } from "@/lib/fleet-profiles";
+import { setModuleOptions, type IndustryTemplateState } from "./actions";
 
 const initialState: IndustryTemplateState = { error: null, success: false };
 
 // Fleet profile (2026-09-30, approved plan): the kind of fleet decides
 // which modules show in the menu and whether a pre-trip inspection is
-// required by default. Nothing is locked: "Show all modules" reveals
-// everything, and the inspection toggle overrides the profile's default.
+// required by default. 2026-10-03: the type itself is chosen once in
+// onboarding and locked (set_fleet_type -> FLEET_TYPE_LOCKED; support
+// changes it with support_change_fleet_type). The operational switches
+// below stay editable: "Show all modules" reveals everything, and the
+// inspection toggle overrides the profile's default.
 export function IndustryTemplateForm({
   orgId,
+  orgName,
+  confirmedAt,
   current,
   showAll,
   requirePretrip,
   useShifts,
 }: {
   orgId: string;
+  orgName: string;
+  confirmedAt: string | null;
   current: FleetProfile;
   showAll: boolean;
   requirePretrip: boolean;
   useShifts: boolean;
 }) {
-  const [state, formAction, pending] = useActionState(setIndustryTemplate, initialState);
   const [optState, optAction, optPending] = useActionState(setModuleOptions, initialState);
 
   return (
     <div className="space-y-4">
-      <form action={formAction} className="rounded-xl border border-border bg-surface p-5">
-        <input type="hidden" name="org_id" value={orgId} />
-        <p className="text-sm font-medium">Fleet profile</p>
-        <p className="mt-1 text-sm text-muted">
-          Shows the tools that fit your kind of fleet first. Changing it never deletes anything, and it
-          resets the pre-trip inspection setting below to that profile&apos;s default.
-        </p>
-        <div className="mt-4 grid gap-2 sm:grid-cols-2">
-          {FLEET_PROFILES.map((t) => (
-            <label
-              key={t.value}
-              className={`cursor-pointer rounded-lg border p-3 text-sm transition ${
-                current === t.value ? "border-accent bg-accent/10" : "border-border hover:border-accent/50"
-              }`}
-            >
-              <span className="flex items-center gap-2 font-semibold">
-                <input
-                  type="radio"
-                  name="industry_template"
-                  value={t.value}
-                  defaultChecked={current === t.value}
-                  disabled={pending}
-                  onChange={(e) => e.currentTarget.form?.requestSubmit()}
-                />
-                {t.title}
-              </span>
-              <span className="mt-1 block text-xs text-muted">{t.body}</span>
-            </label>
-          ))}
+      <div className="rounded-xl border border-border bg-surface p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-sm font-medium">Fleet type</p>
+            <p className="mt-1 text-lg font-semibold">{profileTitle(current)}</p>
+            <p className="mt-1 text-xs text-muted">
+              {confirmedAt
+                ? `Set ${new Date(confirmedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} during onboarding.`
+                : "Set during onboarding."}{" "}
+              It decides your fleet&apos;s setup (classes, IFTA, pre-trip default), so it can&apos;t be changed here.
+            </p>
+          </div>
+          <a
+            href={`mailto:support@controlmiles.com?subject=${encodeURIComponent("Change fleet type")}&body=${encodeURIComponent(
+              `Fleet: ${orgName}\nCurrent type: ${profileTitle(current)}\nNew type:\nReason:\n`,
+            )}`}
+            className="rounded-lg border border-border px-3.5 py-2 text-sm font-medium transition hover:border-accent"
+          >
+            Request a change
+          </a>
         </div>
-        {pending && <p className="mt-2 text-sm text-muted">Saving…</p>}
-        {!pending && state.success && <p className="mt-2 text-sm text-success">Saved.</p>}
-        {state.error && (
-          <p role="alert" className="mt-2 text-sm text-danger">
-            {state.error}
-          </p>
-        )}
-      </form>
+        <ul className="mt-3 space-y-0.5 text-xs text-muted">
+          {profileSummary(current).map((line) => (
+            <li key={line}>• {line}</li>
+          ))}
+        </ul>
+      </div>
 
       {/* key: re-mount with fresh defaults when the profile changes them */}
       <form
