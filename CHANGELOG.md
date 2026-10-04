@@ -43,6 +43,11 @@ releases have their own changelog in the app repo.
   Reports generated before this keep their interactive maps.
 
 ### Backend (Supabase, live)
+- A trip's miles = the sum of its gig-app segments, set by the database when
+  the trip closes (`trg_session_miles_from_sections`); 6 legacy trips that
+  disagreed were repaired. Fixes reports whose business-use summary didn't
+  match their total (e.g. 102.8%) -- the Report Portal totals use the same
+  stored trip miles.
 - `session_sections.route_polyline` (encoded polyline, write-once, sent by
   the app when a segment closes), `sessions.map_token` (random capability for
   the image URL), `get_trip_map(session, token)` (anon, token-checked; falls
