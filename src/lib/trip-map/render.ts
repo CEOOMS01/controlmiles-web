@@ -234,7 +234,9 @@ export async function renderTripMapSvg(segments: RouteSegment[]): Promise<string
   const legend = routePaths
     .filter((p, i, arr) => arr.findIndex((q) => q.label === p.label) === i)
     .map((p, i) =>
-      `<g transform="translate(12 ${HEIGHT - 16 - i * 18})"><rect x="0" y="-9" width="14" height="5" rx="2" fill="${p.color}"/><text x="20" y="-4" font-size="11" font-family="system-ui,sans-serif" fill="#1f2937" paint-order="stroke" stroke="#ffffff" stroke-width="3">${escapeXml(p.label)}</text></g>`)
+      // A white pill behind each label instead of a text halo
+      // (paint-order isn't supported by flutter_svg, which the app uses).
+      `<g transform="translate(8 ${HEIGHT - 26 - i * 20})"><rect x="0" y="0" width="${r(30 + p.label.length * 6.4)}" height="17" rx="8.5" fill="#ffffff" fill-opacity="0.9"/><rect x="7" y="6" width="14" height="5" rx="2" fill="${p.color}"/><text x="26" y="12.5" font-size="11" font-family="Arial,Helvetica,sans-serif" fill="#1f2937">${escapeXml(p.label)}</text></g>`)
     .join("");
 
   const join = (l: Layer) => l.d.join("");
@@ -257,7 +259,8 @@ export async function renderTripMapSvg(segments: RouteSegment[]): Promise<string
     `<circle cx="${r(sx)}" cy="${r(sy)}" r="6" fill="#16a34a" stroke="#ffffff" stroke-width="2.5"/>` +
     `<rect x="${r(ex - 6)}" y="${r(ey - 6)}" width="12" height="12" rx="2" fill="#dc2626" stroke="#ffffff" stroke-width="2.5"/>` +
     legend +
-    `<text x="${WIDTH - 8}" y="${HEIGHT - 8}" text-anchor="end" font-size="9" font-family="system-ui,sans-serif" fill="#4b5563" paint-order="stroke" stroke="#ffffff" stroke-width="3">© OpenStreetMap contributors</text>` +
+    `<rect x="${WIDTH - 136}" y="${HEIGHT - 17}" width="132" height="13" rx="3" fill="#ffffff" fill-opacity="0.85"/>` +
+    `<text x="${WIDTH - 8}" y="${HEIGHT - 7.5}" text-anchor="end" font-size="9" font-family="Arial,Helvetica,sans-serif" fill="#4b5563">© OpenStreetMap contributors</text>` +
     `</svg>`;
 }
 

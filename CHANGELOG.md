@@ -19,6 +19,8 @@ releases have their own changelog in the app repo.
   legend. Closed trips are cached forever (`immutable`); the route handler is
   excluded from the session proxy so the CDN can cache it. A 33-mile trip is
   ~200 KB raw / ~75 KB gzipped, rendered in < 1 s.
+  Legend and map credit sit on white pills (no `paint-order` halo), so they
+  read correctly in the app's SVG renderer (`flutter_svg`) too.
 
 ### Changed
 - **Report Portal:** each trip shows its route image in a 2-column grid
