@@ -13,7 +13,10 @@ import { VectorTile, type VectorTileFeature } from "@mapbox/vector-tile";
 import Pbf from "pbf";
 import type { LatLng } from "./polyline";
 
-export type RouteSegment = { gigApp: string; label: string; points: LatLng[] };
+// `muted`: drawn in gray for context and left out of the framing, legend
+// and start/end markers (a single segment's image shows the rest of the
+// trip this way).
+export type RouteSegment = { gigApp: string; label: string; points: LatLng[]; muted?: boolean };
 
 const WIDTH = 640;
 const HEIGHT = 360;
@@ -121,7 +124,8 @@ function pathFromRings(
 }
 
 export async function renderTripMapSvg(segments: RouteSegment[]): Promise<string> {
-  const all = segments.flatMap((s) => s.points);
+  // Frame the focused segments only (all of them for a whole-trip image).
+  const all = segments.filter((s) => !s.muted).flatMap((s) => s.points);
   if (all.length === 0) throw new Error("NO_ROUTE");
 
   const pm = basemap();
@@ -212,24 +216,43 @@ export async function renderTripMapSvg(segments: RouteSegment[]): Promise<string
   // Road widths grow with zoom, like the live map.
   const w = (base: number) => r(base * Math.max(0.6, Math.min(2.4, (z - 9) / 3)));
 
-  const routePaths = segments
-    .filter((s) => s.points.length > 0)
-    .map((s, i) => {
-      const color = gigColor(s.gigApp, i);
-      const d = s.points
-        .map(([la, ln], j) => {
-          const [x, y] = project(la, ln, z);
-          return `${j === 0 ? "M" : "L"}${r(x - originX)} ${r(y - originY)}`;
-        })
-        .join("");
-      return { color, d, label: s.label };
-    });
+  const toD = (pts: LatLng[]) =>
+    pts
+      .map(([la, ln], j) => {
+        const [x, y] = project(la, ln, z);
+        return `${j === 0 ? "M" : "L"}${r(x - originX)} ${r(y - originY)}`;
+      })
+      .join("");
+  const toXY = ([la, ln]: LatLng) => {
+    const [x, y] = project(la, ln, z);
+    return [x - originX, y - originY] as const;
+  };
 
-  const first = segments.find((s) => s.points.length > 0)!.points[0];
-  const lastSeg = [...segments].reverse().find((s) => s.points.length > 0)!;
-  const last = lastSeg.points[lastSeg.points.length - 1];
-  const [sx, sy] = project(first[0], first[1], z).map((v, i) => v - (i === 0 ? originX : originY));
-  const [ex, ey] = project(last[0], last[1], z).map((v, i) => v - (i === 0 ? originX : originY));
+  // One color per gig app for the whole trip (the same app twice draws
+  // alike, and matches its legend row); apps without a brand color take
+  // palette colors in order of first appearance in the trip, so a segment
+  // has the same color on the trip image and on its own image.
+  const appOrder = [...new Set(segments.map((s) => s.gigApp))];
+  const routePaths = segments
+    .filter((s) => s.points.length > 0 && !s.muted)
+    .map((s) => ({
+      color: gigColor(s.gigApp, appOrder.indexOf(s.gigApp)),
+      d: toD(s.points),
+      label: s.label,
+      points: s.points,
+    }));
+  const mutedPaths = segments.filter((s) => s.muted && s.points.length > 1).map((s) => toD(s.points));
+
+  const first = routePaths[0].points[0];
+  const lastPts = routePaths[routePaths.length - 1].points;
+  const last = lastPts[lastPts.length - 1];
+  const [sx, sy] = toXY(first);
+  const [ex, ey] = toXY(last);
+  // Where the driver switched gig app: a dot in the new segment's color.
+  const switchDots = routePaths.slice(1).map((p) => {
+    const [x, y] = toXY(p.points[0]);
+    return `<circle cx="${r(x)}" cy="${r(y)}" r="4.5" fill="${p.color}" stroke="#ffffff" stroke-width="2"/>`;
+  }).join("");
 
   const legend = routePaths
     .filter((p, i, arr) => arr.findIndex((q) => q.label === p.label) === i)
@@ -253,9 +276,11 @@ export async function renderTripMapSvg(segments: RouteSegment[]): Promise<string
     `<use href="#mj" stroke="${COLORS.major}" stroke-width="${w(2.4)}"/>` +
     `<use href="#hw" stroke="${COLORS.highwayCasing}" stroke-width="${w(4.4)}"/>` +
     `<use href="#hw" stroke="${COLORS.highway}" stroke-width="${w(3.2)}"/>` +
+    mutedPaths.map((d) => `<path d="${d}" stroke="#9ca3af" stroke-width="3" stroke-opacity="0.8"/>`).join("") +
     routePaths.map((_, i) => `<use href="#rt${i}" stroke="#ffffff" stroke-width="7"/>`).join("") +
     routePaths.map((p, i) => `<use href="#rt${i}" stroke="${p.color}" stroke-width="4"/>`).join("") +
     `</g>` +
+    switchDots +
     `<circle cx="${r(sx)}" cy="${r(sy)}" r="6" fill="#16a34a" stroke="#ffffff" stroke-width="2.5"/>` +
     `<rect x="${r(ex - 6)}" y="${r(ey - 6)}" width="12" height="12" rx="2" fill="#dc2626" stroke="#ffffff" stroke-width="2.5"/>` +
     legend +

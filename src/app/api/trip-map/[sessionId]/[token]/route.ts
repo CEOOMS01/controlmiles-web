@@ -9,12 +9,18 @@ import { gigAppLabel } from "@/lib/catalog";
 // The token is sessions.map_token, a random capability: drivers and fleet
 // admins read it with the session, Report Portal reports carry it. The
 // data comes from get_trip_map (anon, token-checked), so this handler needs
-// no service-role key. A closed trip never changes (its sections are frozen
+// no service-role key.
+//
+// One trip (session) can hold several gig-app segments (sections):
+// without ?section= the image shows the whole trip, one color per segment
+// with a dot at each switch; with ?section=<id> it frames that segment and
+// shows the rest of the trip in gray. A closed trip never changes (its sections are frozen
 // and route_polyline is write-once), so its image is cached forever.
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 type MapSection = {
+  id: string;
   gig_app: string;
   polyline: string | null;
   points: LatLng[] | null;
@@ -23,7 +29,7 @@ type MapSection = {
 };
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ sessionId: string; token: string }> },
 ) {
   const { sessionId, token } = await params;
@@ -43,14 +49,18 @@ export async function GET(
   if (error || !data) return new Response("Not found", { status: 404 });
 
   const trip = data as { closed: boolean; sections: MapSection[] };
+  const focus = new URL(request.url).searchParams.get("section");
+  if (focus && !trip.sections.some((s) => s.id === focus)) {
+    return new Response("Not found", { status: 404 });
+  }
   const segments: RouteSegment[] = trip.sections.map((s) => {
     let points: LatLng[] = s.polyline ? decodePolyline(s.polyline) : (s.points ?? []);
     // Trips recorded before routes were drawn: at least a start -> end line.
     if (points.length < 2 && s.start && s.end) points = [s.start, s.end];
-    return { gigApp: s.gig_app, label: gigAppLabel(s.gig_app), points };
+    return { gigApp: s.gig_app, label: gigAppLabel(s.gig_app), points, muted: focus ? s.id !== focus : false };
   });
 
-  if (!segments.some((s) => s.points.length >= 2)) {
+  if (!segments.some((s) => !s.muted && s.points.length >= 2)) {
     return new Response("No route recorded for this trip", { status: 404 });
   }
 

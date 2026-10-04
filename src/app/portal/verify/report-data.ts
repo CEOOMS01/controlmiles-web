@@ -46,6 +46,9 @@ export type PortalRoute = {
   total_miles: number;
   points?: PortalRoutePoint[];
   map_token?: string;
+  // Present when the trip tracked more than one gig app: one map each
+  // (/api/trip-map/<session>/<token>?section=<id>).
+  section_ids?: string[] | null;
 };
 
 // One row per trip (session) in the report's date range -- mirrors the

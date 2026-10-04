@@ -22,7 +22,18 @@ releases have their own changelog in the app repo.
   Legend and map credit sit on white pills (no `paint-order` halo), so they
   read correctly in the app's SVG renderer (`flutter_svg`) too.
 
+- **One map per gig app.** A trip (session) can hold several gig-app
+  segments (sections). `/api/trip-map/...?section=<id>` frames one segment
+  in its color and shows the rest of the trip in gray; the whole-trip image
+  marks each gig-app switch with a dot. Segments with no miles (legacy
+  data) get no map, matching the no-miles-no-segment rule.
+- Maps carry only each gig app's **name and color** (legend); miles and
+  time stay in the report itself (user rule). Each gig app keeps one color
+  across the whole trip.
+
 ### Changed
+- **Report Portal:** under each trip's map, one map per tracked gig app
+  when the trip had more than one (`route_points[].section_ids`).
 - **Report Portal:** each trip shows its route image in a 2-column grid
   (lazy-loaded, prints in the PDF) instead of one interactive map per trip.
   Reports generated before this keep their interactive maps.

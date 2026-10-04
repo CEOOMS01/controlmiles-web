@@ -313,16 +313,35 @@ function ReportView({ report, onReset }: { report: PortalReport; onReset: () => 
                       {formatTripDate(route.date_key)} · {route.total_miles.toFixed(1)} mi
                     </p>
                     {route.map_token ? (
-                      // eslint-disable-next-line @next/next/no-img-element -- a cached SVG; next/image adds nothing here
-                      <img
-                        src={`/api/trip-map/${route.session_id}/${route.map_token}`}
-                        alt={`Route of the trip on ${formatTripDate(route.date_key)}`}
-                        width={640}
-                        height={360}
-                        loading="lazy"
-                        decoding="async"
-                        className="h-auto w-full rounded-md bg-surface"
-                      />
+                      <>
+                        {/* eslint-disable-next-line @next/next/no-img-element -- a cached SVG; next/image adds nothing here */}
+                        <img
+                          src={`/api/trip-map/${route.session_id}/${route.map_token}`}
+                          alt={`Route of the trip on ${formatTripDate(route.date_key)}`}
+                          width={640}
+                          height={360}
+                          loading="lazy"
+                          decoding="async"
+                          className="h-auto w-full rounded-md bg-surface"
+                        />
+                        {route.section_ids && route.section_ids.length > 1 && (
+                          <div className="mt-2 grid grid-cols-2 gap-2">
+                            {route.section_ids.map((sectionId, i) => (
+                              // eslint-disable-next-line @next/next/no-img-element -- same cached SVG, one gig app framed
+                              <img
+                                key={sectionId}
+                                src={`/api/trip-map/${route.session_id}/${route.map_token}?section=${sectionId}`}
+                                alt={`Gig app ${i + 1} of the trip on ${formatTripDate(route.date_key)}`}
+                                width={640}
+                                height={360}
+                                loading="lazy"
+                                decoding="async"
+                                className="h-auto w-full rounded bg-surface"
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </>
                     ) : route.points && route.points.length >= 2 ? (
                       <RouteMap route={route} />
                     ) : null}
