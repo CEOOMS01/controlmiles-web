@@ -152,8 +152,8 @@ export default async function SettingsPage() {
           <div className="rounded-xl border border-border bg-surface p-5">
             <p className="text-sm text-muted">
               Send it to{" "}
-              <a href="mailto:support@controlmiles.com" className="text-accent hover:underline">
-                support@controlmiles.com
+              <a href="mailto:suggestions@controlmiles.com" className="text-accent hover:underline">
+                suggestions@controlmiles.com
               </a>
               .
             </p>

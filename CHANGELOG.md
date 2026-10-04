@@ -11,6 +11,10 @@ releases have their own changelog in the app repo.
 
 ## 2026-10-04
 
+### Changed
+- Settings → Feedback now points to **suggestions@controlmiles.com**
+  (was support@).
+
 ### Added
 - **Trip route images.** `GET /api/trip-map/<session>/<map_token>` draws a
   static SVG of the trip: streets, water and parks from our own basemap
