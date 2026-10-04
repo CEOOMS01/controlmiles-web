@@ -115,6 +115,8 @@ export const config = {
     // REAL BUG (2026-09-29): /.well-known/assetlinks.json went through
     // next-intl, got rewritten to /[locale]/.well-known/... and 404'd in
     // production, so Android never verified the /invite App Link.
-    "/((?!_next/static|_next/image|favicon.ico|\\.well-known/|robots\\.txt|sitemap\\.xml|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    // api/trip-map/: public, token-checked route images; skipping the
+    // session refresh keeps Set-Cookie off them so the CDN can cache them.
+    "/((?!_next/static|_next/image|favicon.ico|\\.well-known/|api/trip-map/|robots\\.txt|sitemap\\.xml|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

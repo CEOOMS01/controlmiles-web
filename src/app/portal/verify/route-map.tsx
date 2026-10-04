@@ -23,7 +23,7 @@ const RouteMapInner = dynamic(() => import("./route-map-inner"), {
 export function RouteMap({ route }: { route: PortalRoute }) {
   return (
     <div className="h-56 overflow-hidden rounded-lg">
-      <RouteMapInner points={route.points} />
+      <RouteMapInner points={route.points ?? []} />
     </div>
   );
 }

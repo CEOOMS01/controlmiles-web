@@ -294,22 +294,38 @@ function ReportView({ report, onReset }: { report: PortalReport; onReset: () => 
           )}
 
           {report.route_points.length > 0 && (
-            // The interactive Leaflet map doesn't render meaningfully in a
-            // browser print/PDF pass (tiles load async, canvas often comes
-            // out blank) -- hidden on print rather than shipping a broken
-            // empty box in the downloaded PDF. The trip log table above
-            // already carries this same data for the printed report.
-            <div className="border-b border-border py-4 print:hidden">
+            // 2026-10-04: one static route image per trip (streets + route,
+            // one color per gig app), lazy-loaded and cached forever -- no
+            // map engine per trip, and it prints. Older reports without a
+            // map_token keep the interactive map, which is hidden on print
+            // (its tiles load async and come out blank in a PDF).
+            <div className="border-b border-border py-4">
               <h2 className="mb-2 text-xs font-semibold tracking-wide text-accent uppercase">
                 Trip routes
               </h2>
-              <div className="space-y-3">
+              <div className="grid gap-3 sm:grid-cols-2">
                 {report.route_points.map((route) => (
-                  <div key={route.session_id} className="rounded-lg border border-border p-3">
+                  <div
+                    key={route.session_id}
+                    className={`break-inside-avoid rounded-lg border border-border p-3${route.map_token ? "" : " print:hidden"}`}
+                  >
                     <p className="mb-2 text-xs font-medium text-muted">
                       {formatTripDate(route.date_key)} · {route.total_miles.toFixed(1)} mi
                     </p>
-                    <RouteMap route={route} />
+                    {route.map_token ? (
+                      // eslint-disable-next-line @next/next/no-img-element -- a cached SVG; next/image adds nothing here
+                      <img
+                        src={`/api/trip-map/${route.session_id}/${route.map_token}`}
+                        alt={`Route of the trip on ${formatTripDate(route.date_key)}`}
+                        width={640}
+                        height={360}
+                        loading="lazy"
+                        decoding="async"
+                        className="h-auto w-full rounded-md bg-surface"
+                      />
+                    ) : route.points && route.points.length >= 2 ? (
+                      <RouteMap route={route} />
+                    ) : null}
                   </div>
                 ))}
               </div>

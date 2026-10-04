@@ -9,6 +9,31 @@ here. The Supabase changes they depend on live in the app repo
 (`controlmiles/supabase/`) and are listed under **Backend** below. Mobile app
 releases have their own changelog in the app repo.
 
+## 2026-10-04
+
+### Added
+- **Trip route images.** `GET /api/trip-map/<session>/<map_token>` draws a
+  static SVG of the trip: streets, water and parks from our own basemap
+  (the self-hosted `.pmtiles` on Cloudflare R2, no third-party map service)
+  with the route on top, one color per gig app, start/end markers and a
+  legend. Closed trips are cached forever (`immutable`); the route handler is
+  excluded from the session proxy so the CDN can cache it. A 33-mile trip is
+  ~200 KB raw / ~75 KB gzipped, rendered in < 1 s.
+
+### Changed
+- **Report Portal:** each trip shows its route image in a 2-column grid
+  (lazy-loaded, prints in the PDF) instead of one interactive map per trip.
+  Reports generated before this keep their interactive maps.
+
+### Backend (Supabase, live)
+- `session_sections.route_polyline` (encoded polyline, write-once, sent by
+  the app when a segment closes), `sessions.map_token` (random capability for
+  the image URL), `get_trip_map(session, token)` (anon, token-checked; falls
+  back to breadcrumbs for trips without a polyline).
+- `generate_report_access_code`: `route_points` lists trips with their
+  `map_token` instead of copying every breadcrumb into each report
+  (a 3-trip report went from tens of KB of points to 1.8 KB of metadata).
+
 ## 2026-10-03
 
 ### Added

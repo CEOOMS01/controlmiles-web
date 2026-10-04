@@ -36,11 +36,16 @@ export type PortalRoutePoint = {
 // generate_report_access_code's own comment in
 // 20260920100000_report_portal_route_points.sql. Only sessions with 2+
 // points are included at all (nothing to draw with fewer).
+// 2026-10-04: new reports carry `map_token` instead of `points` -- the trip
+// is shown as a static route image (/api/trip-map/<session>/<token>)
+// rather than an interactive map per trip. Reports generated before that
+// still have `points` and keep the interactive map.
 export type PortalRoute = {
   session_id: string;
   date_key: string;
   total_miles: number;
-  points: PortalRoutePoint[];
+  points?: PortalRoutePoint[];
+  map_token?: string;
 };
 
 // One row per trip (session) in the report's date range -- mirrors the
