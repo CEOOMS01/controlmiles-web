@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 
 const BASE = "https://controlmiles.com";
-const PAGES = ["", "/pricing", "/fleet/enterprise-brief", "/privacy", "/privacy/fleet", "/terms", "/terms/fleet", "/terms-of-use", "/delete-account"];
+const PAGES = ["", "/pricing", "/fleet/enterprise-brief", "/privacy", "/privacy/fleet", "/terms", "/terms/fleet", "/terms-of-use", "/delete-account", "/delete-data"];
 
 export default function sitemap(): MetadataRoute.Sitemap {
   return PAGES.map((path) => ({

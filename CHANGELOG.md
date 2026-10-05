@@ -11,6 +11,13 @@ releases have their own changelog in the app repo.
 
 ## 2026-10-05
 
+### Added
+- **`/delete-data`** (public, no login): how to delete some data without
+  deleting the account -- trips and vehicles in the app, anything else by
+  email to account@controlmiles.com. Linked from Google Play's Data safety
+  "delete some or all data without deleting the account" question; added to
+  the sitemap.
+
 ### Backend (Supabase, live)
 - `user_onboarding`: users can insert their own row
   (`onboarding_insert_own`, replaces the `with check (false)` policy). The
