@@ -9,6 +9,16 @@ here. The Supabase changes they depend on live in the app repo
 (`controlmiles/supabase/`) and are listed under **Backend** below. Mobile app
 releases have their own changelog in the app repo.
 
+## 2026-10-05
+
+### Backend (Supabase, live)
+- `user_onboarding`: users can insert their own row
+  (`onboarding_insert_own`, replaces the `with check (false)` policy). The
+  app saves its onboarding flags with an upsert, which Postgres checks
+  against the INSERT policy even when the row exists, so every save failed
+  (42501) and the app kept showing the account-type chooser. Fixes every
+  installed app version; no app release needed.
+
 ## 2026-10-04
 
 ### Changed
