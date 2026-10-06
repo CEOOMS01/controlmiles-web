@@ -11,6 +11,12 @@ releases have their own changelog in the app repo.
 
 ## 2026-10-05
 
+### Fixed
+- `/.well-known/assetlinks.json` now includes the **Google Play app signing**
+  certificate (SHA-256 `04:4B:F7:...:0C:33`). Apps installed from Play are
+  re-signed with that key, so without it the fleet invite links
+  (`/invite/<token>`) would not open the app.
+
 ### Added
 - **`/delete-data`** (public, no login): how to delete some data without
   deleting the account -- trips and vehicles in the app, anything else by
