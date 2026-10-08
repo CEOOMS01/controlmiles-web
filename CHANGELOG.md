@@ -11,20 +11,17 @@ releases have their own changelog in the app repo.
 
 ## 2026-10-08
 
-### Billing setup (Stripe test mode, not code)
-- Products **ControlMiles Fleet Starter** ($12.99/vehicle/month,
-  `price_1UOAlbFR6XdwJHb6FaQcfcft`) and **ControlMiles Fleet Growth**
-  ($19.99/vehicle/month, `price_1UOAmTFR6XdwJHb6FGMQYz6e`), licensed
-  per-unit (quantity = billable vehicles, set by the server). No Stripe
-  trial: the 15-day fleet trial is enforced in the database.
-- Webhook `controlmiles-fleet-billing` (`we_1UOAqeFR6XdwJHb6yqxiy2TI`) ->
-  `/functions/v1/stripe-webhook`, events `customer.subscription.created/
-  updated/deleted/paused/resumed` and `invoice.upcoming`, API 2026-07-29.
-- Customer portal: switch between Starter and Growth (prorated), quantity
-  changes off, cancel at period end, invoices and payment methods on.
-- Pending: Supabase secrets `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`,
-  `STRIPE_PRICE_ID_FLEET_STARTER`, `STRIPE_PRICE_ID_FLEET_GROWTH`; repeat
-  all of the above in live mode before charging real cards.
+### Billing setup (Stripe, not code) -- reverted the same day
+- Fleet Starter/Growth products, a `stripe-webhook` destination and the
+  customer portal were set up in the Olympus Mont Systems LLC Stripe
+  sandbox, then undone (user decision: Stripe will move to the company's
+  definitive account): webhook deleted, both products archived (Stripe
+  doesn't allow deleting products already used in a portal config). No
+  Stripe secrets were saved in Supabase, so fleet checkout stays "not
+  configured". To redo on the new account: 2 per-unit monthly prices
+  ($12.99 / $19.99), webhook with `customer.subscription.*` +
+  `invoice.upcoming`, portal plan switching on / quantity off, then the 4
+  secrets.
 
 ### Backend (Supabase, live)
 - **Account deletion failed for anyone who touched fleet data** (found
