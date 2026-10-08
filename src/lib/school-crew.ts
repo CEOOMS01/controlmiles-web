@@ -23,7 +23,7 @@ export type CrewOption = { id: string; label: string };
 export async function loadCrewOptions(
   supabase: SupabaseClient,
   orgId: string,
-): Promise<{ drivers: CrewOption[]; vehicles: CrewOption[] }> {
+): Promise<{ drivers: CrewOption[]; monitors: CrewOption[]; vehicles: CrewOption[] }> {
   const [{ data: driverMembers }, { data: vehicles }, fleetIds] = await Promise.all([
     supabase
       .from("organization_members")
@@ -39,7 +39,15 @@ export async function loadCrewOptions(
     fleetDriverIds(supabase, orgId),
   ]);
   return {
+    monitors: (driverMembers ?? [])
+      .filter((m) => m.member_role === "monitor")
+      .map((m) => {
+        const p = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles;
+        return { id: m.user_id, label: driverLabel(p, fleetIds.get(m.user_id), p?.email || m.user_id) };
+      })
+      .sort((a, b) => a.label.localeCompare(b.label)),
     drivers: (driverMembers ?? [])
+      .filter((m) => m.member_role !== "monitor")
       .map((m) => {
         const p = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles;
         const label = driverLabel(p, fleetIds.get(m.user_id), p?.email || m.user_id);
@@ -55,6 +63,7 @@ export type CrewOverride = {
   route_id: string;
   driver_id: string | null;
   vehicle_id: string | null;
+  monitor_id: string | null;
   monitor_name: string | null;
   reason: string | null;
 };
@@ -68,8 +77,24 @@ export async function loadCrewOverrides(
   if (!routeIds.length) return new Map();
   const { data } = await supabase
     .from("route_crew_overrides")
-    .select("route_id, driver_id, vehicle_id, monitor_name, reason")
+    .select("route_id, driver_id, vehicle_id, monitor_id, monitor_name, reason")
     .in("route_id", routeIds)
     .eq("service_date", date);
   return new Map((data ?? []).map((o) => [o.route_id, o]));
+}
+
+/**
+ * The monitor of a route (or of today's substitute): a member with the app
+ * (monitor_id) or just a name. A substitute monitor replaces the regular
+ * one entirely, as in fn_route_crew.
+ */
+export function effectiveMonitor(
+  route: { monitor_id: string | null; monitor_name: string | null },
+  sub: { monitor_id: string | null; monitor_name: string | null } | null | undefined,
+  memberName: (id: string) => string | undefined,
+): { text: string | null; inApp: boolean; substitute: boolean } {
+  const fromSub = Boolean(sub && (sub.monitor_id || sub.monitor_name));
+  const src = fromSub ? sub! : route;
+  if (src.monitor_id) return { text: memberName(src.monitor_id) ?? "Bus monitor", inApp: true, substitute: fromSub };
+  return { text: src.monitor_name, inApp: false, substitute: fromSub };
 }

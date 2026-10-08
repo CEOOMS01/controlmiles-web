@@ -13,7 +13,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getAuthedProfile } from "@/lib/supabase/org-context";
 import { driverLabel, fleetDriverIds } from "@/lib/driver-label";
 import { ROUTE_TYPE_LABEL, clock, fleetNow, minutesOf } from "@/lib/school";
-import { busLabel, loadCrewOptions, loadCrewOverrides } from "@/lib/school-crew";
+import { busLabel, effectiveMonitor, loadCrewOptions, loadCrewOverrides } from "@/lib/school-crew";
 import {
   RELEASE_REASON_LABEL,
   STATUS_PILL,
@@ -48,7 +48,7 @@ export default async function SchoolLiveRoutePage({ params }: { params: Promise<
     supabase
       .from("routes")
       .select(
-        "id, name, route_type, school_site_id, scheduled_start_time, assigned_driver_id, monitor_name, profiles!routes_assigned_driver_id_fkey(first_name, last_name), vehicles(nickname, make, model, display_id, plate)",
+        "id, name, route_type, school_site_id, scheduled_start_time, assigned_driver_id, monitor_id, monitor_name, profiles!routes_assigned_driver_id_fkey(first_name, last_name), vehicles(nickname, make, model, display_id, plate)",
       )
       .eq("id", id)
       .eq("organization_id", orgId)
@@ -187,7 +187,9 @@ export default async function SchoolLiveRoutePage({ params }: { params: Promise<
       : `${personName.get(sub.driver_id) ?? "Substitute"}${fleetIds.get(sub.driver_id) ? ` / ${fleetIds.get(sub.driver_id)}` : ""}`
     : regularDriver;
   const bus = sub?.vehicle_id ? subBus : v;
-  const monitorText = sub?.monitor_name ?? route.monitor_name;
+  const monitorLabel = (mid: string) => crewOptions.monitors.find((m) => m.id === mid)?.label;
+  const monitor = effectiveMonitor(route, sub, monitorLabel);
+  const regularMonitor = effectiveMonitor(route, null, monitorLabel);
   const lateStart =
     !run && route.scheduled_start_time != null && now.minutes > minutesOf(route.scheduled_start_time) + 5;
   const runState = !run
@@ -238,9 +240,12 @@ export default async function SchoolLiveRoutePage({ params }: { params: Promise<
           {sub?.driver_id && <p className="text-xs text-muted">Regular: {regularDriver}</p>}
         </div>
         <div className="rounded-xl border border-border bg-surface p-4">
-          <p className="text-xs text-muted">Bus monitor{sub?.monitor_name && <SubTag />}</p>
-          <p className="text-lg font-semibold">{monitorText ?? "None assigned"}</p>
-          {sub?.monitor_name && <p className="text-xs text-muted">Regular: {route.monitor_name ?? "none"}</p>}
+          <p className="text-xs text-muted">Bus monitor{monitor.substitute && <SubTag />}</p>
+          <p className="text-lg font-semibold">{monitor.text ?? "None assigned"}</p>
+          <p className="text-xs text-muted">
+            {monitor.text ? (monitor.inApp ? "Uses the app" : "No app (by name)") : ""}
+            {monitor.substitute && ` · Regular: ${regularMonitor.text ?? "none"}`}
+          </p>
         </div>
       </div>
       {sub?.reason && <p className="text-sm text-muted">Substitute today: {sub.reason}</p>}
@@ -249,6 +254,7 @@ export default async function SchoolLiveRoutePage({ params }: { params: Promise<
           routeId={id}
           date={today}
           drivers={crewOptions.drivers}
+          monitors={crewOptions.monitors}
           vehicles={crewOptions.vehicles}
           current={sub}
           startOpen={lateStart}

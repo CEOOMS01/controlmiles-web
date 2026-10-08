@@ -10,7 +10,7 @@ import { getAuthedProfile } from "@/lib/supabase/org-context";
 import { driverLabel, fleetDriverIds } from "@/lib/driver-label";
 import { ROUTE_TYPE_LABEL, clock, fleetNow, minutesOf } from "@/lib/school";
 import { dueStopIds, loadRodeAm, runStatuses } from "@/lib/school-status";
-import { busLabel, loadCrewOptions, loadCrewOverrides } from "@/lib/school-crew";
+import { busLabel, effectiveMonitor, loadCrewOptions, loadCrewOverrides } from "@/lib/school-crew";
 import { FleetMap, type FleetVehicle } from "../fleet-map";
 import { AutoRefresh } from "./auto-refresh";
 
@@ -58,7 +58,7 @@ export default async function SchoolLivePage() {
   const { data: routeRows } = await supabase
     .from("routes")
     .select(
-      "id, name, route_type, service_days, scheduled_start_time, assigned_driver_id, assigned_vehicle_id, monitor_name, profiles!routes_assigned_driver_id_fkey(first_name, last_name), vehicles(nickname, make, model, display_id)",
+      "id, name, route_type, service_days, scheduled_start_time, assigned_driver_id, assigned_vehicle_id, monitor_id, monitor_name, profiles!routes_assigned_driver_id_fkey(first_name, last_name), vehicles(nickname, make, model, display_id)",
     )
     .eq("organization_id", orgId)
     .in("route_type", ["school_am", "school_pm"])
@@ -95,7 +95,9 @@ export default async function SchoolLivePage() {
     loadCrewOverrides(supabase, routeIds, now.date),
     loadCrewOptions(supabase, orgId),
   ]);
-  const crewLabel = new Map([...crewOptions.drivers, ...crewOptions.vehicles].map((o) => [o.id, o.label]));
+  const crewLabel = new Map(
+    [...crewOptions.drivers, ...crewOptions.monitors, ...crewOptions.vehicles].map((o) => [o.id, o.label]),
+  );
   const [{ data: events }, { data: ridership }, rodeAm] = await Promise.all([
     runIds.length
       ? supabase.from("route_stop_events").select("run_id, stop_id, arrived_at, departed_at").in("run_id", runIds)
@@ -167,7 +169,7 @@ export default async function SchoolLivePage() {
             ? (crewLabel.get(o.driver_id) ?? "Substitute")
             : driverLabel(p, r.assigned_driver_id ? fleetIds.get(r.assigned_driver_id) : null, "No driver"),
           bus: o?.vehicle_id ? (crewLabel.get(o.vehicle_id) ?? "Substitute bus") : busLabel(v),
-          monitor: o?.monitor_name ?? r.monitor_name,
+          monitor: effectiveMonitor(r, o, (id) => crewLabel.get(id)).text,
           substitute: Boolean(o),
         };
       })(),

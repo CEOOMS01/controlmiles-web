@@ -115,7 +115,8 @@ export async function createSchoolRoute(_: FormResult, formData: FormData): Prom
       school_site_id: text(formData, "school_site_id"),
       assigned_driver_id: text(formData, "driver_id"),
       assigned_vehicle_id: text(formData, "vehicle_id"),
-      monitor_name: text(formData, "monitor_name")?.slice(0, 80) ?? null,
+      monitor_id: text(formData, "monitor_id"),
+      monitor_name: text(formData, "monitor_id") ? null : (text(formData, "monitor_name")?.slice(0, 80) ?? null),
       scheduled_start_time: text(formData, "scheduled_start_time"),
       service_days: days,
       status: "active",
@@ -136,7 +137,9 @@ export async function saveSchoolRouteCrew(_: FormResult, formData: FormData): Pr
     .update({
       assigned_driver_id: text(formData, "driver_id"),
       assigned_vehicle_id: text(formData, "vehicle_id"),
-      monitor_name: text(formData, "monitor_name")?.slice(0, 80) ?? null,
+      // A monitor with the app wins; the name is for monitors without it.
+      monitor_id: text(formData, "monitor_id"),
+      monitor_name: text(formData, "monitor_id") ? null : (text(formData, "monitor_name")?.slice(0, 80) ?? null),
     })
     .eq("id", routeId);
   if (error) return fail(error);
@@ -160,8 +163,9 @@ export async function setSubstitute(_: FormResult, formData: FormData): Promise<
   if (!orgId || !routeId || !date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return { error: "Route not found." };
   const driverId = text(formData, "driver_id");
   const vehicleId = text(formData, "vehicle_id");
-  const monitor = text(formData, "monitor_name")?.slice(0, 80) ?? null;
-  if (!driverId && !vehicleId && !monitor) return { error: "Choose a substitute driver, bus or monitor." };
+  const monitorId = text(formData, "monitor_id");
+  const monitor = monitorId ? null : (text(formData, "monitor_name")?.slice(0, 80) ?? null);
+  if (!driverId && !vehicleId && !monitorId && !monitor) return { error: "Choose a substitute driver, bus or monitor." };
   const { error } = await supabase.from("route_crew_overrides").upsert(
     {
       organization_id: orgId,
@@ -169,6 +173,7 @@ export async function setSubstitute(_: FormResult, formData: FormData): Promise<
       service_date: date,
       driver_id: driverId,
       vehicle_id: vehicleId,
+      monitor_id: monitorId,
       monitor_name: monitor,
       reason: text(formData, "reason")?.slice(0, 200) ?? null,
       created_by: userId,

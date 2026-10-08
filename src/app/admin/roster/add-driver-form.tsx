@@ -32,9 +32,13 @@ const inputClass =
 export function AddDriverForm({
   orgId,
   callerRole,
+  schoolFleet = false,
 }: {
   orgId: string;
   callerRole: "owner" | "admin" | "operator";
+  // School transportation fleets can also invite bus monitors (2026-10-09):
+  // created only here, by email; they keep the student list in the app.
+  schoolFleet?: boolean;
 }) {
   const [state, formAction, pending] = useActionState(addDriver, initialState);
   const [byCode, setByCode] = useState(false);
@@ -43,7 +47,10 @@ export function AddDriverForm({
   // dismissed result object (not a boolean) means the next submit shows again.
   const [dismissed, setDismissed] = useState<AddDriverState["result"]>(null);
   const formRef = useRef<HTMLFormElement>(null);
-  const roleOptions = ROLE_OPTIONS[callerRole] ?? ROLE_OPTIONS.operator;
+  const baseRoles = ROLE_OPTIONS[callerRole] ?? ROLE_OPTIONS.operator;
+  const roleOptions = schoolFleet
+    ? [baseRoles[0], { value: "monitor", label: "Bus monitor" }, ...baseRoles.slice(1)]
+    : baseRoles;
 
   useEffect(() => {
     if (state.result) formRef.current?.reset();
@@ -166,6 +173,7 @@ export function AddDriverForm({
               </select>
               <p className="mt-1 text-xs text-muted">
                 Operator and Admin get real dashboard access on top of the mobile app.
+                {schoolFleet && " A bus monitor only keeps the student list of their routes in the app."}
               </p>
             </div>
           )}

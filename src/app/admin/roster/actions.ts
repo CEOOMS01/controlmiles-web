@@ -52,6 +52,10 @@ export async function addDriver(
 
   const supabase = await createClient();
 
+  if (viaCode && role === "monitor") {
+    return { error: "Bus monitors are invited by email.", result: null };
+  }
+
   if (viaCode) {
     // In-person path: a slot plus a one-time code, no email involved.
     const { data, error } = await supabase.rpc("create_driver_slot", {

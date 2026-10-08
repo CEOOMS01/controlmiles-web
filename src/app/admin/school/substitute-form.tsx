@@ -8,11 +8,13 @@ import { useState } from "react";
 import { clearSubstitute, setSubstitute } from "./actions";
 import { ActionForm, RowButton, inputClass } from "./form-kit";
 import type { CrewOption, CrewOverride } from "@/lib/school-crew";
+import { MonitorPicker } from "./monitor-picker";
 
 export function SubstituteForm({
   routeId,
   date,
   drivers,
+  monitors,
   vehicles,
   current,
   startOpen = false,
@@ -20,6 +22,7 @@ export function SubstituteForm({
   routeId: string;
   date: string;
   drivers: CrewOption[];
+  monitors: CrewOption[];
   vehicles: CrewOption[];
   current: CrewOverride | null;
   startOpen?: boolean;
@@ -69,16 +72,14 @@ export function SubstituteForm({
               ))}
             </select>
           </div>
-          <div>
-            <label className="mb-1.5 block text-sm font-medium">Substitute monitor</label>
-            <input
-              name="monitor_name"
-              defaultValue={current?.monitor_name ?? ""}
-              maxLength={80}
-              placeholder="Keep the regular monitor"
-              className={inputClass}
-            />
-          </div>
+          <MonitorPicker
+            monitors={monitors}
+            defaultId={current?.monitor_id}
+            defaultName={current?.monitor_name}
+            label="Substitute monitor"
+            emptyLabel="Keep the regular monitor"
+            namePlaceholder="Or a substitute's name (no app)"
+          />
           <div className="sm:col-span-3">
             <label className="mb-1.5 block text-sm font-medium">Reason (optional)</label>
             <input

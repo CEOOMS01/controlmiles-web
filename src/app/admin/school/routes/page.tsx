@@ -6,7 +6,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getAuthedProfile } from "@/lib/supabase/org-context";
 import { driverLabel, fleetDriverIds } from "@/lib/driver-label";
-import { busLabel, loadCrewOptions } from "@/lib/school-crew";
+import { busLabel, effectiveMonitor, loadCrewOptions } from "@/lib/school-crew";
 import { ROUTE_TYPE_LABEL, clock, daysLabel } from "@/lib/school";
 import { CreateSchoolRouteForm } from "./create-school-route-form";
 
@@ -28,7 +28,7 @@ export default async function SchoolRoutesPage() {
     supabase
       .from("routes")
       .select(
-        "id, name, route_type, service_days, scheduled_start_time, status, assigned_driver_id, school_site_id, monitor_name, profiles!routes_assigned_driver_id_fkey(first_name, last_name), vehicles(nickname, make, model, display_id)",
+        "id, name, route_type, service_days, scheduled_start_time, status, assigned_driver_id, school_site_id, monitor_id, monitor_name, profiles!routes_assigned_driver_id_fkey(first_name, last_name), vehicles(nickname, make, model, display_id)",
       )
       .eq("organization_id", orgId)
       .in("route_type", ["school_am", "school_pm"])
@@ -63,6 +63,7 @@ export default async function SchoolRoutesPage() {
       <CreateSchoolRouteForm
         schools={(schools ?? []).map((s) => ({ id: s.id, label: s.name }))}
         drivers={crew.drivers}
+        monitors={crew.monitors}
         vehicles={crew.vehicles}
         timeFormat={timeFormat}
       />
@@ -98,7 +99,9 @@ export default async function SchoolRoutesPage() {
                   <td className="px-4 py-3 text-muted">
                     {driverLabel(p, r.assigned_driver_id ? fleetIds.get(r.assigned_driver_id) : null)}
                   </td>
-                  <td className="px-4 py-3 text-muted">{r.monitor_name ?? "—"}</td>
+                  <td className="px-4 py-3 text-muted">
+                    {effectiveMonitor(r, null, (mid) => crew.monitors.find((m) => m.id === mid)?.label).text ?? "—"}
+                  </td>
                   <td className="px-4 py-3 text-muted">{busLabel(v, "—")}</td>
                   <td className="px-4 py-3 text-muted">
                     {clock(r.scheduled_start_time, timeFormat)} · {daysLabel(r.service_days)}

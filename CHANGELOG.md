@@ -71,6 +71,12 @@ releases have their own changelog in the app repo.
   role).
 - **Who marked each student**: the route's student page shows "by <name>"
   under each pick-up / drop-off time.
+- **Bus monitor role** (School transportation fleets only, created only on
+  the web): Team -> Add a driver -> Role "Bus monitor" (email invitation;
+  no one-time code). The invitation email says "a bus monitor" and what it
+  is for. Routes, Crew and the substitute form pick a monitor who uses the
+  app or, for monitors without it, just a name; pages show which one
+  ("Uses the app" / "No app (by name)"). The Team list shows "Bus monitor".
 - Plan (`docs/plan-fleet-school-transportation.md`): sections 8 (crew, monitor
   role, substitutes, who keeps the list), 9 (bus tablet mode and tablet
   sale/rental) and 10 (future **Forms** mode with preloaded templates --
@@ -129,6 +135,19 @@ releases have their own changelog in the app repo.
   `ridership_events.recorded_by` set by `record_ridership`. Tested (rolled
   back): with a substitute the regular driver sees 3 routes instead of 4 and
   the substitute sees Route 7 AM.
+- Migration `20261009170000_school_monitor_role`: `member_role` and
+  `driver_invites.intended_role` accept `monitor`; `create_driver_invite`
+  allows it only in `school_transport` fleets; `routes.monitor_id`,
+  `route_crew_overrides.monitor_id`, `route_runs.monitor_id` (trigger: must
+  be an active monitor of the fleet; the run keeps its crew);
+  `fn_route_crew` returns the monitor; `my_school_routes_today` also lists
+  the routes I'm the monitor of, with `my_role`, plus each stop's
+  `departed_at`; `record_ridership` accepts the run's driver or today's
+  monitor (`fn_my_crew_run`), while starting and finishing stay driver-only.
+  Edge function `send-driver-invite` v10: monitor wording. Tested (rolled
+  back): non-school invite refused, a non-monitor can't be set as monitor,
+  the monitor sees the route as monitor and marks a student (recorded_by),
+  and can't finish or start a route.
 
 ## 2026-10-08
 

@@ -16,6 +16,7 @@ import { AutoRefresh } from "../../auto-refresh";
 import { AddressAutocompleteInput } from "../../../routes/address-autocomplete-input";
 import { addStop, assignStudent, deleteStop, moveStop, saveSchoolRouteCrew, unassignStudent } from "../../actions";
 import { loadCrewOptions } from "@/lib/school-crew";
+import { MonitorPicker } from "../../monitor-picker";
 import { driverLabel } from "@/lib/driver-label";
 import { ActionForm, RowButton, inputClass } from "../../form-kit";
 
@@ -35,7 +36,7 @@ export default async function SchoolRoutePage({
 
   const { data: route } = await supabase
     .from("routes")
-    .select("id, name, route_type, service_days, scheduled_start_time, school_site_id, organization_id, assigned_driver_id, assigned_vehicle_id, monitor_name")
+    .select("id, name, route_type, service_days, scheduled_start_time, school_site_id, organization_id, assigned_driver_id, assigned_vehicle_id, monitor_id, monitor_name")
     .eq("id", id)
     .eq("organization_id", orgId)
     .maybeSingle();
@@ -156,16 +157,7 @@ export default async function SchoolRoutePage({
               ))}
             </select>
           </div>
-          <div>
-            <label className="mb-1.5 block text-sm font-medium">Bus monitor</label>
-            <input
-              name="monitor_name"
-              defaultValue={route.monitor_name ?? ""}
-              maxLength={80}
-              placeholder="Aide's name (optional)"
-              className={inputClass}
-            />
-          </div>
+          <MonitorPicker monitors={crew.monitors} defaultId={route.monitor_id} defaultName={route.monitor_name} />
         </ActionForm>
       </section>
 

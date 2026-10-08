@@ -4,17 +4,20 @@ import { TimeInput } from "@/components/time-input";
 import { WEEKDAYS } from "@/lib/school";
 import { createSchoolRoute } from "../actions";
 import { ActionForm, inputClass } from "../form-kit";
+import { MonitorPicker } from "../monitor-picker";
 
 type Option = { id: string; label: string };
 
 export function CreateSchoolRouteForm({
   schools,
   drivers,
+  monitors,
   vehicles,
   timeFormat,
 }: {
   schools: Option[];
   drivers: Option[];
+  monitors: Option[];
   vehicles: Option[];
   timeFormat: "12h" | "24h";
 }) {
@@ -64,10 +67,7 @@ export function CreateSchoolRouteForm({
           ))}
         </select>
       </div>
-      <div>
-        <label className="mb-1.5 block text-sm font-medium">Bus monitor (optional)</label>
-        <input name="monitor_name" maxLength={80} placeholder="Aide's name" className={inputClass} />
-      </div>
+      <MonitorPicker monitors={monitors} label="Bus monitor (optional)" />
       <div>
         <label className="mb-1.5 block text-sm font-medium">Start time</label>
         <TimeInput name="scheduled_start_time" format={timeFormat} />

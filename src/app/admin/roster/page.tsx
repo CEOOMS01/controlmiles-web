@@ -32,7 +32,7 @@ export default async function RosterPage() {
   const orgId = profile?.default_org_id;
   if (!orgId) return null;
 
-  const [{ data: members }, { data: allSlots }, { data: vehicles }, { data: inviteRows }] = await Promise.all([
+  const [{ data: members }, { data: allSlots }, { data: vehicles }, { data: inviteRows }, { data: orgRow }] = await Promise.all([
     supabase
       .from("organization_members")
       .select(
@@ -70,6 +70,7 @@ export default async function RosterPage() {
       .eq("organization_id", orgId)
       .in("status", ["pending", "expired"])
       .order("created_at", { ascending: false }),
+    supabase.from("organizations").select("industry_template").eq("id", orgId).maybeSingle(),
   ]);
 
   // Branch filter (sidebar): drivers of the branch (home or "any"),
@@ -134,6 +135,7 @@ export default async function RosterPage() {
       <div className="mb-6 grid gap-4 sm:grid-cols-2">
         <AddDriverForm
           orgId={orgId}
+          schoolFleet={orgRow?.industry_template === "school_transport"}
           callerRole={callerRole === "owner" || callerRole === "admin" || callerRole === "operator" ? callerRole : "operator"}
         />
         <AddVehicleForm orgId={orgId} />
@@ -168,7 +170,7 @@ export default async function RosterPage() {
                     {displayIdByUserId.get(m.user_id) ?? "—"}
                   </td>
                   <td className="px-4 py-3 text-muted">{p?.email ?? "—"}</td>
-                  <td className="px-4 py-3 capitalize text-muted">{m.member_role}</td>
+                  <td className="px-4 py-3 capitalize text-muted">{m.member_role === "monitor" ? "Bus monitor" : m.member_role}</td>
                   <td className="px-4 py-3">
                     {m.member_role === "driver" && m.is_active ? (
                       <DriverVehicleSelect
