@@ -71,6 +71,21 @@ releases have their own changelog in the app repo.
   `STUDENTS_STILL_ON_BOARD` and `UNRESOLVED_STUDENTS`. Tested on the demo
   fleet's PM run: Ethan (no AM ride) yellow, Ava released to a parent
   (gray), Noah red until boarded, finish blocked twice then completed.
+- Migration `20261009140000_school_run_start_at_stop`, found by a 5-stop
+  test route: a PM run started with the bus already parked at the school
+  never marked the school stop (arrival only fired when the location
+  changed), so students who didn't come out stayed "expected" and the route
+  could be finished. `start_route_run` now marks arrival at any stop the
+  bus is already at (location < 10 min old), and `complete_route_run` also
+  refuses PM riders still "expected".
+- Demo **Route 7 — Lincoln AM/PM** (Bus 7, 5 different stops, 10 invented
+  students) via `controlmiles/supabase/seed_demo_school_5stops.sql`.
+  Simulated a full day by moving the bus over GPS: AM 6 picked up, 4 absent
+  (one stop with nobody), finish blocked until everyone got off at school;
+  PM: absent stop shown as skip, a yellow student boarded anyway (parent
+  brought him), one released for early dismissal, one forgotten on the bus
+  (red at their stop, finish blocked), one never came out (finish blocked
+  until resolved with a reason), then completed.
 
 ## 2026-10-08
 
