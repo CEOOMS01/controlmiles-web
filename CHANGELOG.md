@@ -44,11 +44,15 @@ releases have their own changelog in the app repo.
     are deleted with the account (`trg_delete_personal_rows_on_profile_delete`);
     fleet rows stay with the fleet with `user_id` NULL.
   - 0 blocking foreign keys left.
-- Pending: closed routes and started shift blocks still reject the
-  `SET NULL` (their freeze triggers block every update), so deleting an
-  account that was assigned a closed route or created a started shift block
-  still fails. Fix drafted in `20261008110000_account_deletion_frozen_rows`
-  (not applied yet).
+- Closed routes and started shift blocks rejected that `SET NULL` (their
+  freeze triggers block every update). Migration
+  `20261008110000_account_deletion_frozen_rows`: the profile-delete trigger
+  sets a transaction-local flag (`cm.account_deletion`) and both freeze
+  triggers let the update through only while it is on; any other edit of a
+  closed route / started block is still rejected (verified).
+- Test fleet driver al.soler02@gmail.com deleted (user, profile, trips,
+  membership, onboarding gone; its closed route kept for the fleet with no
+  driver).
 
 ## 2026-10-05
 
