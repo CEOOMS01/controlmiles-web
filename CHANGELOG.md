@@ -9,25 +9,22 @@ here. The Supabase changes they depend on live in the app repo
 (`controlmiles/supabase/`) and are listed under **Backend** below. Mobile app
 releases have their own changelog in the app repo.
 
-## 2026-10-07
-
-### Changed
-- **Gig plans are sold only in the app** (Basic $5.99 / Premium $9.99, Google
-  Play subscriptions with a 15-day free trial); the web sells fleet plans
-  only (Stripe). Same model as Gridwise Plus: price on the site, button to
-  the app, trial and billing in the store.
-  - `/pricing`: the Basic/Premium buttons say **Start 15-day free trial**
-    and the note explains the trial, Google Play billing and in-app plan
-    choice. The fleet section has an anchor (`/pricing#fleets`).
-  - `/app-required` is now a localized (en/es) download page: 3 steps
-    (download, pick a plan in the app, Google Play bills after the trial),
-    Google Play / App Store buttons and a link to fleet pricing. It used to
-    tell people who had just picked a plan that "the app is coming soon"
-    and "this website is for fleet admins". The Google Play button shows
-    "Coming soon" until `PLAY_STORE_PUBLIC` is set to `true` (the app is in
-    closed testing, so its store listing is not public yet).
-
 ## 2026-10-08
+
+### Billing setup (Stripe test mode, not code)
+- Products **ControlMiles Fleet Starter** ($12.99/vehicle/month,
+  `price_1UOAlbFR6XdwJHb6FaQcfcft`) and **ControlMiles Fleet Growth**
+  ($19.99/vehicle/month, `price_1UOAmTFR6XdwJHb6FGMQYz6e`), licensed
+  per-unit (quantity = billable vehicles, set by the server). No Stripe
+  trial: the 15-day fleet trial is enforced in the database.
+- Webhook `controlmiles-fleet-billing` (`we_1UOAqeFR6XdwJHb6yqxiy2TI`) ->
+  `/functions/v1/stripe-webhook`, events `customer.subscription.created/
+  updated/deleted/paused/resumed` and `invoice.upcoming`, API 2026-07-29.
+- Customer portal: switch between Starter and Growth (prorated), quantity
+  changes off, cancel at period end, invoices and payment methods on.
+- Pending: Supabase secrets `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`,
+  `STRIPE_PRICE_ID_FLEET_STARTER`, `STRIPE_PRICE_ID_FLEET_GROWTH`; repeat
+  all of the above in live mode before charging real cards.
 
 ### Backend (Supabase, live)
 - **Account deletion failed for anyone who touched fleet data** (found
@@ -53,6 +50,24 @@ releases have their own changelog in the app repo.
 - Test fleet driver al.soler02@gmail.com deleted (user, profile, trips,
   membership, onboarding gone; its closed route kept for the fleet with no
   driver).
+
+## 2026-10-07
+
+### Changed
+- **Gig plans are sold only in the app** (Basic $5.99 / Premium $9.99, Google
+  Play subscriptions with a 15-day free trial); the web sells fleet plans
+  only (Stripe). Same model as Gridwise Plus: price on the site, button to
+  the app, trial and billing in the store.
+  - `/pricing`: the Basic/Premium buttons say **Start 15-day free trial**
+    and the note explains the trial, Google Play billing and in-app plan
+    choice. The fleet section has an anchor (`/pricing#fleets`).
+  - `/app-required` is now a localized (en/es) download page: 3 steps
+    (download, pick a plan in the app, Google Play bills after the trial),
+    Google Play / App Store buttons and a link to fleet pricing. It used to
+    tell people who had just picked a plan that "the app is coming soon"
+    and "this website is for fleet admins". The Google Play button shows
+    "Coming soon" until `PLAY_STORE_PUBLIC` is set to `true` (the app is in
+    closed testing, so its store listing is not public yet).
 
 ## 2026-10-05
 
