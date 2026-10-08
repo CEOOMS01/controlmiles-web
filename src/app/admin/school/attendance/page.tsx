@@ -1,11 +1,13 @@
-// School attendance report (2026-10-09, user rule): a pick-up counts as the
-// day's attendance -- blue/Present when the student was marked on the bus,
-// red/Absent when the route ran and they weren't. Filter by dates and route;
-// download the CSV or print it as a PDF for the county school district.
+// School attendance report (2026-10-09, user rule + 4 adjustments): the
+// day's colors -- blue/Present, gray/Released (a red alert resolved with a
+// reason; counts as attendance), yellow/Absent, red/Unresolved -- plus the
+// red alerts and how each was resolved. Filter by dates and route; download
+// the CSV or print it as a PDF for the county school district.
 
 import { createClient } from "@/lib/supabase/server";
 import { getAuthedProfile } from "@/lib/supabase/org-context";
-import { loadAttendance } from "@/lib/school-attendance";
+import { ATTENDANCE_COLOR, attendanceTotals, loadAttendance } from "@/lib/school-attendance";
+import { STATUS_PILL } from "@/lib/school-status";
 import { fleetNow } from "@/lib/school";
 import { loadReportBranding } from "@/lib/report-branding";
 import { PrintButton } from "./print-button";
@@ -49,9 +51,8 @@ export default async function AttendancePage({
     loadReportBranding(supabase, orgId),
   ]);
 
-  const present = rows.filter((r) => r.status === "Present").length;
-  const absent = rows.length - present;
-  const rate = rows.length ? Math.round((present / rows.length) * 100) : null;
+  const totals = attendanceTotals(rows);
+  const alerts = rows.filter((r) => r.status === "Released" || r.status === "Unresolved");
   const time = (iso: string | null) =>
     iso ? new Date(iso).toLocaleTimeString("en-US", { timeZone: tz, hour: "numeric", minute: "2-digit" }) : "—";
   const exportHref = `/admin/school/attendance/export?from=${from}&to=${to}${routeId ? `&route=${routeId}` : ""}`;
@@ -69,7 +70,8 @@ export default async function AttendancePage({
             <p className="text-lg font-semibold">{branding.name}</p>
             <h1 className="text-2xl font-semibold">Student transportation attendance</h1>
             <p className="mt-1 text-sm text-muted">
-              {from} to {to}. A pick-up counts as attendance; days a route didn&apos;t run aren&apos;t counted.
+              {from} to {to}. A pick-up counts as attendance, and so does a release to a parent or the school
+              with a reason. Days a route didn&apos;t run aren&apos;t counted.
             </p>
           </div>
         </div>
@@ -112,20 +114,46 @@ export default async function AttendancePage({
         </div>
       </form>
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-4">
         <div className="rounded-xl border border-border bg-surface p-4">
           <p className="text-xs text-muted">Present</p>
-          <p className="text-2xl font-semibold text-blue-600">{present}</p>
+          <p className="text-2xl font-semibold text-blue-600">{totals.present}</p>
+        </div>
+        <div className="rounded-xl border border-border bg-surface p-4">
+          <p className="text-xs text-muted">Released (with reason)</p>
+          <p className="text-2xl font-semibold text-slate-500">{totals.released}</p>
         </div>
         <div className="rounded-xl border border-border bg-surface p-4">
           <p className="text-xs text-muted">Absent</p>
-          <p className="text-2xl font-semibold text-red-600">{absent}</p>
+          <p className="text-2xl font-semibold text-amber-600">{totals.absent}</p>
         </div>
         <div className="rounded-xl border border-border bg-surface p-4">
           <p className="text-xs text-muted">Attendance rate</p>
-          <p className="text-2xl font-semibold">{rate == null ? "—" : `${rate}%`}</p>
+          <p className="text-2xl font-semibold">{totals.rate == null ? "—" : `${totals.rate}%`}</p>
+          {totals.unresolved > 0 && <p className="mt-1 text-xs font-semibold text-red-600">{totals.unresolved} unresolved</p>}
         </div>
       </div>
+
+      {alerts.length > 0 && (
+        <section className="space-y-2">
+          <h2 className="text-lg font-semibold">Alerts and how they were resolved</h2>
+          <p className="text-sm text-muted">
+            Students who rode to school in the morning but didn&apos;t take the afternoon bus.
+          </p>
+          <ul className="space-y-1.5">
+            {alerts.map((r, i) => (
+              <li
+                key={`alert-${r.date}-${r.route}-${r.student}-${i}`}
+                className={`rounded-lg border px-3 py-2 text-sm ${STATUS_PILL[ATTENDANCE_COLOR[r.status]]}`}
+              >
+                <span className="font-semibold">{r.student}</span> · {r.date} · {r.route} --{" "}
+                {r.status === "Released" ? `released: ${r.note}` : "unresolved, being checked at the school"}
+                {r.pickedUpAt && r.status === "Released" ? ` (${time(r.pickedUpAt)})` : ""}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <div className="overflow-x-auto rounded-xl border border-border bg-surface">
         <table className="w-full text-sm">
@@ -137,15 +165,16 @@ export default async function AttendancePage({
               <th className="px-4 py-3 font-medium">School</th>
               <th className="px-4 py-3 font-medium">Route</th>
               <th className="px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3 font-medium">Picked up</th>
+              <th className="px-4 py-3 font-medium">Time</th>
               <th className="px-4 py-3 font-medium">Stop</th>
+              <th className="px-4 py-3 font-medium">Note</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((r, i) => (
               <tr
                 key={`${r.date}-${r.route}-${r.student}-${i}`}
-                className={`border-b border-border last:border-0 ${r.status === "Present" ? "bg-blue-500/5" : "bg-red-500/5"}`}
+                className="border-b border-border last:border-0"
               >
                 <td className="px-4 py-2.5">{r.date}</td>
                 <td className="px-4 py-2.5 font-medium">
@@ -158,21 +187,18 @@ export default async function AttendancePage({
                   {r.route} · {r.run}
                 </td>
                 <td className="px-4 py-2.5">
-                  <span
-                    className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                      r.status === "Present" ? "bg-blue-500/15 text-blue-700" : "bg-red-500/15 text-red-700"
-                    }`}
-                  >
+                  <span className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold ${STATUS_PILL[ATTENDANCE_COLOR[r.status]]}`}>
                     {r.status}
                   </span>
                 </td>
                 <td className="px-4 py-2.5 text-muted">{time(r.pickedUpAt)}</td>
                 <td className="px-4 py-2.5 text-muted">{r.stop ?? "—"}</td>
+                <td className="px-4 py-2.5 text-xs text-muted">{r.note ?? ""}</td>
               </tr>
             ))}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-4 py-8 text-center text-muted">
+                <td colSpan={9} className="px-4 py-8 text-center text-muted">
                   No school routes ran in these dates.
                 </td>
               </tr>

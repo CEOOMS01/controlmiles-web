@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getAuthedProfile } from "@/lib/supabase/org-context";
 import { driverLabel, fleetDriverIds } from "@/lib/driver-label";
 import { ROUTE_TYPE_LABEL, clock, fleetNow, minutesOf } from "@/lib/school";
+import { loadRodeAm, runStatuses } from "@/lib/school-status";
 import { FleetMap, type FleetVehicle } from "../fleet-map";
 import { AutoRefresh } from "./auto-refresh";
 
@@ -24,6 +25,7 @@ type Card = {
   progress: string;
   onBoard: number;
   riders: number;
+  alerts: number; // red riders (lib/school-status)
 };
 
 const STATE_STYLE: Record<Card["state"], { label: string; className: string }> = {
@@ -75,7 +77,7 @@ export default async function SchoolLivePage() {
       ? supabase.from("route_stops").select("id, route_id, seq, name, scheduled_time").in("route_id", routeIds).order("seq")
       : Promise.resolve({ data: [] }),
     routeIds.length
-      ? supabase.from("student_stop_assignments").select("route_id, action").in("route_id", routeIds)
+      ? supabase.from("student_stop_assignments").select("route_id, stop_id, student_id, action").in("route_id", routeIds)
       : Promise.resolve({ data: [] }),
     supabase
       .from("vehicles")
@@ -86,13 +88,14 @@ export default async function SchoolLivePage() {
     fleetDriverIds(supabase, orgId),
   ]);
   const runIds = (runs ?? []).map((r) => r.id);
-  const [{ data: events }, { data: ridership }] = await Promise.all([
+  const [{ data: events }, { data: ridership }, rodeAm] = await Promise.all([
     runIds.length
       ? supabase.from("route_stop_events").select("run_id, stop_id, arrived_at").in("run_id", runIds)
       : Promise.resolve({ data: [] }),
     runIds.length
-      ? supabase.from("ridership_events").select("run_id, action").in("run_id", runIds)
+      ? supabase.from("ridership_events").select("run_id, student_id, action, at").in("run_id", runIds)
       : Promise.resolve({ data: [] }),
+    loadRodeAm(supabase, orgId, now.date, now.date),
   ]);
 
   const runByRoute = new Map((runs ?? []).map((r) => [r.route_id, r]));
@@ -105,6 +108,18 @@ export default async function SchoolLivePage() {
     const riders = (assignments ?? []).filter((a) => a.route_id === r.id && a.action === "board").length;
     const rides = (ridership ?? []).filter((e) => run && e.run_id === run.id);
     const onBoard = rides.filter((e) => e.action === "board").length - rides.filter((e) => e.action === "alight").length;
+    const alerts = run
+      ? [
+          ...runStatuses({
+            routeType: r.route_type,
+            completed: run.status === "completed",
+            reachedStops: visited,
+            assignments: (assignments ?? []).filter((a) => a.route_id === r.id),
+            rides,
+            rodeAm: (studentId) => rodeAm.has(`${now.date}:${studentId}`),
+          }).values(),
+        ].filter((x) => x.status === "red").length
+      : 0;
 
     let state: Card["state"] = "not_started";
     let detail = r.scheduled_start_time ? `Starts ${clock(r.scheduled_start_time, timeFormat)}` : "No start time";
@@ -144,6 +159,7 @@ export default async function SchoolLivePage() {
       progress: `${routeStops.filter((s) => visited.has(s.id)).length}/${routeStops.length} stops`,
       onBoard: Math.max(0, onBoard),
       riders,
+      alerts,
     };
   });
 
@@ -160,7 +176,7 @@ export default async function SchoolLivePage() {
 
   const counts = {
     running: cards.filter((c) => c.state === "on_time" || c.state === "behind").length,
-    attention: cards.filter((c) => c.state === "late_start" || c.state === "behind").length,
+    attention: cards.filter((c) => c.state === "late_start" || c.state === "behind" || c.alerts > 0).length,
     done: cards.filter((c) => c.state === "completed").length,
   };
 
@@ -203,6 +219,11 @@ export default async function SchoolLivePage() {
               </span>
             </div>
             <p className="mt-3 text-sm">{c.detail}</p>
+            {c.alerts > 0 && (
+              <p className="mt-2 rounded-lg border border-red-500/40 bg-red-500/10 px-2.5 py-1.5 text-xs font-semibold text-red-700">
+                {c.alerts} student{c.alerts > 1 ? "s" : ""} in red: rode this morning but not on the bus / not dropped off
+              </p>
+            )}
             <p className="mt-2 text-xs text-muted">
               {c.driver} · {c.bus}
             </p>

@@ -34,6 +34,19 @@ releases have their own changelog in the app repo.
     private storage) and sets the company name printed on top of the report.
 - Address autocomplete can submit the picked place's coordinates.
 
+### Changed
+- **School day colors** everywhere (same rule as the driver app, in
+  `src/lib/school-status.ts`): blue on track, red alert (rode this morning
+  but hasn't come out / not dropped off), yellow absent (didn't ride this
+  morning), gray released with a reason.
+  - **Pick-up viewer** shows each student in those colors, the release
+    reason and note, and "skip · no one here today" on stops with only
+    absent/released riders.
+  - **School: live** flags routes with red students.
+  - **Attendance report**: Present / Released (with reason, counts as
+    attendance) / Absent / Unresolved, a new Note column, and an **"Alerts
+    and how they were resolved"** section; the CSV adds Time and Note.
+
 ### Backend (Supabase, live)
 - Migration `20261009100000_school_transportation`: `school_sites`,
   `route_stops`, `students`, `student_stop_assignments`, `route_runs`,
@@ -50,6 +63,14 @@ releases have their own changelog in the app repo.
   `set_report_branding` (owner/admin), private bucket `org_branding`.
 - Demo fleet **Demo School Bus Co** (owner alsoler26, invented students) via
   `controlmiles/supabase/seed_demo_school.sql`.
+- Migration `20261009130000_school_day_status`: `ridership_events` gains
+  the `released` action with `reason`/`note`; `fn_rider_status` (internal)
+  computes each student's color; `my_school_routes_today` returns
+  `status`/`release_reason`/`release_note`; `record_ridership` takes a
+  reason (required for a release); `complete_route_run` refuses
+  `STUDENTS_STILL_ON_BOARD` and `UNRESOLVED_STUDENTS`. Tested on the demo
+  fleet's PM run: Ethan (no AM ride) yellow, Ava released to a parent
+  (gray), Noah red until boarded, finish blocked twice then completed.
 
 ## 2026-10-08
 

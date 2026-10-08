@@ -1,6 +1,7 @@
 // School transportation (2026-10-09): one school route -- the pick-up viewer
-// for a day (today by default: who was picked up in blue, who was absent or
-// not dropped off in red, live while the route runs), its stops in order
+// for a day (today by default, live while the route runs) in the day colors
+// of lib/school-status (blue on track, red alert, yellow absent, gray
+// released with a reason), its stops in order
 // (each with a map location and arrival radius), the students who board or
 // get off at each stop, and the last runs.
 
@@ -10,6 +11,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getAuthedProfile } from "@/lib/supabase/org-context";
 import { TimeInput } from "@/components/time-input";
 import { ROUTE_TYPE_LABEL, STOP_KIND_LABEL, clock, daysLabel, fleetNow } from "@/lib/school";
+import { RELEASE_REASON_LABEL, STATUS_PILL, loadRodeAm, runStatuses } from "@/lib/school-status";
 import { AutoRefresh } from "../../auto-refresh";
 import { AddressAutocompleteInput } from "../../../routes/address-autocomplete-input";
 import { addStop, assignStudent, deleteStop, moveStop, unassignStudent } from "../../actions";
@@ -77,22 +79,31 @@ export default async function SchoolRoutePage({
   // Pick-up viewer: the chosen day's run (today by default).
   const viewDate = dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam) ? dateParam : fleetNow(tz).date;
   const viewRun = (runs ?? []).find((r) => r.run_date === viewDate) ?? null;
-  const [{ data: viewEvents }, { data: viewRides }] = viewRun
+  const [{ data: viewEvents }, { data: viewRides }, rodeAm] = viewRun
     ? await Promise.all([
         supabase.from("route_stop_events").select("stop_id, arrived_at").eq("run_id", viewRun.id),
-        supabase.from("ridership_events").select("student_id, action, at").eq("run_id", viewRun.id),
+        supabase.from("ridership_events").select("student_id, action, at, reason, note").eq("run_id", viewRun.id),
+        loadRodeAm(supabase, orgId, viewDate, viewDate),
       ])
-    : [{ data: [] }, { data: [] }];
+    : [{ data: [] }, { data: [] }, new Set<string>()];
   const arrivedAt = new Map((viewEvents ?? []).map((e) => [e.stop_id, e.arrived_at]));
-  const rideAt = new Map((viewRides ?? []).map((e) => [`${e.student_id}:${e.action}`, e.at]));
   const finished = viewRun?.status === "completed";
-  const pickupTotals = { present: 0, absent: 0, waiting: 0 };
+  const statuses = runStatuses({
+    routeType: route.route_type,
+    completed: finished,
+    reachedStops: new Set(arrivedAt.keys()),
+    assignments: assignments ?? [],
+    rides: viewRides ?? [],
+    rodeAm: (studentId) => rodeAm.has(`${viewDate}:${studentId}`),
+  });
+  const pickupTotals = { blue: 0, gray: 0, yellow: 0, red: 0, waiting: 0 };
   for (const a of assignments ?? []) {
     if (a.action !== "board") continue;
-    if (rideAt.has(`${a.student_id}:board`)) pickupTotals.present++;
-    else if (arrivedAt.has(a.stop_id) || finished) pickupTotals.absent++;
+    const st = statuses.get(`${a.student_id}:board`)?.status;
+    if (st === "blue" || st === "gray" || st === "yellow" || st === "red") pickupTotals[st]++;
     else pickupTotals.waiting++;
   }
+  const isPm = route.route_type === "school_pm";
 
   return (
     <main className="space-y-8 px-6 py-10 sm:px-10">
@@ -117,7 +128,16 @@ export default async function SchoolRoutePage({
             <p className="text-sm text-muted">
               {!viewRun
                 ? "This route hasn't run on this day."
-                : `${viewRun.status === "completed" ? "Completed" : "Running now"} · ${pickupTotals.present} picked up · ${pickupTotals.absent} absent${pickupTotals.waiting ? ` · ${pickupTotals.waiting} waiting` : ""}`}
+                : [
+                    viewRun.status === "completed" ? "Completed" : "Running now",
+                    `${pickupTotals.blue} picked up`,
+                    pickupTotals.gray && `${pickupTotals.gray} released`,
+                    `${pickupTotals.yellow} absent`,
+                    pickupTotals.red && `${pickupTotals.red} red alert${pickupTotals.red > 1 ? "s" : ""}`,
+                    pickupTotals.waiting && `${pickupTotals.waiting} ${isPm ? "expected" : "waiting"}`,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
             </p>
           </div>
           <form className="flex items-end gap-2">
@@ -132,37 +152,38 @@ export default async function SchoolRoutePage({
             {(stops ?? []).map((s) => {
               const riders = byStop.get(s.id) ?? [];
               const reached = arrivedAt.get(s.id);
+              const riderStates = riders.map((r) => statuses.get(`${r.student_id}:${r.action}`));
+              const skippable =
+                !reached && riders.length > 0 && riderStates.every((x) => x?.status === "yellow" || x?.status === "gray");
               return (
                 <div key={s.id} className="rounded-xl border border-border bg-surface p-3">
                   <p className="text-sm font-semibold">
                     {s.seq}. {s.name}
                     <span className="ml-2 text-xs font-normal text-muted">
-                      {reached ? `arrived ${hm(reached)}` : finished ? "not reached" : "not reached yet"}
+                      {reached
+                        ? `arrived ${hm(reached)}`
+                        : skippable
+                          ? "skip · no one here today"
+                          : finished
+                            ? "not reached"
+                            : "not reached yet"}
                     </span>
                   </p>
                   <div className="mt-2 flex flex-wrap gap-1.5">
-                    {riders.map((r) => {
-                      const at = rideAt.get(`${r.student_id}:${r.action}`);
-                      const missed = !at && (Boolean(reached) || finished);
-                      const cls = at
-                        ? "border-blue-500/40 bg-blue-500/10 text-blue-700"
-                        : missed
-                          ? "border-red-500/40 bg-red-500/10 text-red-700"
-                          : "border-border text-muted";
-                      const label =
-                        r.action === "board"
-                          ? at
-                            ? `picked up ${hm(at)}`
-                            : missed
-                              ? "absent"
-                              : "waiting"
-                          : at
-                            ? `dropped off ${hm(at)}`
-                            : missed
-                              ? "not dropped off"
-                              : "on the way";
+                    {riders.map((r, i) => {
+                      const st = riderStates[i] ?? { status: "pending" as const, at: null, reason: null, note: null };
+                      const board = r.action === "board";
+                      const label = {
+                        blue: board ? `picked up ${st.at ? hm(st.at) : ""}` : `dropped off ${st.at ? hm(st.at) : ""}`,
+                        red: board ? "rode this morning · hasn't come out" : "not dropped off · still on the bus?",
+                        yellow: board && !isPm ? "absent" : "absent today",
+                        gray: `released · ${RELEASE_REASON_LABEL[st.reason ?? "other"] ?? st.reason}${st.note ? ` (${st.note})` : ""}`,
+                        expected: "expected",
+                        pending: board ? "waiting" : "on the way",
+                        on_board: "on the bus",
+                      }[st.status];
                       return (
-                        <span key={r.id} className={`rounded-full border px-2.5 py-1 text-xs font-medium ${cls}`}>
+                        <span key={r.id} className={`rounded-full border px-2.5 py-1 text-xs font-medium ${STATUS_PILL[st.status]}`}>
                           {studentName.get(r.student_id) ?? "Student"} · {label}
                         </span>
                       );
