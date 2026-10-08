@@ -27,6 +27,29 @@ releases have their own changelog in the app repo.
     "Coming soon" until `PLAY_STORE_PUBLIC` is set to `true` (the app is in
     closed testing, so its store listing is not public yet).
 
+## 2026-10-08
+
+### Backend (Supabase, live)
+- **Account deletion failed for anyone who touched fleet data** (found
+  deleting a test fleet driver: 23503 on
+  `vehicle_odometer_checkpoints_start_captured_by_fkey`). 16 foreign keys to
+  `auth.users`/`profiles` were `ON DELETE NO ACTION`, so the in-app "Delete
+  account" (a Google Play requirement) failed for fleet drivers and admins.
+  Migration `20261008100000_account_deletion_unblock`:
+  - "Who did it" columns (`*_captured_by`, `created_by`, `accepted_by`,
+    `reviewed_by`, `generated_by`, `routes.assigned_driver_id`) are now
+    `ON DELETE SET NULL`: the record stays with the vehicle/fleet.
+  - `vehicle_inspections`, `trip_incidents`, `fuel_purchases`,
+    `session_gps_breadcrumbs`: personal rows (`organization_id IS NULL`)
+    are deleted with the account (`trg_delete_personal_rows_on_profile_delete`);
+    fleet rows stay with the fleet with `user_id` NULL.
+  - 0 blocking foreign keys left.
+- Pending: closed routes and started shift blocks still reject the
+  `SET NULL` (their freeze triggers block every update), so deleting an
+  account that was assigned a closed route or created a started shift block
+  still fails. Fix drafted in `20261008110000_account_deletion_frozen_rows`
+  (not applied yet).
+
 ## 2026-10-05
 
 ### Fixed
