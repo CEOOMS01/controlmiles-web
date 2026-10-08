@@ -14,7 +14,8 @@ export const FLEET_PROFILES = [
   { value: "field_service", title: "Field service", body: "HVAC, plumbing, electrical, pest control, landscaping." },
   { value: "trucking", title: "Trucking & freight", body: "Heavy trucks, interstate freight, owner-operators. Includes IFTA." },
   { value: "construction", title: "Construction", body: "Pickups and heavy trucks moving between job sites." },
-  { value: "passenger", title: "Passenger transport", body: "Shuttles, school buses, medical transport." },
+  { value: "passenger", title: "Passenger transport", body: "Shuttles, medical transport, charters." },
+  { value: "school_transport", title: "School transportation", body: "Student routes with stops, schools and riders, live." },
   { value: "sales", title: "Sales & company cars", body: "Sales reps and employees driving company cars." },
   { value: "driving_school", title: "Driving school", body: "Adds hourly classes per instructor and vehicle." },
   { value: "general", title: "Mixed / other", body: "A bit of everything. Shows every module." },
@@ -37,15 +38,16 @@ export function profileTitle(v: string | null | undefined): string {
 }
 
 /** Modules a profile can hide. Everything else is shown to every fleet. */
-export type OptionalModule = "ifta" | "routes" | "geofences" | "owner_operators";
+export type OptionalModule = "ifta" | "routes" | "geofences" | "owner_operators" | "school";
 
 const MODULES_BY_PROFILE: Record<FleetProfile, OptionalModule[]> = {
-  general: ["ifta", "routes", "geofences", "owner_operators"],
+  general: ["ifta", "routes", "geofences", "owner_operators", "school"],
   delivery: ["routes", "geofences", "owner_operators"],
   field_service: ["routes", "geofences"],
   trucking: ["ifta", "routes", "geofences", "owner_operators"],
   construction: ["ifta", "routes", "geofences"],
   passenger: ["routes", "geofences"],
+  school_transport: ["school", "routes", "geofences"],
   sales: ["geofences"],
   driving_school: [],
 };
@@ -55,10 +57,11 @@ const MODULE_LABELS: Record<OptionalModule, string> = {
   routes: "Routes",
   geofences: "Geofences",
   owner_operators: "Owner-operator vehicles",
+  school: "School routes, stops, students and live run board",
 };
 
 // Mirrors fn_profile_requires_pretrip in the database.
-const PRETRIP_BY_DEFAULT: ReadonlySet<FleetProfile> = new Set(["general", "trucking", "construction", "passenger"]);
+const PRETRIP_BY_DEFAULT: ReadonlySet<FleetProfile> = new Set(["general", "trucking", "construction", "passenger", "school_transport"]);
 
 /** What a fleet type turns on -- shown before the owner confirms it (it's locked afterwards). */
 export function profileSummary(profile: FleetProfile): string[] {

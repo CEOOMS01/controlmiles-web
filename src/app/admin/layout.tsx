@@ -170,6 +170,16 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
           {/* Fleet profile (2026-09-30): modules that don't fit this kind
               of fleet are hidden, never locked -- Settings > "Show all
               modules" brings them back, and the pages stay reachable. */}
+          {/* School transportation (2026-10-09): live run board, school
+              routes with stops, and schools & students. */}
+          {show("school") && (
+            <>
+              <AdminNavLink href="/admin/school">School: live</AdminNavLink>
+              <AdminNavLink href="/admin/school/routes">School routes</AdminNavLink>
+              <AdminNavLink href="/admin/school/students">Schools &amp; students</AdminNavLink>
+              <AdminNavLink href="/admin/school/attendance">Attendance</AdminNavLink>
+            </>
+          )}
           {show("routes") && <AdminNavLink href="/admin/routes">Routes</AdminNavLink>}
           {showShifts && <AdminNavLink href="/admin/shifts">Shifts</AdminNavLink>}
           {show("geofences") && <AdminNavLink href="/admin/geofences">Geofences</AdminNavLink>}

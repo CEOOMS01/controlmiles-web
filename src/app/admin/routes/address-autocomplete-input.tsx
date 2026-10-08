@@ -64,13 +64,20 @@ export function AddressAutocompleteInput({
   label,
   placeholder,
   required,
+  latName,
+  lonName,
 }: {
   name: string;
   label: string;
   placeholder?: string;
   required?: boolean;
+  /** When set, the picked suggestion's coordinates are submitted too
+   *  (hidden inputs); cleared when the text is edited by hand. */
+  latName?: string;
+  lonName?: string;
 }) {
   const [value, setValue] = useState("");
+  const [coords, setCoords] = useState<{ lat: number; lon: number } | null>(null);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -149,6 +156,7 @@ export function AddressAutocompleteInput({
 
   function onChange(next: string) {
     setValue(next);
+    setCoords(null);
     if (debounceRef.current) clearTimeout(debounceRef.current);
 
     if (next.trim().length < 3) {
@@ -165,6 +173,7 @@ export function AddressAutocompleteInput({
 
   function selectSuggestion(s: Suggestion) {
     setValue(fullLabel(s));
+    setCoords({ lat: s.lat, lon: s.lon });
     setOpen(false);
     setSuggestions([]);
     setActiveIndex(-1);
@@ -172,6 +181,7 @@ export function AddressAutocompleteInput({
 
   function clearField() {
     setValue("");
+    setCoords(null);
     setSuggestions([]);
     setSearched(false);
     setOpen(false);
@@ -202,6 +212,8 @@ export function AddressAutocompleteInput({
   return (
     <div ref={containerRef} className="relative">
       <label className="mb-1.5 block text-sm font-medium">{label}</label>
+      {latName && <input type="hidden" name={latName} value={coords?.lat ?? ""} />}
+      {lonName && <input type="hidden" name={lonName} value={coords?.lon ?? ""} />}
       <div className="relative">
         <input
           name={name}

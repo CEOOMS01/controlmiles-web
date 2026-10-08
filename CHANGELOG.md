@@ -9,6 +9,48 @@ here. The Supabase changes they depend on live in the app repo
 (`controlmiles/supabase/`) and are listed under **Backend** below. Mobile app
 releases have their own changelog in the app repo.
 
+## 2026-10-09
+
+### Added
+- **School transportation** (fleet type "School transportation", plan in
+  `docs/plan-fleet-school-transportation.md`). New menu section (shown for
+  that type and for Mixed / other):
+  - **School: live** -- today's school routes next to the live bus map:
+    not started / late start / on time / behind / completed, next stop and
+    minutes behind, stops done, students on board. Refreshes every 15 s.
+  - **School routes** -- AM/PM routes with school, driver, bus, start time
+    and service days; each route's page orders its stops (address search
+    with map location, arrival radius, time, pick-up/school/drop-off),
+    assigns who gets on/off at each stop, and shows the last runs.
+  - **Pick-up viewer** on each route (any day, live while it runs): every
+    student in **blue** (picked up / dropped off, with time) or **red**
+    (absent / not dropped off), per stop.
+  - **Schools & students** -- schools and a minimal roster (first name, last
+    initial, grade, school, optional district ID).
+  - **Attendance** -- a pick-up is the day's attendance: Present/Absent per
+    student, route and day, totals and rate; **Download CSV** and **Print /
+    save as PDF** for the county school district.
+  - **Report branding** -- each fleet uploads its logo (PNG/JPG/WebP, < 1 MB,
+    private storage) and sets the company name printed on top of the report.
+- Address autocomplete can submit the picked place's coordinates.
+
+### Backend (Supabase, live)
+- Migration `20261009100000_school_transportation`: `school_sites`,
+  `route_stops`, `students`, `student_stop_assignments`, `route_runs`,
+  `route_stop_events`, `ridership_events` (RLS: operator or above reads/plans;
+  drivers only through RPCs); `routes.route_type/school_site_id/service_days`;
+  driver RPCs `my_school_routes_today`, `start_route_run`,
+  `mark_stop_arrived`, `record_ridership`, `complete_route_run` (requires the
+  child check); trigger on `vehicles` live location marks stop
+  arrival/departure. Tested end to end with a simulated morning run (4/4
+  stops auto-arrived, 8 on / 8 off, child check) and the blocked cases
+  (finish twice, start without a trip, another driver).
+- Migration `20261009110000_org_report_branding`:
+  `organizations.report_display_name/report_logo_path`,
+  `set_report_branding` (owner/admin), private bucket `org_branding`.
+- Demo fleet **Demo School Bus Co** (owner alsoler26, invented students) via
+  `controlmiles/supabase/seed_demo_school.sql`.
+
 ## 2026-10-08
 
 ### Billing setup (Stripe, not code) -- reverted the same day
