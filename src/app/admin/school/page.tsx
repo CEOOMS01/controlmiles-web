@@ -10,7 +10,7 @@ import { getAuthedProfile } from "@/lib/supabase/org-context";
 import { driverLabel, fleetDriverIds } from "@/lib/driver-label";
 import { ROUTE_TYPE_LABEL, clock, fleetNow, minutesOf } from "@/lib/school";
 import { dueStopIds, loadRodeAm, runStatuses } from "@/lib/school-status";
-import { busLabel } from "@/lib/school-crew";
+import { busLabel, loadCrewOptions, loadCrewOverrides } from "@/lib/school-crew";
 import { FleetMap, type FleetVehicle } from "../fleet-map";
 import { AutoRefresh } from "./auto-refresh";
 
@@ -21,6 +21,7 @@ type Card = {
   driver: string;
   bus: string;
   monitor: string | null;
+  substitute: boolean;
   start: string | null;
   state: "not_started" | "late_start" | "on_time" | "behind" | "completed";
   detail: string;
@@ -90,6 +91,11 @@ export default async function SchoolLivePage() {
     fleetDriverIds(supabase, orgId),
   ]);
   const runIds = (runs ?? []).map((r) => r.id);
+  const [overrides, crewOptions] = await Promise.all([
+    loadCrewOverrides(supabase, routeIds, now.date),
+    loadCrewOptions(supabase, orgId),
+  ]);
+  const crewLabel = new Map([...crewOptions.drivers, ...crewOptions.vehicles].map((o) => [o.id, o.label]));
   const [{ data: events }, { data: ridership }, rodeAm] = await Promise.all([
     runIds.length
       ? supabase.from("route_stop_events").select("run_id, stop_id, arrived_at, departed_at").in("run_id", runIds)
@@ -128,7 +134,7 @@ export default async function SchoolLivePage() {
     if (!run) {
       if (r.scheduled_start_time && now.minutes > minutesOf(r.scheduled_start_time) + LATE_MIN) {
         state = "late_start";
-        detail = `Should have started at ${clock(r.scheduled_start_time, timeFormat)}`;
+        detail = `Should have started at ${clock(r.scheduled_start_time, timeFormat)} · tap to assign a substitute`;
       }
     } else if (run.status === "completed") {
       state = "completed";
@@ -153,9 +159,18 @@ export default async function SchoolLivePage() {
       id: r.id,
       name: r.name,
       type: ROUTE_TYPE_LABEL[r.route_type] ?? "",
-      driver: driverLabel(p, r.assigned_driver_id ? fleetIds.get(r.assigned_driver_id) : null, "No driver"),
-      bus: busLabel(v),
-      monitor: r.monitor_name,
+      // Today's substitute (route_crew_overrides) wins over the regular crew.
+      ...(() => {
+        const o = overrides.get(r.id);
+        return {
+          driver: o?.driver_id
+            ? (crewLabel.get(o.driver_id) ?? "Substitute")
+            : driverLabel(p, r.assigned_driver_id ? fleetIds.get(r.assigned_driver_id) : null, "No driver"),
+          bus: o?.vehicle_id ? (crewLabel.get(o.vehicle_id) ?? "Substitute bus") : busLabel(v),
+          monitor: o?.monitor_name ?? r.monitor_name,
+          substitute: Boolean(o),
+        };
+      })(),
       start: r.scheduled_start_time,
       state,
       detail,
@@ -235,6 +250,9 @@ export default async function SchoolLivePage() {
               <dt className="text-muted">Monitor</dt>
               <dd className="font-medium">{c.monitor ?? "—"}</dd>
             </dl>
+            {c.substitute && (
+              <p className="mt-1 text-[11px] font-semibold text-amber-700 uppercase">Substitute crew today</p>
+            )}
             <p className="mt-1 text-xs text-muted">
               {c.progress} · {c.onBoard} on board · {c.riders} riders assigned
             </p>

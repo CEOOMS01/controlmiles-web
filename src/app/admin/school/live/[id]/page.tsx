@@ -1,7 +1,9 @@
 // School: live -> one route today (2026-10-09, owner's request): every
 // student of the route with ONE color for their situation right now (blue on
 // track, red alert, yellow absent, gray released with a reason, neutral not
-// decided yet), plus the bus, the driver and the bus monitor. Alerts first.
+// decided yet), plus the bus, the driver and the bus monitor (today's
+// substitute when there is one, with the form to assign it), and who marked
+// each student. Alerts first.
 // Refreshes every 15 s while the route runs. Planning lives on
 // /admin/school/routes/[id].
 
@@ -10,8 +12,8 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getAuthedProfile } from "@/lib/supabase/org-context";
 import { driverLabel, fleetDriverIds } from "@/lib/driver-label";
-import { ROUTE_TYPE_LABEL, fleetNow } from "@/lib/school";
-import { busLabel } from "@/lib/school-crew";
+import { ROUTE_TYPE_LABEL, clock, fleetNow, minutesOf } from "@/lib/school";
+import { busLabel, loadCrewOptions, loadCrewOverrides } from "@/lib/school-crew";
 import {
   RELEASE_REASON_LABEL,
   STATUS_PILL,
@@ -22,6 +24,7 @@ import {
   type RiderStatus,
 } from "@/lib/school-status";
 import { AutoRefresh } from "../../auto-refresh";
+import { SubstituteForm } from "../../substitute-form";
 
 // Display order: what needs someone's attention first.
 const ORDER: RiderStatus[] = ["red", "expected", "pending", "on_board", "blue", "gray", "yellow"];
@@ -45,7 +48,7 @@ export default async function SchoolLiveRoutePage({ params }: { params: Promise<
     supabase
       .from("routes")
       .select(
-        "id, name, route_type, school_site_id, assigned_driver_id, monitor_name, profiles!routes_assigned_driver_id_fkey(first_name, last_name), vehicles(nickname, make, model, display_id, plate)",
+        "id, name, route_type, school_site_id, scheduled_start_time, assigned_driver_id, monitor_name, profiles!routes_assigned_driver_id_fkey(first_name, last_name), vehicles(nickname, make, model, display_id, plate)",
       )
       .eq("id", id)
       .eq("organization_id", orgId)
@@ -54,11 +57,12 @@ export default async function SchoolLiveRoutePage({ params }: { params: Promise<
   ]);
   if (!route || (route.route_type !== "school_am" && route.route_type !== "school_pm")) notFound();
   const tz = org?.timezone ?? "America/New_York";
-  const today = fleetNow(tz).date;
+  const now = fleetNow(tz);
+  const today = now.date;
   const hm = (iso: string) =>
     new Date(iso).toLocaleTimeString("en-US", { timeZone: tz, hour: "numeric", minute: "2-digit" });
 
-  const [{ data: run }, { data: stops }, { data: assignments }, { data: school }, fleetIds, rodeAm] = await Promise.all([
+  const [{ data: run }, { data: stops }, { data: assignments }, { data: school }, fleetIds, rodeAm, overrides, crewOptions] = await Promise.all([
     supabase
       .from("route_runs")
       .select("id, status, started_at, completed_at, child_check_at")
@@ -72,7 +76,10 @@ export default async function SchoolLiveRoutePage({ params }: { params: Promise<
       : Promise.resolve({ data: null }),
     fleetDriverIds(supabase, orgId),
     loadRodeAm(supabase, orgId, today, today),
+    loadCrewOverrides(supabase, [id], today),
+    loadCrewOptions(supabase, orgId),
   ]);
+  const sub = overrides.get(id) ?? null;
   const studentIds = [...new Set((assignments ?? []).map((a) => a.student_id))];
   const [{ data: students }, { data: events }, { data: rides }] = await Promise.all([
     studentIds.length
@@ -82,9 +89,28 @@ export default async function SchoolLiveRoutePage({ params }: { params: Promise<
       ? supabase.from("route_stop_events").select("stop_id, arrived_at, departed_at").eq("run_id", run.id)
       : Promise.resolve({ data: [] }),
     run
-      ? supabase.from("ridership_events").select("student_id, action, at, reason, note").eq("run_id", run.id)
+      ? supabase.from("ridership_events").select("student_id, action, at, reason, note, recorded_by").eq("run_id", run.id)
       : Promise.resolve({ data: [] }),
   ]);
+  // Names: who marked each student, and today's substitute driver / bus.
+  const peopleIds = [
+    ...new Set([...(rides ?? []).map((r) => r.recorded_by), sub?.driver_id].filter((x): x is string => Boolean(x))),
+  ];
+  const [{ data: people }, { data: subBus }] = await Promise.all([
+    peopleIds.length
+      ? supabase.from("profiles").select("id, first_name, last_name").in("id", peopleIds)
+      : Promise.resolve({ data: [] }),
+    sub?.vehicle_id
+      ? supabase.from("vehicles").select("nickname, make, model, display_id, plate").eq("id", sub.vehicle_id).maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
+  const personName = new Map(
+    (people ?? []).map((x) => [x.id, [x.first_name, x.last_name].filter(Boolean).join(" ") || "Crew member"]),
+  );
+  const markedBy = (studentId: string, action: string) => {
+    const by = (rides ?? []).find((r) => r.student_id === studentId && r.action === action)?.recorded_by;
+    return by ? (personName.get(by) ?? null) : null;
+  };
 
   const pm = route.route_type === "school_pm";
   const statuses = runStatuses({
@@ -145,6 +171,8 @@ export default async function SchoolLiveRoutePage({ params }: { params: Promise<
         offStop,
         onAt: b.status === "blue" ? b.at : null,
         offAt: a.status === "blue" ? a.at : null,
+        onBy: b.status === "blue" ? markedBy(st.id, "board") : b.status === "gray" ? markedBy(st.id, "released") : null,
+        offBy: a.status === "blue" ? markedBy(st.id, "alight") : null,
       };
     })
     .sort((x, y) => ORDER.indexOf(x.status) - ORDER.indexOf(y.status) || x.name.localeCompare(y.name));
@@ -152,6 +180,16 @@ export default async function SchoolLiveRoutePage({ params }: { params: Promise<
   const count = (s: RiderStatus[]) => rows.filter((r) => s.includes(r.status)).length;
   const p = Array.isArray(route.profiles) ? route.profiles[0] : route.profiles;
   const v = Array.isArray(route.vehicles) ? route.vehicles[0] : route.vehicles;
+  const regularDriver = driverLabel(p, route.assigned_driver_id ? fleetIds.get(route.assigned_driver_id) : null, "No driver");
+  const driverText = sub?.driver_id
+    ? sub.driver_id === route.assigned_driver_id
+      ? regularDriver
+      : `${personName.get(sub.driver_id) ?? "Substitute"}${fleetIds.get(sub.driver_id) ? ` / ${fleetIds.get(sub.driver_id)}` : ""}`
+    : regularDriver;
+  const bus = sub?.vehicle_id ? subBus : v;
+  const monitorText = sub?.monitor_name ?? route.monitor_name;
+  const lateStart =
+    !run && route.scheduled_start_time != null && now.minutes > minutesOf(route.scheduled_start_time) + 5;
   const runState = !run
     ? "Not started today"
     : run.status === "completed"
@@ -180,23 +218,42 @@ export default async function SchoolLiveRoutePage({ params }: { params: Promise<
         </Link>
       </div>
 
+      {lateStart && (
+        <p className="rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm font-semibold text-red-700">
+          Late start: this route should have started at {clock(route.scheduled_start_time, "12h")}. Assign a substitute
+          below if the driver isn&apos;t here.
+        </p>
+      )}
+
       <div className="grid gap-3 sm:grid-cols-3">
         <div className="rounded-xl border border-border bg-surface p-4">
-          <p className="text-xs text-muted">Bus</p>
-          <p className="text-lg font-semibold">{busLabel(v)}</p>
-          {v?.plate && <p className="text-xs text-muted">Plate {v.plate}</p>}
+          <p className="text-xs text-muted">Bus{sub?.vehicle_id && <SubTag />}</p>
+          <p className="text-lg font-semibold">{busLabel(bus)}</p>
+          {bus?.plate && <p className="text-xs text-muted">Plate {bus.plate}</p>}
+          {sub?.vehicle_id && <p className="text-xs text-muted">Regular: {busLabel(v)}</p>}
         </div>
         <div className="rounded-xl border border-border bg-surface p-4">
-          <p className="text-xs text-muted">Driver</p>
-          <p className="text-lg font-semibold">
-            {driverLabel(p, route.assigned_driver_id ? fleetIds.get(route.assigned_driver_id) : null, "No driver")}
-          </p>
+          <p className="text-xs text-muted">Driver{sub?.driver_id && <SubTag />}</p>
+          <p className="text-lg font-semibold">{driverText}</p>
+          {sub?.driver_id && <p className="text-xs text-muted">Regular: {regularDriver}</p>}
         </div>
         <div className="rounded-xl border border-border bg-surface p-4">
-          <p className="text-xs text-muted">Bus monitor</p>
-          <p className="text-lg font-semibold">{route.monitor_name ?? "None assigned"}</p>
+          <p className="text-xs text-muted">Bus monitor{sub?.monitor_name && <SubTag />}</p>
+          <p className="text-lg font-semibold">{monitorText ?? "None assigned"}</p>
+          {sub?.monitor_name && <p className="text-xs text-muted">Regular: {route.monitor_name ?? "none"}</p>}
         </div>
       </div>
+      {sub?.reason && <p className="text-sm text-muted">Substitute today: {sub.reason}</p>}
+      {run?.status !== "completed" && (
+        <SubstituteForm
+          routeId={id}
+          date={today}
+          drivers={crewOptions.drivers}
+          vehicles={crewOptions.vehicles}
+          current={sub}
+          startOpen={lateStart}
+        />
+      )}
 
       <div className="flex flex-wrap gap-2 text-sm">
         <span className={`rounded-full border px-3 py-1 font-semibold ${STATUS_PILL.blue}`}>{count(["blue"])} on track</span>
@@ -233,10 +290,12 @@ export default async function SchoolLiveRoutePage({ params }: { params: Promise<
                 <td className="px-4 py-3 text-muted">
                   {r.onStop || "—"}
                   {r.onAt && <span className="block text-xs">{hm(r.onAt)}</span>}
+                  {r.onBy && <span className="block text-xs">by {r.onBy}</span>}
                 </td>
                 <td className="px-4 py-3 text-muted">
                   {r.offStop || "—"}
                   {r.offAt && <span className="block text-xs">{hm(r.offAt)}</span>}
+                  {r.offBy && <span className="block text-xs">by {r.offBy}</span>}
                 </td>
               </tr>
             ))}
@@ -261,5 +320,13 @@ export default async function SchoolLiveRoutePage({ params }: { params: Promise<
         <span>· A student is only marked red or absent 5 minutes after the bus reaches the stop, or once it leaves.</span>
       </div>
     </main>
+  );
+}
+
+function SubTag() {
+  return (
+    <span className="ml-1.5 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 uppercase">
+      Substitute today
+    </span>
   );
 }

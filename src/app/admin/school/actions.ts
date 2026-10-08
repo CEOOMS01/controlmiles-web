@@ -147,6 +147,49 @@ export async function saveSchoolRouteCrew(_: FormResult, formData: FormData): Pr
   return { error: null };
 }
 
+/**
+ * Substitute for ONE day (plan section 8): driver, bus and/or monitor for
+ * this route on `service_date` only; the regular crew is untouched. Empty
+ * fields keep the regular crew. The substitute driver sees the route in the
+ * app that day (the server uses the effective crew).
+ */
+export async function setSubstitute(_: FormResult, formData: FormData): Promise<FormResult> {
+  const { supabase, orgId, userId } = await context();
+  const routeId = text(formData, "route_id");
+  const date = text(formData, "service_date");
+  if (!orgId || !routeId || !date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return { error: "Route not found." };
+  const driverId = text(formData, "driver_id");
+  const vehicleId = text(formData, "vehicle_id");
+  const monitor = text(formData, "monitor_name")?.slice(0, 80) ?? null;
+  if (!driverId && !vehicleId && !monitor) return { error: "Choose a substitute driver, bus or monitor." };
+  const { error } = await supabase.from("route_crew_overrides").upsert(
+    {
+      organization_id: orgId,
+      route_id: routeId,
+      service_date: date,
+      driver_id: driverId,
+      vehicle_id: vehicleId,
+      monitor_name: monitor,
+      reason: text(formData, "reason")?.slice(0, 200) ?? null,
+      created_by: userId,
+    },
+    { onConflict: "route_id,service_date" },
+  );
+  if (error) return fail(error);
+  revalidatePath(`/admin/school/live/${routeId}`);
+  revalidatePath("/admin/school");
+  return { error: null };
+}
+
+export async function clearSubstitute(routeId: string, date: string): Promise<FormResult> {
+  const { supabase } = await context();
+  const { error } = await supabase.from("route_crew_overrides").delete().eq("route_id", routeId).eq("service_date", date);
+  if (error) return fail(error);
+  revalidatePath(`/admin/school/live/${routeId}`);
+  revalidatePath("/admin/school");
+  return { error: null };
+}
+
 // --- Stops -----------------------------------------------------------------
 
 export async function addStop(_: FormResult, formData: FormData): Promise<FormResult> {

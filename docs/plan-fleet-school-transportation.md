@@ -125,6 +125,60 @@ Razones:
 
 **Primer paso propuesto:** validar la fase 1 con 1 o 2 contratistas reales (5–20 buses) antes de construir estudiantes y padres.
 
+## 8. Tripulación: chofer, monitor y sustitutos (decidido 2026-10-09)
+Investigación: Tyler Drive deja entrar a choferes, ayudantes y monitores en la
+tablet del bus; las vacantes de *bus attendant* piden que el monitor ayude a
+llevar la asistencia en la tablet; los despachadores asignan sustitutos para que
+toda ruta salga a tiempo y la ruta se corre completa aunque empiece tarde.
+
+- **La ruta del día es del bus, no de una persona.** El chofer la inicia (su viaje
+  da el GPS); el monitor **se une** a la misma ruta, sin viaje ni millas. Los dos
+  ven la misma lista en vivo y cualquiera marca; se guarda **quién marcó** cada
+  niño.
+- **Sustituto por día** (web): el manager cambia chofer o monitor **solo para
+  hoy** sin tocar la asignación fija. Botón "Asignar sustituto" en School: live
+  cuando una ruta sale tarde.
+- **Monitor tarde:** el chofer arranca y marca solo; el monitor se une después.
+  **Chofer tarde:** "Late start" a los 5 min y sustituto.
+- **Quién lleva la lista:** si hay monitor, el monitor. Con el bus en movimiento
+  la pantalla del chofer es de solo mirar (próxima parada, cuenta regresiva, a
+  bordo); detenido o sin monitor, marca normal. La revisión final la confirma
+  siempre el chofer (responsable legal); el monitor también firma si está.
+- **Roles fijos, sin permisos persona por persona:** rol nuevo `monitor` (en la
+  app solo "Rutas escolares de hoy", sin viajes ni millas), sustitutos por día y
+  monitores solo por nombre para quien no use la app.
+- **Cuenta regresiva** de 5 minutos en cada parada (ya existe el margen en el
+  servidor), visible para chofer y monitor.
+
+| Parte | Dónde | Estado |
+|---|---|---|
+| Monitor por nombre, sección Crew, margen de 5 min | Web + servidor | Hecho |
+| Rol `monitor`, asignar monitor con cuenta, sustituto por día, "quién marcó", botón de sustituto | Web + servidor | En curso |
+| Cuenta regresiva, monitor se une a la ruta, pantalla de solo mirar en movimiento, firma del monitor | App | Pendiente (esperando luz verde para móvil) |
+
+## 9. Modo "tablet del bus" y venta/renta de equipo (fase futura)
+Como Tyler, Zonar y BusBoss: la empresa compra o renta la tablet montada en el
+bus con el software.
+- **Tablet registrada al bus**, no a una persona. Chofer y monitor entran a su
+  turno con su ID de flota (CM-D####) y un PIN corto; modo kiosco (solo
+  ControlMiles). Misma app Flutter: las flotas pequeñas siguen usando el teléfono.
+- **Negocio recomendado:** tablet **incluida en el plan Fleet como renta mensual**
+  (Stripe); alternativas: venta del equipo o lista de tablets compatibles.
+- **Antes de vender equipo:** tablet resistente (p. ej. Samsung Galaxy Tab Active,
+  ≈ $500, por confirmar), soporte y cargador de 12 V, plan de datos con SIM,
+  administración remota (Samsung Knox / Android Enterprise), impuesto de venta
+  de Maryland sobre el equipo (ver con el contador), garantía y tablets de
+  repuesto.
+- No comprar inventario hasta tener el primer cliente interesado.
+
+## 10. Ideas para más adelante (no construir aún)
+- **Modo Forms:** las empresas crean sus propios formularios, con **plantillas
+  precargadas** (p. ej. reporte de emergencia/incidente, inventario de
+  utensilios y equipo del chofer: botiquín, extintor, triángulos, chaleco).
+  Los llenan chofer o monitor desde la app; las respuestas quedan en la web con
+  fecha, bus y ruta. Aplica a todas las flotas, no solo escolares. Relacionar con
+  la inspección pre-viaje que ya existe.
+
 ## Fuentes
 - [UniteGPS — precios](https://unitegps.com/pricing) · [Comparación de software escolar](https://unitegps.com/feeds/blog/school-transportation-software-comparison)
 - [Civic IQ — precios de software de transporte escolar 2026](https://civiciq.com/blog/school-transportation-software-2026-pricing-vendors-k-12-contract-analysis)
@@ -135,4 +189,6 @@ Razones:
 - [Samsara K-12](https://samsara.com/industries/k-12) · [BusWhere en Samsara](https://samsara.com/resources/marketplace/buswhere)
 - [BusBoss DISTRICTpatrol](https://www.busboss.com/districtpatrol) · [JourneyPatrol](https://www.busboss.com/journey-patrol) · [BusBoss — FERPA](https://www.busboss.com/ferpa-compliant-transportation-software)
 - [Transfinder — privacidad de estudiantes](https://www.transfinder.com/resources/how-to-protect-student-privacy-during-transit-in-2025)
+- [Tyler Drive](https://tylertech.com/products/tyler-drive) · [Tyler Drive (SoftwareOne)](https://platform.softwareone.com/product/tyler-drive/PCP-8724-5088) · [School Bus Fleet — tablets y ridership en NY](https://www.schoolbusfleet.com/news/728057/new-york-district-launches-tablets-ridership-tracking-technology)
+- [Bus attendant, Delaware](https://joblink.delaware.gov/jobs/1525866) · [Palm Beach — manual de operadores y asistentes](https://www2.palmbeachschools.org/ebooks/transportation/files/basic-html/page26.html) · [Substitute bus driver clauses](https://www.lawinsider.com/clause/substitute-bus-driver)
 - [HopSkipDrive 2026–2027](https://stnonline.com/industry-releases/hopskipdrive-brings-free-ride-recording-and-consistent-caredriver-program-to-2026-2027-school-year/)

@@ -60,6 +60,21 @@ releases have their own changelog in the app repo.
 - **5-minute grace period** before a student turns red or absent: when the
   bus reaches a stop they have 5 minutes to come out (or until the bus
   leaves); boarding in that time just turns them blue.
+- **Substitute for today** (plan section 8: the route must start on time
+  even if the driver or monitor is late): on a route's student page, assign
+  a substitute driver, bus and/or monitor for today only, with a reason; the
+  regular crew is untouched and "Back to the regular crew" undoes it. The
+  form opens by itself when the route is a late start, and the live card
+  says "tap to assign a substitute". Cards and the student page show the
+  day's crew with a "Substitute today" tag. Driver pickers now list every
+  active member (drivers first; a manager who drives is tagged with their
+  role).
+- **Who marked each student**: the route's student page shows "by <name>"
+  under each pick-up / drop-off time.
+- Plan (`docs/plan-fleet-school-transportation.md`): sections 8 (crew, monitor
+  role, substitutes, who keeps the list), 9 (bus tablet mode and tablet
+  sale/rental) and 10 (future **Forms** mode with preloaded templates --
+  not built).
 
 ### Backend (Supabase, live)
 - Migration `20261009100000_school_transportation`: `school_sites`,
@@ -105,6 +120,15 @@ releases have their own changelog in the app repo.
   it, 5 minutes after it arrived, or the run is completed; `fn_rider_status`
   uses it (tested: 0 and 4 min undecided, 6 min or bus left -> decided).
   The driver app gets the margin from the server without an update.
+- Migration `20261009160000_school_crew_overrides`: `route_crew_overrides`
+  (one row per route and date; RLS operator or above; same-fleet checks);
+  `fn_route_crew` (internal, effective crew); `my_school_routes_today` and
+  `start_route_run` use the effective driver/bus, so a substitute driver
+  runs the route in the current app (a substitute starting mid-route takes
+  over the run); `route_runs.monitor_name` keeps the crew it ran with;
+  `ridership_events.recorded_by` set by `record_ridership`. Tested (rolled
+  back): with a substitute the regular driver sees 3 routes instead of 4 and
+  the substitute sees Route 7 AM.
 
 ## 2026-10-08
 
