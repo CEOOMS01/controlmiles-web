@@ -11,10 +11,12 @@ import { createClient } from "@/lib/supabase/server";
 import { getAuthedProfile } from "@/lib/supabase/org-context";
 import { TimeInput } from "@/components/time-input";
 import { ROUTE_TYPE_LABEL, STOP_KIND_LABEL, clock, daysLabel, fleetNow } from "@/lib/school";
-import { RELEASE_REASON_LABEL, STATUS_PILL, loadRodeAm, runStatuses } from "@/lib/school-status";
+import { RELEASE_REASON_LABEL, STATUS_PILL, dueStopIds, loadRodeAm, runStatuses } from "@/lib/school-status";
 import { AutoRefresh } from "../../auto-refresh";
 import { AddressAutocompleteInput } from "../../../routes/address-autocomplete-input";
-import { addStop, assignStudent, deleteStop, moveStop, unassignStudent } from "../../actions";
+import { addStop, assignStudent, deleteStop, moveStop, saveSchoolRouteCrew, unassignStudent } from "../../actions";
+import { loadCrewOptions } from "@/lib/school-crew";
+import { driverLabel } from "@/lib/driver-label";
 import { ActionForm, RowButton, inputClass } from "../../form-kit";
 
 export default async function SchoolRoutePage({
@@ -33,13 +35,13 @@ export default async function SchoolRoutePage({
 
   const { data: route } = await supabase
     .from("routes")
-    .select("id, name, route_type, service_days, scheduled_start_time, school_site_id, organization_id")
+    .select("id, name, route_type, service_days, scheduled_start_time, school_site_id, organization_id, assigned_driver_id, assigned_vehicle_id, monitor_name")
     .eq("id", id)
     .eq("organization_id", orgId)
     .maybeSingle();
   if (!route || (route.route_type !== "school_am" && route.route_type !== "school_pm")) notFound();
 
-  const [{ data: stops }, { data: assignments }, { data: students }, { data: runs }, { data: me }, { data: school }, { data: org }] =
+  const [{ data: stops }, { data: assignments }, { data: students }, { data: runs }, { data: me }, { data: school }, { data: org }, crew, { data: currentDriver }] =
     await Promise.all([
       supabase
         .from("route_stops")
@@ -64,7 +66,16 @@ export default async function SchoolRoutePage({
         ? supabase.from("school_sites").select("name").eq("id", route.school_site_id).maybeSingle()
         : Promise.resolve({ data: null }),
       supabase.from("organizations").select("timezone").eq("id", orgId).maybeSingle(),
+      loadCrewOptions(supabase, orgId),
+      route.assigned_driver_id
+        ? supabase.from("profiles").select("first_name, last_name").eq("id", route.assigned_driver_id).maybeSingle()
+        : Promise.resolve({ data: null }),
     ]);
+  // The assigned driver may not be a "driver" member (e.g. the owner drives).
+  const driverOptions =
+    route.assigned_driver_id && !crew.drivers.some((d) => d.id === route.assigned_driver_id)
+      ? [{ id: route.assigned_driver_id, label: driverLabel(currentDriver, null, "Current driver") }, ...crew.drivers]
+      : crew.drivers;
   const tz = org?.timezone ?? "America/New_York";
   const hm = (iso: string) =>
     new Date(iso).toLocaleTimeString("en-US", { timeZone: tz, hour: "numeric", minute: "2-digit" });
@@ -81,7 +92,7 @@ export default async function SchoolRoutePage({
   const viewRun = (runs ?? []).find((r) => r.run_date === viewDate) ?? null;
   const [{ data: viewEvents }, { data: viewRides }, rodeAm] = viewRun
     ? await Promise.all([
-        supabase.from("route_stop_events").select("stop_id, arrived_at").eq("run_id", viewRun.id),
+        supabase.from("route_stop_events").select("stop_id, arrived_at, departed_at").eq("run_id", viewRun.id),
         supabase.from("ridership_events").select("student_id, action, at, reason, note").eq("run_id", viewRun.id),
         loadRodeAm(supabase, orgId, viewDate, viewDate),
       ])
@@ -91,7 +102,7 @@ export default async function SchoolRoutePage({
   const statuses = runStatuses({
     routeType: route.route_type,
     completed: finished,
-    reachedStops: new Set(arrivedAt.keys()),
+    dueStops: dueStopIds(viewEvents ?? []),
     assignments: assignments ?? [],
     rides: viewRides ?? [],
     rodeAm: (studentId) => rodeAm.has(`${viewDate}:${studentId}`),
@@ -119,6 +130,44 @@ export default async function SchoolRoutePage({
         </p>
       </div>
 
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold">Crew</h2>
+        <ActionForm action={saveSchoolRouteCrew} submitLabel="Save crew">
+          <input type="hidden" name="route_id" value={id} />
+          <div>
+            <label className="mb-1.5 block text-sm font-medium">Driver</label>
+            <select name="driver_id" defaultValue={route.assigned_driver_id ?? ""} className={inputClass}>
+              <option value="">Unassigned</option>
+              {driverOptions.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium">Bus</label>
+            <select name="vehicle_id" defaultValue={route.assigned_vehicle_id ?? ""} className={inputClass}>
+              <option value="">Unassigned</option>
+              {crew.vehicles.map((v) => (
+                <option key={v.id} value={v.id}>
+                  {v.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium">Bus monitor</label>
+            <input
+              name="monitor_name"
+              defaultValue={route.monitor_name ?? ""}
+              maxLength={80}
+              placeholder="Aide's name (optional)"
+              className={inputClass}
+            />
+          </div>
+        </ActionForm>
+      </section>
 
       <section className="space-y-3">
         {viewRun?.status === "in_progress" && <AutoRefresh seconds={15} />}

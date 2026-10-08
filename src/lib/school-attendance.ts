@@ -12,7 +12,7 @@
 // page and the CSV the contractor sends to the county school district.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { RELEASE_REASON_LABEL, loadRodeAm, runStatuses, type RiderStatus } from "./school-status";
+import { RELEASE_REASON_LABEL, dueStopIds, loadRodeAm, runStatuses, type RiderStatus } from "./school-status";
 
 export type AttendanceStatus = "Present" | "Released" | "Absent" | "Unresolved" | "Pending";
 
@@ -65,7 +65,7 @@ export async function loadAttendance(
     await Promise.all([
       supabase.from("student_stop_assignments").select("route_id, student_id, stop_id, action").in("route_id", routeIds),
       supabase.from("ridership_events").select("run_id, student_id, stop_id, action, at, reason, note").in("run_id", runIds),
-      supabase.from("route_stop_events").select("run_id, stop_id").in("run_id", runIds),
+      supabase.from("route_stop_events").select("run_id, stop_id, arrived_at, departed_at").in("run_id", runIds),
       supabase.from("students").select("id, first_name, last_initial, grade, external_id, school_site_id").eq("organization_id", orgId),
       supabase.from("school_sites").select("id, name").eq("organization_id", orgId),
       supabase.from("route_stops").select("id, name").in("route_id", routeIds),
@@ -84,7 +84,7 @@ export async function loadAttendance(
     const statuses = runStatuses({
       routeType: route?.route_type ?? "school_am",
       completed: run.status === "completed",
-      reachedStops: new Set((reached ?? []).filter((e) => e.run_id === run.id).map((e) => e.stop_id)),
+      dueStops: dueStopIds((reached ?? []).filter((e) => e.run_id === run.id)),
       assignments: routeAssignments,
       rides,
       rodeAm: (studentId) => rodeAm.has(`${run.run_date}:${studentId}`),

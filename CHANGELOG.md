@@ -46,6 +46,20 @@ releases have their own changelog in the app repo.
   - **Attendance report**: Present / Released (with reason, counts as
     attendance) / Absent / Unresolved, a new Note column, and an **"Alerts
     and how they were resolved"** section; the CSV adds Time and Note.
+- **School: live -> route students.** Tapping a route card opens a new page
+  (`/admin/school/live/[id]`) with every student of the route and ONE color
+  for their situation right now (alerts first): on the bus / dropped off,
+  rode this morning but hasn't come out, not dropped off, released with the
+  reason, absent. Shows the bus (name, fleet ID, plate), the driver and the
+  bus monitor, counts per color, and refreshes every 15 s while running.
+  "Route setup" still opens the planning page.
+- **Bus monitor** per school route (by name; monitors usually don't use the
+  app): set when creating the route or in the new **Crew** section of the
+  route page (driver, bus and monitor, editable after creation). Shown on
+  the live cards, the route list and the route's student page. Web only.
+- **5-minute grace period** before a student turns red or absent: when the
+  bus reaches a stop they have 5 minutes to come out (or until the bus
+  leaves); boarding in that time just turns them blue.
 
 ### Backend (Supabase, live)
 - Migration `20261009100000_school_transportation`: `school_sites`,
@@ -86,6 +100,11 @@ releases have their own changelog in the app repo.
   brought him), one released for early dismissal, one forgotten on the bus
   (red at their stop, finish blocked), one never came out (finish blocked
   until resolved with a reason), then completed.
+- Migration `20261009150000_school_grace_and_monitor`: `routes.monitor_name`;
+  `fn_stop_due` (internal) -- a stop's decisions are due once the bus left
+  it, 5 minutes after it arrived, or the run is completed; `fn_rider_status`
+  uses it (tested: 0 and 4 min undecided, 6 min or bus left -> decided).
+  The driver app gets the margin from the server without an update.
 
 ## 2026-10-08
 

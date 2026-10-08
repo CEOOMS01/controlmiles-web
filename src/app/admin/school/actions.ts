@@ -115,6 +115,7 @@ export async function createSchoolRoute(_: FormResult, formData: FormData): Prom
       school_site_id: text(formData, "school_site_id"),
       assigned_driver_id: text(formData, "driver_id"),
       assigned_vehicle_id: text(formData, "vehicle_id"),
+      monitor_name: text(formData, "monitor_name")?.slice(0, 80) ?? null,
       scheduled_start_time: text(formData, "scheduled_start_time"),
       service_days: days,
       status: "active",
@@ -125,19 +126,24 @@ export async function createSchoolRoute(_: FormResult, formData: FormData): Prom
   return { error: null };
 }
 
-export async function updateSchoolRouteAssignment(
-  routeId: string,
-  driverId: string | null,
-  vehicleId: string | null,
-): Promise<FormResult> {
+/** The route's crew: driver, bus and bus monitor (aide, by name). */
+export async function saveSchoolRouteCrew(_: FormResult, formData: FormData): Promise<FormResult> {
   const { supabase } = await context();
+  const routeId = text(formData, "route_id");
+  if (!routeId) return { error: "Route not found." };
   const { error } = await supabase
     .from("routes")
-    .update({ assigned_driver_id: driverId, assigned_vehicle_id: vehicleId })
+    .update({
+      assigned_driver_id: text(formData, "driver_id"),
+      assigned_vehicle_id: text(formData, "vehicle_id"),
+      monitor_name: text(formData, "monitor_name")?.slice(0, 80) ?? null,
+    })
     .eq("id", routeId);
   if (error) return fail(error);
   revalidatePath(`/admin/school/routes/${routeId}`);
+  revalidatePath(`/admin/school/live/${routeId}`);
   revalidatePath("/admin/school/routes");
+  revalidatePath("/admin/school");
   return { error: null };
 }
 

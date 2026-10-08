@@ -9,7 +9,8 @@ import { createClient } from "@/lib/supabase/server";
 import { getAuthedProfile } from "@/lib/supabase/org-context";
 import { driverLabel, fleetDriverIds } from "@/lib/driver-label";
 import { ROUTE_TYPE_LABEL, clock, fleetNow, minutesOf } from "@/lib/school";
-import { loadRodeAm, runStatuses } from "@/lib/school-status";
+import { dueStopIds, loadRodeAm, runStatuses } from "@/lib/school-status";
+import { busLabel } from "@/lib/school-crew";
 import { FleetMap, type FleetVehicle } from "../fleet-map";
 import { AutoRefresh } from "./auto-refresh";
 
@@ -19,6 +20,7 @@ type Card = {
   type: string;
   driver: string;
   bus: string;
+  monitor: string | null;
   start: string | null;
   state: "not_started" | "late_start" | "on_time" | "behind" | "completed";
   detail: string;
@@ -55,7 +57,7 @@ export default async function SchoolLivePage() {
   const { data: routeRows } = await supabase
     .from("routes")
     .select(
-      "id, name, route_type, service_days, scheduled_start_time, assigned_driver_id, assigned_vehicle_id, profiles!routes_assigned_driver_id_fkey(first_name, last_name), vehicles(nickname, make, model, display_id)",
+      "id, name, route_type, service_days, scheduled_start_time, assigned_driver_id, assigned_vehicle_id, monitor_name, profiles!routes_assigned_driver_id_fkey(first_name, last_name), vehicles(nickname, make, model, display_id)",
     )
     .eq("organization_id", orgId)
     .in("route_type", ["school_am", "school_pm"])
@@ -90,7 +92,7 @@ export default async function SchoolLivePage() {
   const runIds = (runs ?? []).map((r) => r.id);
   const [{ data: events }, { data: ridership }, rodeAm] = await Promise.all([
     runIds.length
-      ? supabase.from("route_stop_events").select("run_id, stop_id, arrived_at").in("run_id", runIds)
+      ? supabase.from("route_stop_events").select("run_id, stop_id, arrived_at, departed_at").in("run_id", runIds)
       : Promise.resolve({ data: [] }),
     runIds.length
       ? supabase.from("ridership_events").select("run_id, student_id, action, at").in("run_id", runIds)
@@ -113,7 +115,7 @@ export default async function SchoolLivePage() {
           ...runStatuses({
             routeType: r.route_type,
             completed: run.status === "completed",
-            reachedStops: visited,
+            dueStops: dueStopIds((events ?? []).filter((e) => e.run_id === run.id)),
             assignments: (assignments ?? []).filter((a) => a.route_id === r.id),
             rides,
             rodeAm: (studentId) => rodeAm.has(`${now.date}:${studentId}`),
@@ -152,7 +154,8 @@ export default async function SchoolLivePage() {
       name: r.name,
       type: ROUTE_TYPE_LABEL[r.route_type] ?? "",
       driver: driverLabel(p, r.assigned_driver_id ? fleetIds.get(r.assigned_driver_id) : null, "No driver"),
-      bus: v ? v.display_id || v.nickname || [v.make, v.model].filter(Boolean).join(" ") || "Bus" : "No bus",
+      bus: busLabel(v),
+      monitor: r.monitor_name,
       start: r.scheduled_start_time,
       state,
       detail,
@@ -206,7 +209,7 @@ export default async function SchoolLivePage() {
         {cards.map((c) => (
           <Link
             key={c.id}
-            href={`/admin/school/routes/${c.id}`}
+            href={`/admin/school/live/${c.id}`}
             className="rounded-xl border border-border bg-surface p-4 transition hover:border-accent/60"
           >
             <div className="flex items-start justify-between gap-2">
@@ -224,9 +227,14 @@ export default async function SchoolLivePage() {
                 {c.alerts} student{c.alerts > 1 ? "s" : ""} in red: rode this morning but not on the bus / not dropped off
               </p>
             )}
-            <p className="mt-2 text-xs text-muted">
-              {c.driver} · {c.bus}
-            </p>
+            <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-2 text-xs">
+              <dt className="text-muted">Bus</dt>
+              <dd className="font-medium">{c.bus}</dd>
+              <dt className="text-muted">Driver</dt>
+              <dd className="font-medium">{c.driver}</dd>
+              <dt className="text-muted">Monitor</dt>
+              <dd className="font-medium">{c.monitor ?? "—"}</dd>
+            </dl>
             <p className="mt-1 text-xs text-muted">
               {c.progress} · {c.onBoard} on board · {c.riders} riders assigned
             </p>

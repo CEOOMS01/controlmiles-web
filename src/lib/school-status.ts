@@ -7,6 +7,9 @@
 //   yellow = didn't ride this morning -> absent, not expected in the PM
 //   gray   = red resolved with a reason (counts as attendance)
 //   expected | pending | on_board = not decided yet
+// Grace period (migration 20261009150000): a stop is only "due" -- students
+// there decided red/yellow -- once the bus left it or 5 minutes after it
+// arrived (or the run is completed); boarding before that just turns blue.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -29,6 +32,20 @@ export const STATUS_PILL: Record<RiderStatus, string> = {
   on_board: "border-border text-muted",
 };
 
+export const STOP_GRACE_MINUTES = 5;
+
+/** Stops whose decisions are due: the bus left, or arrived over 5 min ago. */
+export function dueStopIds(
+  events: { stop_id: string; arrived_at: string; departed_at: string | null }[],
+  now = Date.now(),
+): Set<string> {
+  return new Set(
+    events
+      .filter((e) => e.departed_at || new Date(e.arrived_at).getTime() <= now - STOP_GRACE_MINUTES * 60_000)
+      .map((e) => e.stop_id),
+  );
+}
+
 type Assignment = { stop_id: string; student_id: string; action: string };
 type Ride = { student_id: string; action: string; at: string; reason?: string | null; note?: string | null };
 
@@ -38,12 +55,12 @@ export type RiderState = { status: RiderStatus; at: string | null; reason: strin
 export function runStatuses(input: {
   routeType: string;
   completed: boolean;
-  reachedStops: Set<string>;
+  dueStops: Set<string>;
   assignments: Assignment[];
   rides: Ride[];
   rodeAm: (studentId: string) => boolean;
 }): Map<string, RiderState> {
-  const { routeType, completed, reachedStops, assignments, rides, rodeAm } = input;
+  const { routeType, completed, dueStops, assignments, rides, rodeAm } = input;
   const ride = new Map(rides.map((r) => [`${r.student_id}:${r.action}`, r]));
   const pm = routeType === "school_pm";
   const out = new Map<string, RiderState>();
@@ -51,22 +68,22 @@ export function runStatuses(input: {
     const done = ride.get(`${a.student_id}:${a.action}`);
     const released = ride.get(`${a.student_id}:released`);
     const boarded = ride.has(`${a.student_id}:board`);
-    const reached = reachedStops.has(a.stop_id);
+    const due = completed || dueStops.has(a.stop_id);
     let status: RiderStatus;
     if (done) status = "blue";
     else if (released) status = "gray";
     else if (a.action === "board") {
-      if (pm) status = !rodeAm(a.student_id) ? "yellow" : reached || completed ? "red" : "expected";
-      else status = reached || completed ? "yellow" : "pending";
+      if (pm) status = !rodeAm(a.student_id) ? "yellow" : due ? "red" : "expected";
+      else status = due ? "yellow" : "pending";
     } else if (!boarded) {
       if (pm) status = rodeAm(a.student_id) ? "pending" : "yellow";
       else {
         const pickupReached = assignments.some(
-          (b) => b.student_id === a.student_id && b.action === "board" && reachedStops.has(b.stop_id),
+          (b) => b.student_id === a.student_id && b.action === "board" && dueStops.has(b.stop_id),
         );
         status = completed || pickupReached ? "yellow" : "pending";
       }
-    } else status = reached || completed ? "red" : "on_board";
+    } else status = due ? "red" : "on_board";
     out.set(`${a.student_id}:${a.action}`, {
       status,
       at: done?.at ?? null,
