@@ -64,7 +64,7 @@
     "subtitle": "Los conductores gig se suscriben desde la app. Los administradores de flota gestionan facturación y plantilla desde este panel.",
     "mostPopular": "MÁS POPULAR",
     "forDrivers": "Para conductores gig",
-    "forDriversNote": "Se cobra dentro de la app, en App Store o Google Play. Cancela cuando quieras.",
+    "forDriversNote": "15 días de prueba gratis; luego Google Play cobra cada mes (App Store muy pronto). Descarga la app, elige tu plan dentro de ella y cancela cuando quieras.",
     "forFleets": "Para flotas",
     "forFleetsNote": "Precio por vehículo, 15 días de prueba gratis. Se configura y gestiona íntegramente desde controlmiles.com.",
     "getApp": "Descargar la app",
@@ -114,7 +114,8 @@
       "oneVehicle": "1 vehículo",
       "fiveVehicles": "Hasta 5 vehículos"
     },
-    "disclaimer": "Precios en USD; pueden aplicar impuestos. Los planes de flota se cobran mensualmente por los vehículos registrados. Esto no es asesoramiento fiscal ni financiero."
+    "disclaimer": "Precios en USD; pueden aplicar impuestos. Los planes de flota se cobran mensualmente por los vehículos registrados. Esto no es asesoramiento fiscal ni financiero.",
+    "startTrial": "Prueba gratis 15 días"
   },
   "portalCta": {
     "eyebrow": "PORTAL DE REPORTES",
@@ -122,5 +123,23 @@
     "body": "Tu cliente genera un código de un solo uso desde su cuenta de ControlMiles. Introdúcelo aquí para ver un resumen de millas de solo lectura: sin iniciar sesión, sin cuenta y sin instalar nada.",
     "cta": "Introducir código",
     "note": "Para efectos de deducción: esta app no los garantiza."
+  },
+  "getApp": {
+    "metaTitle": "Descarga la app — ControlMiles",
+    "metaDescription": "Descarga ControlMiles para Android y empieza tu prueba gratis de 15 días de Basic o Premium desde la app.",
+    "eyebrow": "CONTROLMILES PARA CONDUCTORES",
+    "title": "Descarga la app ControlMiles",
+    "body": "El registro de viajes, las fotos del odómetro, los mapas de ruta y tus reportes viven en la app móvil.",
+    "steps": [
+      "Descarga ControlMiles y crea tu cuenta.",
+      "Elige Basic o Premium dentro de la app: ambos incluyen 15 días de prueba gratis.",
+      "Al terminar la prueba, Google Play cobra tu suscripción. Cancela cuando quieras en Google Play."
+    ],
+    "googlePlay": "Disponible en Google Play",
+    "googlePlaySoon": "Muy pronto en Google Play",
+    "appStoreSoon": "App Store: muy pronto",
+    "fleetNote": "¿Tienes una flota? El panel de controlmiles.com es para administradores de flotas.",
+    "fleetLink": "Precios para flotas",
+    "back": "Volver a controlmiles.com"
   }
 }

@@ -77,7 +77,7 @@ const gigPlans = (t: Awaited<ReturnType<typeof getTranslations>>): Plan[] => [
       t("features.pdfExport"),
       t("features.oneVehicle"),
     ],
-    cta: { label: t("getApp"), href: "/app-required" },
+    cta: { label: t("startTrial"), href: "/app-required" },
   },
   {
     name: t("plans.premiumName"),
@@ -90,7 +90,7 @@ const gigPlans = (t: Awaited<ReturnType<typeof getTranslations>>): Plan[] => [
       t("features.unlimitedHistory"),
       t("features.fiveVehicles"),
     ],
-    cta: { label: t("getApp"), href: "/app-required" },
+    cta: { label: t("startTrial"), href: "/app-required" },
     highlight: true,
   },
 ];
@@ -261,7 +261,7 @@ export default async function PricingPage({
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-6 py-12 sm:px-10">
+      <section id="fleets" className="mx-auto max-w-6xl scroll-mt-24 px-6 py-12 sm:px-10">
         <h2 className="display text-2xl font-semibold">{t("forFleets")}</h2>
         <p className="mt-1 text-sm text-[var(--lg-ink-dim)]">
           {t("forFleetsNote")}

@@ -64,7 +64,7 @@
     "subtitle": "Individual gig drivers subscribe from the app. Fleet admins manage billing and rostering from this dashboard.",
     "mostPopular": "MOST POPULAR",
     "forDrivers": "For gig drivers",
-    "forDriversNote": "Billed in-app on the App Store or Google Play. Cancel anytime.",
+    "forDriversNote": "15-day free trial, then billed monthly by Google Play (App Store coming soon). Download the app, pick your plan inside it, cancel anytime.",
     "forFleets": "For fleets",
     "forFleetsNote": "Priced per vehicle, 15-day free trial. Set up and manage entirely from controlmiles.com.",
     "getApp": "Get the app",
@@ -114,7 +114,8 @@
       "oneVehicle": "1 vehicle",
       "fiveVehicles": "Up to 5 vehicles"
     },
-    "disclaimer": "Prices in USD; taxes may apply. Fleet plans are billed monthly for the vehicles on file. Not tax or financial advice."
+    "disclaimer": "Prices in USD; taxes may apply. Fleet plans are billed monthly for the vehicles on file. Not tax or financial advice.",
+    "startTrial": "Start 15-day free trial"
   },
   "portalCta": {
     "eyebrow": "REPORT PORTAL",
@@ -122,5 +123,23 @@
     "body": "Your client generates a one-time access code from their ControlMiles account. Enter it here to view a read-only mileage summary — no login, no account, nothing installed.",
     "cta": "Enter access code",
     "note": "For deduction purposes — not guaranteed by this app."
+  },
+  "getApp": {
+    "metaTitle": "Get the app — ControlMiles",
+    "metaDescription": "Download ControlMiles for Android and start your 15-day free trial of Basic or Premium in the app.",
+    "eyebrow": "CONTROLMILES FOR DRIVERS",
+    "title": "Get the ControlMiles app",
+    "body": "Trip tracking, odometer photos, route maps and your reports all live in the mobile app.",
+    "steps": [
+      "Download ControlMiles and create your account.",
+      "Choose Basic or Premium in the app: both include a 15-day free trial.",
+      "Your subscription is billed by Google Play after the trial. Cancel anytime in Google Play."
+    ],
+    "googlePlay": "Get it on Google Play",
+    "googlePlaySoon": "Coming soon to Google Play",
+    "appStoreSoon": "App Store: coming soon",
+    "fleetNote": "Run a fleet? The controlmiles.com dashboard is for fleet admins.",
+    "fleetLink": "Fleet pricing",
+    "back": "Back to controlmiles.com"
   }
 }

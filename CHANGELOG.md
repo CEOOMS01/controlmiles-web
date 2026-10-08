@@ -9,6 +9,24 @@ here. The Supabase changes they depend on live in the app repo
 (`controlmiles/supabase/`) and are listed under **Backend** below. Mobile app
 releases have their own changelog in the app repo.
 
+## 2026-10-07
+
+### Changed
+- **Gig plans are sold only in the app** (Basic $5.99 / Premium $9.99, Google
+  Play subscriptions with a 15-day free trial); the web sells fleet plans
+  only (Stripe). Same model as Gridwise Plus: price on the site, button to
+  the app, trial and billing in the store.
+  - `/pricing`: the Basic/Premium buttons say **Start 15-day free trial**
+    and the note explains the trial, Google Play billing and in-app plan
+    choice. The fleet section has an anchor (`/pricing#fleets`).
+  - `/app-required` is now a localized (en/es) download page: 3 steps
+    (download, pick a plan in the app, Google Play bills after the trial),
+    Google Play / App Store buttons and a link to fleet pricing. It used to
+    tell people who had just picked a plan that "the app is coming soon"
+    and "this website is for fleet admins". The Google Play button shows
+    "Coming soon" until `PLAY_STORE_PUBLIC` is set to `true` (the app is in
+    closed testing, so its store listing is not public yet).
+
 ## 2026-10-05
 
 ### Fixed
