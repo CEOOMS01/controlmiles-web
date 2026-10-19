@@ -14,6 +14,7 @@ import { AddVehicleForm } from "../vehicles/add-vehicle-form";
 import { ArchiveButton } from "../vehicles/vehicle-row-actions";
 import { getBranchScope } from "@/lib/branch-scope";
 import { MemberBranchSelect, VehicleBranchSelect } from "../branch-controls";
+import { getOrgFeatures } from "@/lib/fleet-features";
 
 // Team+Vehicles unification (explicit user request, 2026-09-23): this
 // used to be two separate pages/nav items -- "who's on the team" and
@@ -25,6 +26,15 @@ import { MemberBranchSelect, VehicleBranchSelect } from "../branch-controls";
 // driving). /admin/vehicles itself now just redirects here (see that
 // page's own comment) rather than disappearing outright, in case
 // anything still links to the old URL.
+// Role names as people read them (the stored values stay internal).
+const ROLE_LABEL: Record<string, string> = {
+  owner: "Owner",
+  admin: "Admin",
+  operator: "Operator",
+  driver: "Driver",
+  monitor: "Bus aide",
+};
+
 export default async function RosterPage() {
   const supabase = await createClient();
   const { user, profile } = await getAuthedProfile();
@@ -32,7 +42,7 @@ export default async function RosterPage() {
   const orgId = profile?.default_org_id;
   if (!orgId) return null;
 
-  const [{ data: members }, { data: allSlots }, { data: vehicles }, { data: inviteRows }, { data: orgRow }] = await Promise.all([
+  const [{ data: members }, { data: allSlots }, { data: vehicles }, { data: inviteRows }] = await Promise.all([
     supabase
       .from("organization_members")
       .select(
@@ -70,7 +80,6 @@ export default async function RosterPage() {
       .eq("organization_id", orgId)
       .in("status", ["pending", "expired"])
       .order("created_at", { ascending: false }),
-    supabase.from("organizations").select("industry_template").eq("id", orgId).maybeSingle(),
   ]);
 
   // Branch filter (sidebar): drivers of the branch (home or "any"),
@@ -135,7 +144,7 @@ export default async function RosterPage() {
       <div className="mb-6 grid gap-4 sm:grid-cols-2">
         <AddDriverForm
           orgId={orgId}
-          schoolFleet={orgRow?.industry_template === "school_transport"}
+          schoolFleet={(await getOrgFeatures(orgId)).has("school")}
           callerRole={callerRole === "owner" || callerRole === "admin" || callerRole === "operator" ? callerRole : "operator"}
         />
         <AddVehicleForm orgId={orgId} />
@@ -170,7 +179,7 @@ export default async function RosterPage() {
                     {displayIdByUserId.get(m.user_id) ?? "—"}
                   </td>
                   <td className="px-4 py-3 text-muted">{p?.email ?? "—"}</td>
-                  <td className="px-4 py-3 capitalize text-muted">{m.member_role === "monitor" ? "Bus monitor" : m.member_role}</td>
+                  <td className="px-4 py-3 text-muted">{ROLE_LABEL[m.member_role] ?? "Member"}</td>
                   <td className="px-4 py-3">
                     {m.member_role === "driver" && m.is_active ? (
                       <DriverVehicleSelect

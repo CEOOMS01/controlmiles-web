@@ -6,7 +6,7 @@ import { getAuthedProfile } from "@/lib/supabase/org-context";
 import { CreateOrgForm } from "./create-org-form";
 import { SignOutButton } from "./sign-out-button";
 import { OrgSwitcher } from "./org-switcher";
-import { moduleVisible, type OptionalModule } from "@/lib/fleet-profiles";
+import { getOrgFeatures } from "@/lib/fleet-features";
 import { getBranchScope } from "@/lib/branch-scope";
 import { BranchSelector } from "./branch-controls";
 import { LEGAL_TERMS_VERSION } from "@/lib/legal-version";
@@ -69,7 +69,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
       .maybeSingle(),
     supabase
       .from("organizations")
-      .select("id, name, compliance_mode, fleet_type_confirmed_at, industry_template, show_all_modules, use_shift_schedules")
+      .select("id, name, compliance_mode, fleet_type_confirmed_at, use_shift_schedules")
       .eq("id", profile.default_org_id)
       .maybeSingle(),
     supabase
@@ -123,10 +123,13 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   }
 
   const isOperatorOnly = role === "operator";
-  const show = (m: OptionalModule) => moduleVisible(org.industry_template, org.show_all_modules, m);
-  // Shift schedules are optional (2026-09-30): the menu item shows once
-  // the fleet turns them on in Settings.
-  const showShifts = org.use_shift_schedules || org.show_all_modules;
+  // What this fleet's service and plan include (fn_org_features). Anything
+  // else is left out of the menu entirely -- and its page answers 404.
+  const features = await getOrgFeatures(org.id);
+  const has = features.has;
+  // Shifts: recurring schedules once the fleet turns them on, or a driving
+  // school's classes.
+  const showShifts = (has("shift_schedules") && org.use_shift_schedules) || has("classes");
   const branchScope = await getBranchScope(org.id);
 
   // Onboarding (2026-09-30): the fleet type is chosen right after sign-up,
@@ -167,22 +170,17 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
               (who's driving what was always one question asked from two
               directions) -- no separate "Vehicles" link anymore. */}
           <AdminNavLink href="/admin/roster">Team</AdminNavLink>
-          {/* Fleet profile (2026-09-30): modules that don't fit this kind
-              of fleet are hidden, never locked -- Settings > "Show all
-              modules" brings them back, and the pages stay reachable. */}
-          {/* School transportation (2026-10-09): live run board, school
-              routes with stops, and schools & students. */}
-          {show("school") && (
+          {has("school_live") && <AdminNavLink href="/admin/school">School: live</AdminNavLink>}
+          {has("school") && (
             <>
-              <AdminNavLink href="/admin/school">School: live</AdminNavLink>
               <AdminNavLink href="/admin/school/routes">School routes</AdminNavLink>
               <AdminNavLink href="/admin/school/students">Schools &amp; students</AdminNavLink>
               <AdminNavLink href="/admin/school/attendance">Attendance</AdminNavLink>
             </>
           )}
-          {show("routes") && <AdminNavLink href="/admin/routes">Routes</AdminNavLink>}
-          {showShifts && <AdminNavLink href="/admin/shifts">Shifts</AdminNavLink>}
-          {show("geofences") && <AdminNavLink href="/admin/geofences">Geofences</AdminNavLink>}
+          {has("routes") && <AdminNavLink href="/admin/routes">Routes</AdminNavLink>}
+          {showShifts && <AdminNavLink href="/admin/shifts">{has("classes") ? "Classes" : "Shifts"}</AdminNavLink>}
+          {has("geofences") && <AdminNavLink href="/admin/geofences">Geofences</AdminNavLink>}
           <AdminNavLink href="/admin/import">Import</AdminNavLink>
           {/* Everything below here is outside an Operator's real RLS/RPC
               scope (IFTA, Reviews, Safety, Activity, Maintenance, Export,
@@ -195,19 +193,20 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
               <AdminNavLink href="/admin/fuel">
                 <span className="flex items-center justify-between">
                   Fuel
-                  {(openFuelAlerts ?? 0) > 0 && (
+                  {has("fuel_alerts") && (openFuelAlerts ?? 0) > 0 && (
                     <span className="rounded-full bg-danger px-1.5 py-0.5 text-[10px] leading-none font-bold text-white">
                       {openFuelAlerts}
                     </span>
                   )}
                 </span>
               </AdminNavLink>
-              {show("ifta") && <AdminNavLink href="/admin/ifta">IFTA</AdminNavLink>}
+              {has("ifta") && <AdminNavLink href="/admin/ifta">IFTA</AdminNavLink>}
               <AdminNavLink href="/admin/reviews">Reviews</AdminNavLink>
-              <AdminNavLink href="/admin/safety">Safety</AdminNavLink>
-              <AdminNavLink href="/admin/activity">Activity</AdminNavLink>
+              {has("trip_approval") && <AdminNavLink href="/admin/approvals">Trip approval</AdminNavLink>}
+              {has("safety_scores") && <AdminNavLink href="/admin/safety">Safety</AdminNavLink>}
+              {has("activity_log") && <AdminNavLink href="/admin/activity">Activity</AdminNavLink>}
               <AdminNavLink href="/admin/maintenance">Maintenance</AdminNavLink>
-              <AdminNavLink href="/admin/export">Export</AdminNavLink>
+              {has("fleet_export") && <AdminNavLink href="/admin/export">Export</AdminNavLink>}
               <AdminNavLink href="/admin/settings">Settings</AdminNavLink>
             </>
           )}

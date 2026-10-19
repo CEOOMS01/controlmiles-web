@@ -1,12 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
 import { getBranchScope } from "@/lib/branch-scope";
 import { getAuthedProfile } from "@/lib/supabase/org-context";
-import { GrowthUpsell } from "../growth-upsell";
 import { ShiftForm } from "./shift-form";
 import { ShiftRowActions } from "./shift-row-actions";
 import { ClassBlockForm } from "./class-block-form";
 import { ClassBlockActions } from "./class-block-actions";
 import { driverLabel, fleetDriverIds } from "@/lib/driver-label";
+import { requireFeature } from "@/lib/fleet-features";
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -186,19 +186,21 @@ export default async function ShiftsPage({
 }: {
   searchParams: Promise<{ date?: string | string[] }>;
 }) {
+  const features = await requireFeature("shift_schedules", "classes");
   const supabase = await createClient();
   const { user, profile } = await getAuthedProfile();
   if (!user) return null;
   const orgId = profile?.default_org_id;
   if (!orgId) return null;
 
-  const { data: tier } = await supabase.rpc("fn_org_effective_tier", { p_org_id: orgId });
-  const isGrowth = tier === "growth" || tier === "enterprise";
-  const isEnterprise = tier === "enterprise";
+  // Driving schools get classes; recurring weekly shifts (with live
+  // attendance against the real trip start) come with Growth.
+  const hasClasses = features.has("classes");
+  const hasWeekly = features.has("shift_schedules");
 
   const { data: orgRow } = await supabase
     .from("organizations")
-    .select("timezone, shift_start_window_minutes, industry_template")
+    .select("timezone, shift_start_window_minutes")
     .eq("id", orgId)
     .maybeSingle();
   const timeZone = orgRow?.timezone ?? "America/New_York";
@@ -214,9 +216,7 @@ export default async function ShiftsPage({
   const requested = (await searchParams).date;
   const selectedDate =
     typeof requested === "string" && /^\d{4}-\d{2}-\d{2}$/.test(requested) ? requested : local.date;
-  // Classes exist only for the Driving school industry template.
-  const hasClasses = orgRow?.industry_template === "driving_school";
-  const { data: dayBlocks } = isGrowth && hasClasses
+  const { data: dayBlocks } = hasClasses
     ? await supabase.rpc("get_org_shift_day", { p_org: orgId, p_date: selectedDate })
     : { data: [] as ClassBlock[] };
 
@@ -236,7 +236,7 @@ export default async function ShiftsPage({
         .eq("organization_id", orgId)
         .eq("member_role", "driver")
         .eq("is_active", true),
-      isEnterprise
+      hasWeekly
         ? supabase
             .from("sessions")
             .select("user_id, start_time, end_time")
@@ -285,26 +285,18 @@ export default async function ShiftsPage({
   return (
     <main className="px-6 py-10 sm:px-10">
       <div className="mb-8">
-        <p className="text-sm font-semibold tracking-wide text-accent uppercase">Shifts</p>
-        <h1 className="mt-1 text-2xl font-semibold">Work schedule</h1>
+        <p className="text-sm font-semibold tracking-wide text-accent uppercase">{hasClasses ? "Classes" : "Shifts"}</p>
+        <h1 className="mt-1 text-2xl font-semibold">{hasClasses ? "Class schedule" : "Work schedule"}</h1>
         <p className="mt-2 max-w-2xl text-sm text-muted">
           {hasClasses
-            ? "When each instructor works: a weekly template plus hourly classes on specific dates. Separate from Routes, which dispatches a specific trip."
-            : "A recurring weekly schedule per driver. Separate from Routes, which dispatches a specific trip on a specific date."}
+            ? hasWeekly
+              ? "When each instructor teaches: hourly classes on specific dates plus a weekly template."
+              : "When each instructor teaches: hourly classes on specific dates."
+            : "A recurring weekly schedule per driver."}
         </p>
       </div>
 
-      {!isGrowth ? (
-        <GrowthUpsell feature="Shift scheduling" />
-      ) : (
-        <>
-          {!isEnterprise && (
-            <div className="mb-6 rounded-xl border border-dashed border-border bg-surface p-4 text-sm text-muted">
-              <span className="font-medium text-foreground">Enterprise</span> adds live attendance
-              status — on time, late start, or running into overtime — checked against each
-              driver&apos;s real GPS trip start, not just the schedule.
-            </div>
-          )}
+      <>
           {hasClasses && (<>
           {/* Day schedule: hourly classes for one date (driving-school
               style) -- the weekly template below materialized for that
@@ -424,8 +416,9 @@ export default async function ShiftsPage({
             })()}
           </section>
 
-          <h2 className="mb-3 text-lg font-semibold">Weekly template</h2>
           </>)}
+          {hasWeekly && (<>
+          {hasClasses && <h2 className="mb-3 text-lg font-semibold">Weekly template</h2>}
           <div className="mb-8">
             <ShiftForm orgId={orgId} drivers={drivers} vehicles={vehicleOptions} timeFormat={timeFormat} />
           </div>
@@ -460,7 +453,6 @@ export default async function ShiftsPage({
                                   Paused
                                 </span>
                               ) : (
-                                isEnterprise &&
                                 s.day_of_week === todayDow &&
                                 (() => {
                                   const status = attendanceStatus(
@@ -492,8 +484,8 @@ export default async function ShiftsPage({
               ))}
             </div>
           )}
-        </>
-      )}
+          </>)}
+      </>
     </main>
   );
 }

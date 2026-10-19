@@ -13,6 +13,7 @@ import { dueStopIds, loadRodeAm, runStatuses } from "@/lib/school-status";
 import { busLabel, effectiveMonitor, loadCrewOptions, loadCrewOverrides } from "@/lib/school-crew";
 import { FleetMap, type FleetVehicle } from "../fleet-map";
 import { AutoRefresh } from "./auto-refresh";
+import { requireFeature } from "@/lib/fleet-features";
 
 type Card = {
   id: string;
@@ -42,6 +43,7 @@ const STATE_STYLE: Record<Card["state"], { label: string; className: string }> =
 const LATE_MIN = 5;
 
 export default async function SchoolLivePage() {
+  await requireFeature("school_live");
   const supabase = await createClient();
   const { user, profile } = await getAuthedProfile();
   const orgId = profile?.default_org_id;
@@ -249,7 +251,7 @@ export default async function SchoolLivePage() {
               <dd className="font-medium">{c.bus}</dd>
               <dt className="text-muted">Driver</dt>
               <dd className="font-medium">{c.driver}</dd>
-              <dt className="text-muted">Monitor</dt>
+              <dt className="text-muted">Bus aide</dt>
               <dd className="font-medium">{c.monitor ?? "—"}</dd>
             </dl>
             {c.substitute && (

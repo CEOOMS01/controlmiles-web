@@ -4,6 +4,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getAuthedProfile } from "@/lib/supabase/org-context";
 import { attendanceCsv, loadAttendance } from "@/lib/school-attendance";
+import { getOrgFeatures } from "@/lib/fleet-features";
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -12,6 +13,8 @@ export async function GET(request: Request) {
   const { user, profile } = await getAuthedProfile();
   const orgId = profile?.default_org_id;
   if (!user || !orgId) return new Response("Not authenticated", { status: 401 });
+  // Attendance export is part of the Growth school package.
+  if (!(await getOrgFeatures(orgId)).has("school_live")) return new Response("Not found", { status: 404 });
 
   const url = new URL(request.url);
   const from = url.searchParams.get("from") ?? "";

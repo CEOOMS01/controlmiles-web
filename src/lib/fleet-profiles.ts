@@ -1,12 +1,11 @@
 // Olympus Mont Systems LLC - ControlMiles Web
 // src/lib/fleet-profiles.ts
 //
-// Fleet profiles (2026-09-30, approved plan): the profile chosen in
-// onboarding hides the modules that don't apply to that kind of fleet --
-// a car fleet doesn't see IFTA -- and never blocks anything: Settings has
-// "Show all modules", and pages stay reachable by URL. The plan
-// (Starter/Growth/Enterprise) separately decides depth. Mirrors the
-// organizations_industry_template_check constraint and
+// Fleet profiles (the "service" a fleet picks once in onboarding). Since
+// 2026-10-19 the service and the plan together decide what a fleet has,
+// in the database (fn_org_features, see src/lib/fleet-features.ts) -- a
+// module outside them is not shown anywhere and is refused by the server.
+// Mirrors the organizations_industry_template_check constraint and
 // fn_profile_requires_pretrip in the database.
 
 export const FLEET_PROFILES = [
@@ -18,7 +17,7 @@ export const FLEET_PROFILES = [
   { value: "school_transport", title: "School transportation", body: "Student routes with stops, schools and riders, live." },
   { value: "sales", title: "Sales & company cars", body: "Sales reps and employees driving company cars." },
   { value: "driving_school", title: "Driving school", body: "Adds hourly classes per instructor and vehicle." },
-  { value: "general", title: "Mixed / other", body: "A bit of everything. Shows every module." },
+  { value: "general", title: "Mixed / other", body: "A bit of everything: IFTA, owner-operators, routes and geofences." },
 ] as const;
 
 export type FleetProfile = (typeof FLEET_PROFILES)[number]["value"];
@@ -37,46 +36,30 @@ export function profileTitle(v: string | null | undefined): string {
   return FLEET_PROFILES.find((p) => p.value === v)?.title ?? "Mixed / other";
 }
 
-/** Modules a profile can hide. Everything else is shown to every fleet. */
-export type OptionalModule = "ifta" | "routes" | "geofences" | "owner_operators" | "school";
-
-const MODULES_BY_PROFILE: Record<FleetProfile, OptionalModule[]> = {
-  general: ["ifta", "routes", "geofences", "owner_operators", "school"],
-  delivery: ["routes", "geofences", "owner_operators"],
-  field_service: ["routes", "geofences"],
-  trucking: ["ifta", "routes", "geofences", "owner_operators"],
-  construction: ["ifta", "routes", "geofences"],
-  passenger: ["routes", "geofences"],
-  school_transport: ["school", "routes", "geofences"],
-  sales: ["geofences"],
-  driving_school: [],
-};
-
-const MODULE_LABELS: Record<OptionalModule, string> = {
-  ifta: "IFTA fuel-tax reports",
-  routes: "Routes",
-  geofences: "Geofences",
-  owner_operators: "Owner-operator vehicles",
-  school: "School routes, stops, students and live run board",
+/** What a service includes beyond the base plan -- shown before the owner confirms it (it's locked afterwards). Mirrors fn_org_feature_list_internal. */
+const SERVICE_EXTRAS: Record<FleetProfile, { starter: string[]; growth: string[] }> = {
+  delivery: { starter: ["Owner-operator vehicles"], growth: ["Routes", "Geofences"] },
+  field_service: { starter: [], growth: ["Routes", "Geofences"] },
+  trucking: { starter: ["IFTA fuel-tax reports", "Owner-operator vehicles"], growth: ["Routes", "Geofences"] },
+  construction: { starter: ["IFTA fuel-tax reports"], growth: ["Routes", "Geofences"] },
+  passenger: { starter: [], growth: ["Routes", "Geofences"] },
+  school_transport: {
+    starter: ["School routes with stops", "Schools and students", "Attendance", "Bus aides", "Live map of your drivers"],
+    growth: ["Live run board", "Substitute crew for the day", "Attendance export", "Geofences"],
+  },
+  sales: { starter: [], growth: ["Geofences", "Trip approval"] },
+  driving_school: { starter: ["Hourly classes per instructor and vehicle", "Day schedule", "Live map of your drivers"], growth: [] },
+  general: { starter: ["IFTA fuel-tax reports", "Owner-operator vehicles"], growth: ["Routes", "Geofences"] },
 };
 
 // Mirrors fn_profile_requires_pretrip in the database.
 const PRETRIP_BY_DEFAULT: ReadonlySet<FleetProfile> = new Set(["general", "trucking", "construction", "passenger", "school_transport"]);
 
-/** What a fleet type turns on -- shown before the owner confirms it (it's locked afterwards). */
+/** What a fleet type includes, per plan -- shown before the owner confirms it. */
 export function profileSummary(profile: FleetProfile): string[] {
-  const lines = MODULES_BY_PROFILE[profile].map((m) => MODULE_LABELS[m]);
-  if (profile === "driving_school") lines.push("Hourly classes per instructor and vehicle");
+  const { starter, growth } = SERVICE_EXTRAS[profile];
+  const lines = [...starter];
+  if (growth.length) lines.push(`With Growth: ${growth.join(", ").toLowerCase()}`);
   lines.push(PRETRIP_BY_DEFAULT.has(profile) ? "Daily pre-trip inspection required" : "Pre-trip inspection optional");
   return lines;
-}
-
-export function moduleVisible(
-  profile: string | null | undefined,
-  showAll: boolean | null | undefined,
-  module: OptionalModule,
-): boolean {
-  if (showAll) return true;
-  const p: FleetProfile = isFleetProfile(profile) ? profile : "general";
-  return MODULES_BY_PROFILE[p].includes(module);
 }

@@ -49,7 +49,7 @@ export function AddDriverForm({
   const formRef = useRef<HTMLFormElement>(null);
   const baseRoles = ROLE_OPTIONS[callerRole] ?? ROLE_OPTIONS.operator;
   const roleOptions = schoolFleet
-    ? [baseRoles[0], { value: "monitor", label: "Bus monitor" }, ...baseRoles.slice(1)]
+    ? [baseRoles[0], { value: "monitor", label: "Bus aide" }, ...baseRoles.slice(1)]
     : baseRoles;
 
   useEffect(() => {
@@ -156,7 +156,7 @@ export function AddDriverForm({
             />
             <p className="mt-1 text-xs text-muted">
               We email them an invitation. They set their own password, then log
-              in on the app with the driver ID we assign now, not their email.
+              in on the app with the user ID we assign now, not their email.
             </p>
           </div>
           {roleOptions.length > 1 && (
@@ -173,7 +173,7 @@ export function AddDriverForm({
               </select>
               <p className="mt-1 text-xs text-muted">
                 Operator and Admin get real dashboard access on top of the mobile app.
-                {schoolFleet && " A bus monitor only keeps the student list of their routes in the app."}
+                {schoolFleet && " A bus aide only keeps the student list of their routes in the app."}
               </p>
             </div>
           )}

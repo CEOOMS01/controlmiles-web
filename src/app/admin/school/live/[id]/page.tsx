@@ -25,6 +25,7 @@ import {
 } from "@/lib/school-status";
 import { AutoRefresh } from "../../auto-refresh";
 import { SubstituteForm } from "../../substitute-form";
+import { requireFeature } from "@/lib/fleet-features";
 
 // Display order: what needs someone's attention first.
 const ORDER: RiderStatus[] = ["red", "expected", "pending", "on_board", "blue", "gray", "yellow"];
@@ -38,6 +39,7 @@ const LEGEND: { status: RiderStatus; label: string }[] = [
 ];
 
 export default async function SchoolLiveRoutePage({ params }: { params: Promise<{ id: string }> }) {
+  await requireFeature("school_live");
   const { id } = await params;
   const supabase = await createClient();
   const { user, profile } = await getAuthedProfile();
@@ -240,7 +242,7 @@ export default async function SchoolLiveRoutePage({ params }: { params: Promise<
           {sub?.driver_id && <p className="text-xs text-muted">Regular: {regularDriver}</p>}
         </div>
         <div className="rounded-xl border border-border bg-surface p-4">
-          <p className="text-xs text-muted">Bus monitor{monitor.substitute && <SubTag />}</p>
+          <p className="text-xs text-muted">Bus aide{monitor.substitute && <SubTag />}</p>
           <p className="text-lg font-semibold">{monitor.text ?? "None assigned"}</p>
           <p className="text-xs text-muted">
             {monitor.text ? (monitor.inApp ? "Uses the app" : "No app (by name)") : ""}

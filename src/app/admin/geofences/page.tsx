@@ -3,8 +3,10 @@ import { getAuthedProfile } from "@/lib/supabase/org-context";
 import { GeofenceCreator } from "./geofence-creator";
 import { GeofenceList } from "./geofence-list";
 import { GeofenceAlertsFeed } from "./geofence-alerts-feed";
+import { requireFeature } from "@/lib/fleet-features";
 
 export default async function GeofencesPage() {
+  await requireFeature("geofences");
   const supabase = await createClient();
   const { user, profile } = await getAuthedProfile();
   if (!user) return null;

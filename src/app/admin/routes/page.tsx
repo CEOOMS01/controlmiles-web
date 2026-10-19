@@ -3,6 +3,7 @@ import { getAuthedProfile } from "@/lib/supabase/org-context";
 import { CreateRouteForm } from "./create-route-form";
 import { RouteRowActions } from "./route-row-actions";
 import { driverLabel, fleetDriverIds } from "@/lib/driver-label";
+import { requireFeature } from "@/lib/fleet-features";
 
 function vehicleLabel(v: { nickname: string | null; make: string | null; model: string | null; display_id: string | null } | null) {
   if (!v) return "—";
@@ -77,6 +78,7 @@ const SHIFT_BADGE: Record<string, { label: string; className: string }> = {
 };
 
 export default async function RoutesPage() {
+  await requireFeature("routes");
   const supabase = await createClient();
   const { user, profile } = await getAuthedProfile();
   if (!user) return null;

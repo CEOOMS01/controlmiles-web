@@ -200,7 +200,8 @@ export async function setScheduleSettings(
 
 export type IndustryTemplateState = { error: string | null; success: boolean };
 
-// "Show all modules" / "Require a pre-trip inspection" (2026-09-30).
+// "Require a pre-trip inspection" / "Use shift schedules" (the latter only
+// when the plan includes shift schedules -- the database refuses it otherwise).
 export async function setModuleOptions(
   _prevState: IndustryTemplateState,
   formData: FormData,
@@ -208,14 +209,11 @@ export async function setModuleOptions(
   const orgId = String(formData.get("org_id") ?? "");
   if (!orgId) return { error: "Invalid selection.", success: false };
   const supabase = await createClient();
-  const { error } = await supabase
-    .from("organizations")
-    .update({
-      show_all_modules: formData.get("show_all_modules") === "on",
-      require_pretrip_inspection: formData.get("require_pretrip_inspection") === "on",
-      use_shift_schedules: formData.get("use_shift_schedules") === "on",
-    })
-    .eq("id", orgId);
+  const changes: { require_pretrip_inspection: boolean; use_shift_schedules?: boolean } = {
+    require_pretrip_inspection: formData.get("require_pretrip_inspection") === "on",
+  };
+  if (formData.get("has_shift_toggle")) changes.use_shift_schedules = formData.get("use_shift_schedules") === "on";
+  const { error } = await supabase.from("organizations").update(changes).eq("id", orgId);
   if (error) return { error: AppError.from(error).display(), success: false };
   revalidatePath("/admin", "layout");
   return { error: null, success: true };

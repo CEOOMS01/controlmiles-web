@@ -9,9 +9,9 @@ export function MonitorPicker({
   monitors,
   defaultId,
   defaultName,
-  emptyLabel = "No monitor",
+  emptyLabel = "No bus aide",
   namePlaceholder = "Name, if they don't use the app",
-  label = "Bus monitor",
+  label = "Bus aide",
 }: {
   monitors: CrewOption[];
   defaultId?: string | null;

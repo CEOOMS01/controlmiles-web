@@ -10,25 +10,26 @@ const initialState: IndustryTemplateState = { error: null, success: false };
 // which modules show in the menu and whether a pre-trip inspection is
 // required by default. 2026-10-03: the type itself is chosen once in
 // onboarding and locked (set_fleet_type -> FLEET_TYPE_LOCKED; support
-// changes it with support_change_fleet_type). The operational switches
-// below stay editable: "Show all modules" reveals everything, and the
-// inspection toggle overrides the profile's default.
+// changes it with support_change_fleet_type). The service and the plan
+// decide what the fleet has (fn_org_features); the switches below only
+// cover what it has: the inspection toggle overrides the profile's
+// default, and shift schedules show when the plan includes them.
 export function IndustryTemplateForm({
   orgId,
   orgName,
   confirmedAt,
   current,
-  showAll,
   requirePretrip,
   useShifts,
+  canUseShifts,
 }: {
   orgId: string;
   orgName: string;
   confirmedAt: string | null;
   current: FleetProfile;
-  showAll: boolean;
   requirePretrip: boolean;
   useShifts: boolean;
+  canUseShifts: boolean;
 }) {
   const [optState, optAction, optPending] = useActionState(setModuleOptions, initialState);
 
@@ -43,7 +44,7 @@ export function IndustryTemplateForm({
               {confirmedAt
                 ? `Set ${new Date(confirmedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} during onboarding.`
                 : "Set during onboarding."}{" "}
-              It decides your fleet&apos;s setup (classes, IFTA, pre-trip default), so it can&apos;t be changed here.
+              It decides what your fleet includes, so it can&apos;t be changed here.
             </p>
           </div>
           <a
@@ -64,28 +65,11 @@ export function IndustryTemplateForm({
 
       {/* key: re-mount with fresh defaults when the profile changes them */}
       <form
-        key={`${showAll}-${requirePretrip}-${useShifts}`}
+        key={`${requirePretrip}-${useShifts}`}
         action={optAction}
         className="space-y-3 rounded-xl border border-border bg-surface p-5"
       >
         <input type="hidden" name="org_id" value={orgId} />
-        <label className="flex cursor-pointer items-start gap-3">
-          <input
-            type="checkbox"
-            name="show_all_modules"
-            defaultChecked={showAll}
-            disabled={optPending}
-            onChange={(e) => e.currentTarget.form?.requestSubmit()}
-            className="mt-1 h-4 w-4"
-          />
-          <span>
-            <span className="block text-sm font-medium">Show all modules</span>
-            <span className="block text-sm text-muted">
-              For mixed fleets: show IFTA, routes, geofences and owner-operators even if your profile
-              doesn&apos;t use them.
-            </span>
-          </span>
-        </label>
         <label className="flex cursor-pointer items-start gap-3">
           <input
             type="checkbox"
@@ -103,7 +87,9 @@ export function IndustryTemplateForm({
             </span>
           </span>
         </label>
+        {canUseShifts && (
         <label className="flex cursor-pointer items-start gap-3">
+          <input type="hidden" name="has_shift_toggle" value="1" />
           <input
             type="checkbox"
             name="use_shift_schedules"
@@ -115,12 +101,12 @@ export function IndustryTemplateForm({
           <span>
             <span className="block text-sm font-medium">Use shift schedules</span>
             <span className="block text-sm text-muted">
-              Schedule drivers&apos; weekly shifts (and classes, for driving schools) on the Shifts page. The app
-              then uses the scheduled vehicle and you see who started late. Off: drivers just use their assigned
-              vehicle.
+              Schedule drivers&apos; weekly shifts on the Shifts page. The app then uses the scheduled vehicle
+              and you see who started late. Off: drivers just use their assigned vehicle.
             </span>
           </span>
         </label>
+        )}
         {optPending && <p className="text-sm text-muted">Saving…</p>}
         {!optPending && optState.success && <p className="text-sm text-success">Saved.</p>}
         {optState.error && (

@@ -45,11 +45,12 @@ export default async function InviteSuccessPage() {
         </p>
         {displayId && (
           <div className="mt-6 rounded-xl border border-border bg-surface p-4">
-            <p className="text-xs font-medium text-muted">Your driver ID</p>
+            <p className="text-xs font-medium text-muted">Your user ID</p>
             <p className="mt-1 font-mono text-xl tracking-wider">{displayId}</p>
             <p className="mt-2 text-xs text-muted">
-              In the app, choose Driver ID and sign in with this ID and the
-              password you just chose. Write it down or take a screenshot.
+              In the ControlMiles Fleet app, choose Team fleet and sign in with this ID and the
+              password you just chose (admins choose Admin and use their email). Write it down
+              or take a screenshot.
             </p>
           </div>
         )}

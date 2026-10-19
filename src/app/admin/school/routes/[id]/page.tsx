@@ -19,6 +19,7 @@ import { loadCrewOptions } from "@/lib/school-crew";
 import { MonitorPicker } from "../../monitor-picker";
 import { driverLabel } from "@/lib/driver-label";
 import { ActionForm, RowButton, inputClass } from "../../form-kit";
+import { requireFeature } from "@/lib/fleet-features";
 
 export default async function SchoolRoutePage({
   params,
@@ -27,6 +28,7 @@ export default async function SchoolRoutePage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ date?: string }>;
 }) {
+  await requireFeature("school");
   const { id } = await params;
   const { date: dateParam } = await searchParams;
   const supabase = await createClient();

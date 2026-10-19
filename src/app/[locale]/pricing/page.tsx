@@ -1,6 +1,10 @@
 // Olympus Mont Systems LLC - ControlMiles
 // src/app/pricing/page.tsx
 //
+// 2026-10-19: fleet Starter/Growth bullets follow the service x plan table
+// enforced by fn_org_features (DVIR moved to Starter; the trial runs at
+// Growth).
+//
 // 2026-10-03 pre-launch audit: every bullet below was checked against the
 // code that enforces it -- Basic's PDF export is 2/month
 // (check_and_log_pdf_export), Basic/Started cap at 1 vehicle and Premium at
@@ -107,6 +111,9 @@ const fleetPlans = (t: Awaited<ReturnType<typeof getTranslations>>): Plan[] => [
       t("features.odometerVerification"),
       t("features.portalAnyDriver"),
       t("features.revocation"),
+      t("features.dvir"),
+      t("features.fuelMaintenance"),
+      t("features.serviceStarter"),
     ],
     cta: { label: t("signInFleet"), href: "/login" },
   },
@@ -117,12 +124,15 @@ const fleetPlans = (t: Awaited<ReturnType<typeof getTranslations>>): Plan[] => [
     tagline: t("plans.growthTagline"),
     features: [
       t("features.everythingStarter"),
-      t("features.dvir"),
-      t("features.geofencing"),
+      t("features.liveMap"),
+      t("features.routesGeofences"),
       t("features.assignmentModes"),
       t("features.fleetExport"),
       t("features.activityLog"),
+      t("features.safetyScores"),
+      t("features.fuelAlerts"),
       t("features.shiftScheduling"),
+      t("features.serviceGrowth"),
     ],
     cta: { label: t("signInFleet"), href: "/login" },
     highlight: true,

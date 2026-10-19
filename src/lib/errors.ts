@@ -48,10 +48,7 @@ export class AppError {
     413,
     "This organization needs an active Fleet subscription to do that.",
   );
-  static readonly fleetGrowthRequired = new AppError(
-    414,
-    "This feature needs the Growth plan. Upgrade to unlock it.",
-  );
+  static readonly featureNotInPlan = new AppError(414, "That isn't part of your fleet's plan.");
   static readonly fleetTypeLocked = new AppError(
     423,
     "This fleet's type is set. To change it, contact support@controlmiles.com.",
@@ -144,7 +141,7 @@ export class AppError {
     if (text.includes("FREE_TRIAL_EXPIRED")) return AppError.freeTrialExpired;
     if (text.includes("ORG_MEMBERSHIP_REVOKED")) return AppError.orgMembershipRevoked;
     if (text.includes("FLEET_SUBSCRIPTION_REQUIRED")) return AppError.fleetSubscriptionRequired;
-    if (text.includes("FLEET_GROWTH_REQUIRED")) return AppError.fleetGrowthRequired;
+    if (text.includes("FEATURE_NOT_IN_PLAN") || text.includes("FLEET_GROWTH_REQUIRED")) return AppError.featureNotInPlan;
     if (text.includes("FLEET_TYPE_LOCKED")) return AppError.fleetTypeLocked;
     if (text.includes("FLEET_TYPE_OWNER_ONLY")) return AppError.fleetTypeOwnerOnly;
     if (text.includes("already own a fleet organization")) return AppError.alreadyOwnFleet;

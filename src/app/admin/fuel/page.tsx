@@ -11,6 +11,7 @@ import {
   type IdleTotals,
 } from "@/lib/idle";
 import { AnomalyReview, FuelAlertsLive, PeriodPicker, TankCapacityInput } from "./fuel-controls";
+import { getOrgFeatures } from "@/lib/fleet-features";
 
 // Fuel -- consumption, cost and anomaly alerts (2026-09-30, explicit user
 // request after reviewing Control IMS: their "consumption anomaly alerts"
@@ -76,6 +77,8 @@ export default async function FuelPage({
   if (!user) return null;
   const orgId = profile?.default_org_id;
   if (!orgId) return null;
+  // Anomaly alerts come with the plan (fn_org_features); the fuel log is in every plan.
+  const alerts = (await getOrgFeatures(orgId)).has("fuel_alerts");
 
   const requested = Number((await searchParams).days);
   const days = [30, 90, 365].includes(requested) ? requested : 90;
@@ -292,16 +295,17 @@ export default async function FuelPage({
 
   return (
     <main className="px-6 py-10 sm:px-10">
-      <FuelAlertsLive orgId={orgId} />
+      {alerts && <FuelAlertsLive orgId={orgId} />}
       <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-sm font-semibold tracking-wide text-accent uppercase">Fuel</p>
           <h1 className="mt-1 text-2xl font-semibold">
-            Consumption, idling &amp; alerts{scope.current && <span className="text-muted"> · {scope.current.name}</span>}
+            {alerts ? "Consumption, idling & alerts" : "Consumption & idling"}{scope.current && <span className="text-muted"> · {scope.current.name}</span>}
           </h1>
           <p className="mt-2 max-w-2xl text-sm text-muted">
-            Every receipt a driver logs is checked against the vehicle&apos;s GPS trips and its usual
-            consumption. Admins get a daily email when something new looks off.
+            {alerts
+              ? "Every receipt a driver logs is checked against the vehicle's GPS trips and its usual consumption. Admins get a daily email when something new looks off."
+              : "Every receipt a driver logs, with the vehicle's GPS miles, consumption and idling."}
           </p>
         </div>
         <PeriodPicker value={days} />
@@ -312,13 +316,14 @@ export default async function FuelPage({
         <Stat label="Gallons" value={int(totalGallons)} />
         <Stat label="Fleet MPG" value={totalGallons > 0 && fueledMiles > 0 ? (fueledMiles / totalGallons).toFixed(1) : "—"} />
         <Stat label="Fuel cost / mile" value={totalSpend > 0 && fueledMiles > 0 ? money(totalSpend / fueledMiles) : "—"} />
-        <Stat label="Open alerts" value={String(open.length)} danger={open.length > 0} />
+        {alerts && <Stat label="Open alerts" value={String(open.length)} danger={open.length > 0} />}
         <Stat label="Idle time" value={formatMinutes(idleFleet.idleMinutes)} />
         <Stat label="Idle, % of trip time" value={pct(idleFleet.idleMinutes, fleetTripMin)} />
         <Stat label="Est. idle fuel" value={`${idleFleet.estGallons.toFixed(1)} gal`} />
         <Stat label="Est. idle cost" value={money(idleFleet.estCost)} />
       </div>
 
+      {alerts && (
       <section className="mb-10">
         <h2 className="mb-3 text-lg font-semibold">Alerts to review</h2>
         {open.length === 0 ? (
@@ -345,6 +350,7 @@ export default async function FuelPage({
           </details>
         )}
       </section>
+      )}
 
       <section className="mb-10">
         <h2 className="mb-1 text-lg font-semibold">Idling</h2>

@@ -66,7 +66,7 @@
     "forDrivers": "Para conductores gig",
     "forDriversNote": "15 días de prueba gratis; luego Google Play cobra cada mes (App Store muy pronto). Descarga la app, elige tu plan dentro de ella y cancela cuando quieras.",
     "forFleets": "Para flotas",
-    "forFleetsNote": "Precio por vehículo, 15 días de prueba gratis. Se configura y gestiona íntegramente desde controlmiles.com.",
+    "forFleetsNote": "Precio por vehículo, 15 días de prueba gratis con todo lo de Growth. Se configura y gestiona íntegramente desde controlmiles.com.",
     "getApp": "Descargar la app",
     "signInFleet": "Entrar como admin de flota",
     "perDriver": "/ conductor / mes",
@@ -102,7 +102,6 @@
       "revocation": "Revocación de acceso",
       "everythingStarter": "Todo lo de Starter",
       "dvir": "Inspecciones DVIR",
-      "geofencing": "Geocercas y mapa en vivo",
       "assignmentModes": "Asignación de vehículo fija o abierta",
       "fleetExport": "Exportación CSV/PDF de toda la flota",
       "activityLog": "Un registro de actividad completo y protegido contra ediciones",
@@ -112,7 +111,14 @@
       "customReporting": "Reportes e integraciones a medida",
       "prioritySupport": "Soporte prioritario",
       "oneVehicle": "1 vehículo",
-      "fiveVehicles": "Hasta 5 vehículos"
+      "fiveVehicles": "Hasta 5 vehículos",
+      "fuelMaintenance": "Registro de combustible y mantenimiento",
+      "serviceStarter": "Lo que tu servicio necesita: IFTA para camiones, clases por hora para autoescuelas, rutas escolares y asistencia para transporte de estudiantes",
+      "liveMap": "Mapa en vivo",
+      "routesGeofences": "Rutas y geocercas, donde tu servicio las usa",
+      "safetyScores": "Puntuación de seguridad de conductores",
+      "fuelAlerts": "Alertas de consumo de combustible",
+      "serviceGrowth": "Tablero en vivo para flotas escolares, aprobación de viajes para equipos de ventas"
     },
     "disclaimer": "Precios en USD; pueden aplicar impuestos. Los planes de flota se cobran mensualmente por los vehículos registrados. Esto no es asesoramiento fiscal ni financiero.",
     "startTrial": "Prueba gratis 15 días"

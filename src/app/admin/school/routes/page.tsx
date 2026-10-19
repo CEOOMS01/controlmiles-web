@@ -9,8 +9,10 @@ import { driverLabel, fleetDriverIds } from "@/lib/driver-label";
 import { busLabel, effectiveMonitor, loadCrewOptions } from "@/lib/school-crew";
 import { ROUTE_TYPE_LABEL, clock, daysLabel } from "@/lib/school";
 import { CreateSchoolRouteForm } from "./create-school-route-form";
+import { requireFeature } from "@/lib/fleet-features";
 
 export default async function SchoolRoutesPage() {
+  await requireFeature("school");
   const supabase = await createClient();
   const { user, profile } = await getAuthedProfile();
   const orgId = profile?.default_org_id;
@@ -74,7 +76,7 @@ export default async function SchoolRoutesPage() {
             <tr className="border-b border-border text-left text-muted">
               <th className="px-4 py-3 font-medium">Route</th>
               <th className="px-4 py-3 font-medium">Driver</th>
-              <th className="px-4 py-3 font-medium">Monitor</th>
+              <th className="px-4 py-3 font-medium">Bus aide</th>
               <th className="px-4 py-3 font-medium">Bus</th>
               <th className="px-4 py-3 font-medium">Schedule</th>
               <th className="px-4 py-3 font-medium">Stops</th>

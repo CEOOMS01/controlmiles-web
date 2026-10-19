@@ -13,6 +13,7 @@ import { loadReportBranding } from "@/lib/report-branding";
 import { PrintButton } from "./print-button";
 import { BrandingForm } from "../branding-form";
 import { inputClass } from "../form-kit";
+import { requireFeature } from "@/lib/fleet-features";
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -27,6 +28,7 @@ export default async function AttendancePage({
 }: {
   searchParams: Promise<{ from?: string; to?: string; route?: string }>;
 }) {
+  await requireFeature("school");
   const sp = await searchParams;
   const supabase = await createClient();
   const { user, profile } = await getAuthedProfile();

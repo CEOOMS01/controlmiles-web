@@ -3,7 +3,7 @@ import { getBranchScope } from "@/lib/branch-scope";
 import { getAuthedProfile } from "@/lib/supabase/org-context";
 import { daysAgoIso } from "@/lib/dates";
 import { FleetMap, type FleetVehicle } from "./fleet-map";
-import { GrowthUpsell } from "./growth-upsell";
+import { getOrgFeatures } from "@/lib/fleet-features";
 import { RouteEfficiencyChart, type RouteStatusCount } from "./route-efficiency-chart";
 import { DriverStartTimesChart, type DriverStartSeries } from "./driver-start-times-chart";
 import { driverLabel, fleetDriverIds } from "@/lib/driver-label";
@@ -21,18 +21,8 @@ export default async function AdminDashboardPage() {
     .eq("id", orgId)
     .maybeSingle();
 
-  // Live map is Growth-only (explicit user requirement, 2026-09-18) --
-  // mirrors the same fn_org_effective_tier check now enforced in
-  // getRealtimeAccessToken. Checked here too so a Starter org sees a real
-  // upsell card instead of a map that silently never receives any
-  // updates (the old failure mode: the token request just came back null
-  // with no explanation).
-  const { data: tier } = await supabase.rpc("fn_org_effective_tier", { p_org_id: orgId });
-  // Enterprise includes everything Growth has ("Everything in Growth" on
-  // the pricing page isn't just marketing copy) -- checked as its own
-  // distinct tier value throughout the app specifically so an
-  // Enterprise-only feature can still tell the two apart when it needs to.
-  const isGrowth = tier === "growth" || tier === "enterprise";
+  // Only what this fleet's service and plan include (fn_org_features).
+  const features = await getOrgFeatures(orgId);
 
   const thirtyDaysAgo = daysAgoIso(30);
   const fourteenDaysAgo = daysAgoIso(14);
@@ -95,7 +85,7 @@ export default async function AdminDashboardPage() {
     supabase.from("routes").select("status, created_at, closed_at").eq("organization_id", orgId),
     supabase
       .from("sessions")
-      .select("user_id, start_time, profiles(first_name, last_name)")
+      .select("user_id, start_time, profiles!sessions_user_id_fkey(first_name, last_name)")
       .eq("organization_id", orgId)
       .gte("start_time", fourteenDaysAgo)
       .order("start_time", { ascending: true }),
@@ -175,19 +165,21 @@ export default async function AdminDashboardPage() {
         <StatCard label="Vehicles" value={scope.vehicleIds?.size ?? vehicleCount ?? 0} />
         <StatCard label="Pending drivers" value={pendingCount} />
         <StatCard label="Needs review" value={reviewCount} accent={reviewCount > 0} />
-        <StatCard label="Safety events (30d)" value={safetyCount} accent={safetyCount > 0} />
-      </div>
-
-      <div className="mt-10">
-        {isGrowth ? (
-          <FleetMap orgId={orgId} initialVehicles={vehicles} geofences={mapGeofences ?? []} />
-        ) : (
-          <GrowthUpsell feature="Live map" />
+        {features.has("safety_scores") && (
+          <StatCard label="Safety events (30d)" value={safetyCount} accent={safetyCount > 0} />
         )}
       </div>
 
+      {features.has("live_map") && (
+        <div className="mt-10">
+          <FleetMap orgId={orgId} initialVehicles={vehicles} geofences={mapGeofences ?? []} />
+        </div>
+      )}
+
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
-        <RouteEfficiencyChart statusCounts={statusCounts} avgCycleHours={avgCycleHours} />
+        {(features.has("routes") || features.has("school")) && (
+          <RouteEfficiencyChart statusCounts={statusCounts} avgCycleHours={avgCycleHours} />
+        )}
         <DriverStartTimesChart series={driverSeries} />
       </div>
     </main>

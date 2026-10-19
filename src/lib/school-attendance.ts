@@ -113,7 +113,7 @@ export async function loadAttendance(
             : status === "Absent" && route?.route_type === "school_pm"
               ? "Didn't ride this morning"
               : status === "Unresolved"
-                ? "Rode this morning, hasn't come out -- driver/monitor checking at the school"
+                ? "Rode this morning, hasn't come out -- driver/bus aide checking at the school"
                 : null,
       });
     }

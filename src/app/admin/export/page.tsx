@@ -1,8 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { getAuthedProfile } from "@/lib/supabase/org-context";
 import { getBranchScope } from "@/lib/branch-scope";
-import { GrowthUpsell } from "../growth-upsell";
 import { ExportForm } from "./export-form";
+import { requireFeature } from "@/lib/fleet-features";
 
 // Converted to a server component (explicit user requirement, 2026-09-18)
 // so the Growth gate can be checked BEFORE the form (and its download
@@ -13,15 +13,14 @@ import { ExportForm } from "./export-form";
 // interactive date-picker bits stay in export-form.tsx (a client
 // component) since Server Components can't hold that state themselves.
 export default async function ExportPage() {
+  await requireFeature("fleet_export");
   const supabase = await createClient();
   const { user, profile } = await getAuthedProfile();
   if (!user) return null;
   const orgId = profile?.default_org_id;
   if (!orgId) return null;
 
-  const { data: tier } = await supabase.rpc("fn_org_effective_tier", { p_org_id: orgId });
   const scope = await getBranchScope(orgId);
-  const isGrowth = tier === "growth" || tier === "enterprise";
 
   return (
     <main className="px-6 py-10 sm:px-10">
@@ -45,7 +44,7 @@ export default async function ExportPage() {
         </p>
       </div>
 
-      {isGrowth ? <ExportForm /> : <GrowthUpsell feature="Fleet-wide export" />}
+      <ExportForm />
     </main>
   );
 }

@@ -16,6 +16,7 @@ import {
   type VehicleStateMiles,
 } from "@/lib/ifta";
 import { ExportIftaCsv, PurchaseIftaRow, QuarterPicker, VehicleIftaRow } from "./ifta-controls";
+import { requireFeature } from "@/lib/fleet-features";
 
 // Full IFTA quarterly return (2026-09-30, explicit user request). Was a
 // miles-per-state view only; now the whole return the way Samsara/Motive
@@ -47,6 +48,7 @@ export default async function IftaPage({
 }: {
   searchParams: Promise<{ q?: string | string[] }>;
 }) {
+  await requireFeature("ifta");
   const supabase = await createClient();
   const { user, profile } = await getAuthedProfile();
   if (!user) return null;

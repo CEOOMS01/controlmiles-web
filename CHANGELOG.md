@@ -9,6 +9,56 @@ here. The Supabase changes they depend on live in the app repo
 (`controlmiles/supabase/`) and are listed under **Backend** below. Mobile app
 releases have their own changelog in the app repo.
 
+## 2026-10-19
+
+### Changed (each fleet sees only its service and plan)
+- What a fleet has now comes from one list in the database,
+  `fn_org_features` (service = fleet type, plan = Starter / Growth; user-
+  approved table). The menu, every page and every card read it: whatever
+  isn't included is not shown anywhere and its page answers 404. No more
+  "needs the Growth plan" cards.
+- **Every service, Starter:** team & vehicles, GPS trips, odometer photos,
+  Report Portal, revocation, import, fuel log, maintenance, reviews, **DVIR**
+  (moved down from Growth). **Growth adds:** live map, fleet export,
+  activity log, safety scores, fuel alerts, shift schedules, open vehicle
+  assignment.
+- **Per service:** delivery (owner-operators; Growth: routes, geofences),
+  field service and passenger (Growth: routes, geofences), trucking (IFTA,
+  owner-operators; Growth: routes, geofences), construction (IFTA; Growth:
+  routes, geofences), school transportation (school routes, schools &
+  students, attendance, bus aides, live map; Growth: live run board,
+  substitutes, attendance export, geofences), sales (Growth: geofences, trip
+  approval), driving school (classes, day schedule, live map), mixed / other (IFTA,
+  owner-operators; Growth: routes, geofences -- no longer the school
+  pages).
+- "Show all modules" removed from Settings. Settings shows only the
+  switches the fleet has (open assignment, owner-operators, shift
+  schedules, class start window).
+- Shifts: driving schools see **Classes** (one-off classes on Starter, the
+  weekly template with Growth); live attendance badges come with Growth
+  (were an Enterprise placeholder never reachable).
+- Plan names stay Starter / Growth / Enterprise; the pricing page lists
+  the same features. The 15-day trial runs at Growth.
+
+### Added
+- **Trip approval** (sales fleets, Growth): approve or reject each finished
+  trip of the last 30 days, with a note; the sealed trip never changes.
+
+### Fixed
+- "Bus monitor" / "Monitor" shown to admins -> **Bus aide**; Team shows
+  role names (Owner, Admin, Operator, Driver, Bus aide) instead of stored
+  values.
+
+### Backend
+- Migration `20261019100000_fleet_features_by_service_and_plan.sql`
+  (applied): `fn_org_features`, `fn_org_has_feature`,
+  `fn_require_org_feature`; guards on IFTA, safety, fuel alerts, owner-
+  operator, shift, school-run and DVIR RPCs; RLS on routes (by route type),
+  school tables, substitutes, geofences, shifts, fuel alerts, safety events
+  and the org activity log; live positions stored only with the live map;
+  `trip_approvals` + `set_trip_approval`. Error `FEATURE_NOT_IN_PLAN` (414).
+- `send-fuel-alerts` skips fleets without fuel alerts (**not deployed yet**).
+
 ## 2026-10-09
 
 ### Added

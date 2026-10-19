@@ -67,7 +67,7 @@ export function CreateSchoolRouteForm({
           ))}
         </select>
       </div>
-      <MonitorPicker monitors={monitors} label="Bus monitor (optional)" />
+      <MonitorPicker monitors={monitors} label="Bus aide (optional)" />
       <div>
         <label className="mb-1.5 block text-sm font-medium">Start time</label>
         <TimeInput name="scheduled_start_time" format={timeFormat} />

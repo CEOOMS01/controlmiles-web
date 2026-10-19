@@ -5,6 +5,7 @@ import { getAuthedProfile } from "@/lib/supabase/org-context";
 import { daysAgoIso } from "@/lib/dates";
 import { driverLabel, fleetDriverIds } from "@/lib/driver-label";
 import { EVENT_POINTS, fleetScore, grade, lastWeeks, MIN_MILES_TO_RATE, type ScoreRow } from "@/lib/safety-score";
+import { requireFeature } from "@/lib/fleet-features";
 
 // Driver safety -- scorecard + events (scorecard added 2026-09-30,
 // explicit user request, modelled on Samsara's / Motive's driver safety
@@ -45,6 +46,7 @@ export default async function SafetyPage({
 }: {
   searchParams: Promise<{ driver?: string | string[] }>;
 }) {
+  await requireFeature("safety_scores");
   const supabase = await createClient();
   const { user, profile } = await getAuthedProfile();
   if (!user) return null;

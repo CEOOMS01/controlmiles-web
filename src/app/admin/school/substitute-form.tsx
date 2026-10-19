@@ -76,8 +76,8 @@ export function SubstituteForm({
             monitors={monitors}
             defaultId={current?.monitor_id}
             defaultName={current?.monitor_name}
-            label="Substitute monitor"
-            emptyLabel="Keep the regular monitor"
+            label="Substitute bus aide"
+            emptyLabel="Keep the regular bus aide"
             namePlaceholder="Or a substitute's name (no app)"
           />
           <div className="sm:col-span-3">

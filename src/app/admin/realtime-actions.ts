@@ -48,10 +48,10 @@ export async function getRealtimeAccessToken(): Promise<string | null> {
     .maybeSingle();
   if (!profile?.default_org_id) return null;
 
-  const { data: tier } = await supabase.rpc("fn_org_effective_tier", {
+  const { data: features } = await supabase.rpc("fn_org_features", {
     p_org_id: profile.default_org_id,
   });
-  if (tier !== "growth" && tier !== "enterprise") return null;
+  if (!Array.isArray(features) || !features.includes("live_map")) return null;
 
   return session.access_token;
 }

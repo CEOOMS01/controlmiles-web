@@ -66,7 +66,7 @@
     "forDrivers": "For gig drivers",
     "forDriversNote": "15-day free trial, then billed monthly by Google Play (App Store coming soon). Download the app, pick your plan inside it, cancel anytime.",
     "forFleets": "For fleets",
-    "forFleetsNote": "Priced per vehicle, 15-day free trial. Set up and manage entirely from controlmiles.com.",
+    "forFleetsNote": "Priced per vehicle, 15-day free trial with everything in Growth. Set up and manage entirely from controlmiles.com.",
     "getApp": "Get the app",
     "signInFleet": "Sign in as fleet admin",
     "perDriver": "/ driver / month",
@@ -102,7 +102,6 @@
       "revocation": "Membership revocation",
       "everythingStarter": "Everything in Starter",
       "dvir": "DVIR inspections",
-      "geofencing": "Geofencing & live map",
       "assignmentModes": "Fixed or open vehicle assignment",
       "fleetExport": "Fleet-wide CSV/PDF export",
       "activityLog": "A complete activity log that's protected against edits",
@@ -112,7 +111,14 @@
       "customReporting": "Custom reporting & integrations",
       "prioritySupport": "Priority support",
       "oneVehicle": "1 vehicle",
-      "fiveVehicles": "Up to 5 vehicles"
+      "fiveVehicles": "Up to 5 vehicles",
+      "fuelMaintenance": "Fuel log & maintenance records",
+      "serviceStarter": "What your service needs: IFTA for trucking, hourly classes for driving schools, school routes & attendance for student transport",
+      "liveMap": "Live map",
+      "routesGeofences": "Routes & geofences, where your service uses them",
+      "safetyScores": "Driver safety scores",
+      "fuelAlerts": "Fuel anomaly alerts",
+      "serviceGrowth": "Live run board for school fleets, trip approval for sales teams"
     },
     "disclaimer": "Prices in USD; taxes may apply. Fleet plans are billed monthly for the vehicles on file. Not tax or financial advice.",
     "startTrial": "Start 15-day free trial"

@@ -19,8 +19,8 @@ import { AppError } from "@/lib/errors";
 
 async function requireGrowth(orgId: string): Promise<string | null> {
   const supabase = await createClient();
-  const { data: tier } = await supabase.rpc("fn_org_effective_tier", { p_org_id: orgId });
-  if (tier !== "growth" && tier !== "enterprise") return "Shift scheduling is a Growth plan feature.";
+  const { data: features } = await supabase.rpc("fn_org_features", { p_org_id: orgId });
+  if (!Array.isArray(features) || !features.includes("shift_schedules")) return AppError.featureNotInPlan.message;
   return null;
 }
 

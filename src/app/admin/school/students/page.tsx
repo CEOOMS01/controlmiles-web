@@ -8,8 +8,10 @@ import { getAuthedProfile } from "@/lib/supabase/org-context";
 import { AddressAutocompleteInput } from "../../routes/address-autocomplete-input";
 import { addSchool, addStudent, deactivateStudent, deleteSchool } from "../actions";
 import { ActionForm, RowButton, inputClass } from "../form-kit";
+import { requireFeature } from "@/lib/fleet-features";
 
 export default async function SchoolsAndStudentsPage() {
+  await requireFeature("school");
   const supabase = await createClient();
   const { profile } = await getAuthedProfile();
   const orgId = profile?.default_org_id;
