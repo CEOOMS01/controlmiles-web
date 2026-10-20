@@ -36,6 +36,9 @@ export const SCHOOL_BRANCHES: Record<Tier, { included: number; max: number; extr
   enterprise: null,
 };
 
+/** Enterprise add-on: the enrollment page on the school's own address (2026-10-20). */
+export const SCHOOL_DOMAIN_CENTS = 2900;
+
 /** 12500 -> "$125"; 1999 -> "$19.99". */
 export function usd(cents: number): string {
   return cents % 100 === 0 ? `$${cents / 100}` : `$${(cents / 100).toFixed(2)}`;

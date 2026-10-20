@@ -150,7 +150,8 @@
       "unit": "/ mes",
       "carsStarter": "3 autos incluidos · $12.99 / mes por auto adicional · hasta 10 autos",
       "carsGrowth": "3 autos incluidos · $19.99 / mes por auto adicional ($16.99 desde el auto 16)",
-      "carsEnterprise": "3 autos incluidos · $27.99 / mes por auto adicional ($23.99 desde el auto 16)"
+      "carsEnterprise": "3 autos incluidos · $27.99 / mes por auto adicional ($23.99 desde el auto 16)",
+      "ownDomain": "Opcional: página de inscripción en tu propia dirección web, +$29 / mes"
     }
   },
   "portalCta": {

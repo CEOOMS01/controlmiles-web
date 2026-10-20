@@ -180,6 +180,8 @@ function CustomDomain({ page }: { page: PublicPageSettings }) {
       <GroupTitle>Your own address</GroupTitle>
       <p className="mt-2 text-sm text-muted">
         Show this page at an address on your domain, like book.yourschool.com. Students never see controlmiles.com.
+        $29 a month on your Enterprise plan, added to your next invoice once the address is live and removed when you
+        disconnect it.
       </p>
       <form action={action} className="mt-3 flex flex-wrap items-center gap-2">
         <input

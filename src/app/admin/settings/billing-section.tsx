@@ -9,6 +9,7 @@ import {
   schoolBranchExtras,
   schoolBranchLine,
   schoolCarsLine,
+  SCHOOL_DOMAIN_CENTS,
   schoolMonthlyCents,
   usd,
   type Tier,
@@ -25,6 +26,7 @@ export function BillingSection({
   billedVehicles,
   showEnterprise = false,
   schoolBranches = null,
+  schoolDomainLive = false,
 }: {
   orgId: string;
   vehicleCount: number;
@@ -40,6 +42,8 @@ export function BillingSection({
   // billed (src/lib/school-pricing.ts). The active branch count; null for
   // other services.
   schoolBranches?: number | null;
+  // The enrollment page on the school's own address is live (+$29, Enterprise).
+  schoolDomainLive?: boolean;
 }) {
   const isSchool = schoolBranches != null;
   const extrasOn = (tier: Tier) => (isSchool ? schoolBranchExtras(tier, schoolBranches) : 0);
@@ -53,7 +57,9 @@ export function BillingSection({
   };
   // A school's monthly total today: plan for its cars plus extra branches.
   const schoolTotal = (tier: Tier) =>
-    schoolMonthlyCents(tier, Math.max(vehicleCount, 1)) + extrasOn(tier) * (SCHOOL_BRANCHES[tier]?.extraCents ?? 0);
+    schoolMonthlyCents(tier, Math.max(vehicleCount, 1)) +
+    extrasOn(tier) * (SCHOOL_BRANCHES[tier]?.extraCents ?? 0) +
+    (tier === "enterprise" && schoolDomainLive ? SCHOOL_DOMAIN_CENTS : 0);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   // Stripe returns here with ?billing=success|canceled. The plan itself is
@@ -110,6 +116,9 @@ export function BillingSection({
               {isSchool ? `${usd(schoolTotal(currentTier))}/mo` : `${FLEET_TIER_PRICE[currentTier]}/vehicle`}
             </p>
             {isSchool && <p className="mt-1 text-xs text-muted">{schoolCarsLine(currentTier)}</p>}
+            {isSchool && currentTier === "enterprise" && schoolDomainLive && (
+              <p className="mt-1 text-xs text-muted">Own web address for enrollment · {usd(SCHOOL_DOMAIN_CENTS)}/mo</p>
+            )}
             <p className="mt-1 text-xs text-muted">
               {vehicleCount} vehicle{vehicleCount === 1 ? "" : "s"} on file · billed via Stripe
               {billedVehicles != null && billedVehicles !== Math.max(vehicleCount, 1) && (

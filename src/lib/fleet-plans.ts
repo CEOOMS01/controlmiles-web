@@ -116,6 +116,7 @@ export const schoolPlans = (t: T): Plan[] => [
       t("school.packages"),
       t("school.certificates"),
       t("school.branchEnterprise"),
+      t("school.ownDomain"),
       t("school.support"),
     ],
     cta: { label: t("signInFleet"), href: "/login" },

@@ -54,6 +54,12 @@ export default async function SettingsPage({
 
   if (!org) return null;
   const branchScope = await getBranchScope(orgId);
+  // Enterprise add-on: the enrollment page on the school's own address (+$29).
+  const { data: domainRow } =
+    tab === "billing"
+      ? await supabase.from("ds_public_pages").select("domain_status").eq("organization_id", orgId).maybeSingle()
+      : { data: null };
+  const domainLive = domainRow?.domain_status === "verified";
   // Driving schools: branches per plan (fn_org_branch_allowance, 2026-10-20).
   const { data: allowanceRows } =
     tab === "branches" ? await supabase.rpc("fn_org_branch_allowance", { p_org: orgId }) : { data: null };
@@ -164,6 +170,7 @@ export default async function SettingsPage({
                 }
                 showEnterprise={org.industry_template === "driving_school"}
                 schoolBranches={org.industry_template === "driving_school" ? branchScope.branches.length : null}
+                schoolDomainLive={domainLive}
                 currentStatus={org.subscription_status}
                 billedVehicles={org.subscription_vehicle_count ?? null}
               />

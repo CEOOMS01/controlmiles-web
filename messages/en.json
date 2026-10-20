@@ -150,7 +150,8 @@
       "unit": "/ month",
       "carsStarter": "3 cars included · $12.99 / month per extra car · up to 10 cars",
       "carsGrowth": "3 cars included · $19.99 / month per extra car ($16.99 from the 16th)",
-      "carsEnterprise": "3 cars included · $27.99 / month per extra car ($23.99 from the 16th)"
+      "carsEnterprise": "3 cars included · $27.99 / month per extra car ($23.99 from the 16th)",
+      "ownDomain": "Optional: enrollment page on your own web address, +$29 / month"
     }
   },
   "portalCta": {
