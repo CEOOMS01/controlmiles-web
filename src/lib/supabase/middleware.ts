@@ -71,7 +71,7 @@ function buildCsp(nonce: string, frameAncestors = "'none'") {
  * console showed CSP violations). `'strict-dynamic'` + a real nonce is
  * the correct fix, not loosening to `'unsafe-inline'`.
  */
-export async function updateSession(request: NextRequest, frameAncestors?: string) {
+export async function updateSession(request: NextRequest, frameAncestors?: string, rewriteTo?: URL) {
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
   const csp = buildCsp(nonce, frameAncestors);
 
@@ -79,9 +79,13 @@ export async function updateSession(request: NextRequest, frameAncestors?: strin
   requestHeaders.set("x-nonce", nonce);
   requestHeaders.set("Content-Security-Policy", csp);
 
-  let supabaseResponse = NextResponse.next({
-    request: { headers: requestHeaders },
-  });
+  // A school's own address serves its /book page (proxy.ts, 2026-10-20).
+  const pass = () =>
+    rewriteTo
+      ? NextResponse.rewrite(rewriteTo, { request: { headers: requestHeaders } })
+      : NextResponse.next({ request: { headers: requestHeaders } });
+
+  let supabaseResponse = pass();
   supabaseResponse.headers.set("Content-Security-Policy", csp);
 
   const supabase = createServerClient(
@@ -96,9 +100,7 @@ export async function updateSession(request: NextRequest, frameAncestors?: strin
           cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value),
           );
-          supabaseResponse = NextResponse.next({
-            request: { headers: requestHeaders },
-          });
+          supabaseResponse = pass();
           supabaseResponse.headers.set("Content-Security-Policy", csp);
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(

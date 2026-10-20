@@ -70,7 +70,7 @@ export default async function StudentSettingsPage({ searchParams }: { searchPara
     const [{ data: pp }, { data: org }, h] = await Promise.all([
       supabase
         .from("ds_public_pages")
-        .select("slug, enabled, intro, min_age, terms_url, allowed_origins")
+        .select("slug, enabled, intro, min_age, terms_url, allowed_origins, custom_domain, domain_token, domain_status, domain_message")
         .eq("organization_id", orgId)
         .maybeSingle(),
       supabase.from("organizations").select("name").eq("id", orgId).maybeSingle(),

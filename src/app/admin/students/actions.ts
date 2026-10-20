@@ -12,6 +12,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getAuthedProfile } from "@/lib/supabase/org-context";
 import { AppError } from "@/lib/errors";
+import { checkCustomDomain, removeCustomDomain } from "@/lib/custom-domain";
 
 export type ActionState = { error: string | null; success: boolean; value?: string };
 
@@ -412,8 +413,7 @@ export async function savePublicPage(_p: ActionState, fd: FormData): Promise<Act
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.from("ds_public_pages").upsert({
-    organization_id: org,
+  const values = {
     slug,
     enabled: fd.get("enabled") === "on",
     intro: text(fd, "intro", 600),
@@ -421,7 +421,14 @@ export async function savePublicPage(_p: ActionState, fd: FormData): Promise<Act
     terms_url: terms,
     allowed_origins: origins,
     updated_at: new Date().toISOString(),
-  });
+  };
+  // Update, else insert: the office may write only these columns (the
+  // address columns go through ds_set_custom_domain), so no upsert.
+  const updated = await supabase.from("ds_public_pages").update(values).eq("organization_id", org).select("organization_id");
+  const { error } =
+    updated.error || (updated.data ?? []).length > 0
+      ? updated
+      : await supabase.from("ds_public_pages").insert({ organization_id: org, ...values });
   if (error) {
     if (error.code === "23505") return { error: "That page address is taken. Try another.", success: false };
     return { error: AppError.from(error).display(), success: false };
@@ -452,5 +459,47 @@ export async function undoEnrollment(id: string): Promise<ActionState> {
   const { error } = await supabase.rpc("ds_enrollment_undo", { p_id: id });
   if (error) return { error: AppError.from(error).display(), success: false };
   revalidatePath("/admin/students");
+  return { error: null, success: true };
+}
+
+// Level 3 (2026-10-20): the school's own address for its enrollment page.
+export async function setCustomDomain(_p: ActionState, fd: FormData): Promise<ActionState> {
+  const org = await orgId();
+  if (!org) return { error: "Missing organization.", success: false };
+  const raw = (text(fd, "custom_domain", 253) ?? "").toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+  const supabase = await createClient();
+  const { data: prev } = await supabase.from("ds_public_pages").select("custom_domain").eq("organization_id", org).maybeSingle();
+  const { error } = await supabase.rpc("ds_set_custom_domain", { p_org: org, p_domain: raw });
+  if (error) return { error: AppError.from(error).display(), success: false };
+  if (prev?.custom_domain && prev.custom_domain !== raw) await removeCustomDomain(prev.custom_domain);
+  revalidatePath("/admin/students/settings");
+  return { error: null, success: true };
+}
+
+export async function verifyCustomDomain(): Promise<ActionState> {
+  const org = await orgId();
+  if (!org) return { error: "Missing organization.", success: false };
+  const supabase = await createClient();
+  const { data: page } = await supabase
+    .from("ds_public_pages")
+    .select("custom_domain, domain_token")
+    .eq("organization_id", org)
+    .maybeSingle();
+  if (!page?.custom_domain || !page.domain_token) return { error: "Add an address first.", success: false };
+  const result = await checkCustomDomain(page.custom_domain, page.domain_token);
+  const { error } = await supabase.rpc("ds_mark_custom_domain", { p_org: org, p_status: result.status, p_message: result.message });
+  if (error) return { error: AppError.from(error).display(), success: false };
+  revalidatePath("/admin/students/settings");
+  return { error: null, success: result.status === "verified", value: result.message };
+}
+
+export async function clearCustomDomain(): Promise<ActionState> {
+  const org = await orgId();
+  if (!org) return { error: "Missing organization.", success: false };
+  const supabase = await createClient();
+  const { data: old, error } = await supabase.rpc("ds_clear_custom_domain", { p_org: org });
+  if (error) return { error: AppError.from(error).display(), success: false };
+  if (old) await removeCustomDomain(String(old));
+  revalidatePath("/admin/students/settings");
   return { error: null, success: true };
 }

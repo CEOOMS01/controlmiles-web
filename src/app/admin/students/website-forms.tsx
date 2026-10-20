@@ -7,7 +7,16 @@
 import { useActionState, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { GroupTitle, SettingRow, Switch, UnitInput } from "@/components/settings-ui";
-import { approveEnrollment, declineEnrollment, savePublicPage, undoEnrollment, type ActionState } from "./actions";
+import {
+  approveEnrollment,
+  clearCustomDomain,
+  declineEnrollment,
+  savePublicPage,
+  setCustomDomain,
+  undoEnrollment,
+  verifyCustomDomain,
+  type ActionState,
+} from "./actions";
 
 export type PublicPageSettings = {
   slug: string;
@@ -16,6 +25,10 @@ export type PublicPageSettings = {
   min_age: number;
   terms_url: string | null;
   allowed_origins: string[];
+  custom_domain: string | null;
+  domain_token: string | null;
+  domain_status: "none" | "pending" | "verified" | "error";
+  domain_message: string | null;
 };
 
 const field =
@@ -91,7 +104,7 @@ export function WebsiteForm({
             <label className="block">
               <span className="text-sm font-medium">Websites that can show the form inside their pages</span>
               <span className="mt-0.5 block text-xs text-muted">
-                One per line, up to 5, for example https://frontlinedrivingschool.com. Any other site can only link to it.
+                One per line, up to 5, for example https://www.yourschool.com. Any other site can only link to it.
               </span>
               <textarea
                 name="allowed_origins"
@@ -127,6 +140,147 @@ export function WebsiteForm({
           {page.allowed_origins.length === 0 && (
             <p className="text-xs text-muted">The form shows inside a page only on the websites listed above.</p>
           )}
+        </div>
+      )}
+
+      {page && <CustomDomain page={page} />}
+    </div>
+  );
+}
+
+// Level 3 (2026-10-20): the school's own address, e.g. book.yourschool.com.
+// Two DNS records: a TXT that proves ownership, then a CNAME to Vercel.
+// Removable at any time.
+function CustomDomain({ page }: { page: PublicPageSettings }) {
+  const router = useRouter();
+  const [state, action, saving] = useActionState(setCustomDomain, initial);
+  const [busy, start] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const [confirmRemove, setConfirmRemove] = useState(false);
+  const host = page.custom_domain;
+  const statusText: Record<PublicPageSettings["domain_status"], [string, string]> = {
+    none: ["", ""],
+    pending: ["Waiting for DNS", "bg-warning/15 text-warning"],
+    verified: ["Live", "bg-success/15 text-success"],
+    error: ["Needs attention", "bg-danger/15 text-danger"],
+  };
+  const [label, cls] = statusText[page.domain_status];
+
+  const run = (fn: () => Promise<ActionState>) =>
+    start(async () => {
+      setError(null);
+      const r = await fn();
+      if (r.error) setError(r.error);
+      setConfirmRemove(false);
+      router.refresh();
+    });
+
+  return (
+    <div className="mt-8">
+      <GroupTitle>Your own address</GroupTitle>
+      <p className="mt-2 text-sm text-muted">
+        Show this page at an address on your domain, like book.yourschool.com. Students never see controlmiles.com.
+      </p>
+      <form action={action} className="mt-3 flex flex-wrap items-center gap-2">
+        <input
+          name="custom_domain"
+          defaultValue={host ?? ""}
+          placeholder="book.yourschool.com"
+          maxLength={253}
+          required
+          className={`${field} w-72`}
+        />
+        <button type="submit" disabled={saving} className={primaryBtn}>
+          {saving ? "Saving…" : host ? "Change address" : "Connect address"}
+        </button>
+        {state.error && (
+          <span role="alert" className="text-sm text-danger">
+            {state.error}
+          </span>
+        )}
+      </form>
+
+      {host && page.domain_token && (
+        <div className="mt-4 rounded-lg border border-border bg-background p-4 text-sm">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="font-medium">
+              {host} {label && <span className={`ml-2 rounded-full px-2 py-0.5 text-xs font-medium ${cls}`}>{label}</span>}
+            </p>
+            {page.domain_status === "verified" && (
+              <a href={`https://${host}`} target="_blank" rel="noopener" className="text-xs text-accent hover:underline">
+                Open
+              </a>
+            )}
+          </div>
+          {page.domain_status !== "verified" && (
+            <>
+              <p className="mt-3 text-xs text-muted">
+                Add these two records where your domain is managed (for example your registrar or Cloudflare), then press
+                Check now.
+              </p>
+              <table className="mt-2 w-full table-fixed text-xs">
+                <thead className="text-left text-muted">
+                  <tr>
+                    <th className="w-20 py-1 font-medium">Type</th>
+                    <th className="py-1 font-medium">Name</th>
+                    <th className="py-1 font-medium">Value</th>
+                  </tr>
+                </thead>
+                <tbody className="font-mono break-all">
+                  <tr className="border-t border-border">
+                    <td className="py-1.5">TXT</td>
+                    <td className="py-1.5 pr-2">_cmfleet.{host}</td>
+                    <td className="py-1.5">cmfleet-verify={page.domain_token}</td>
+                  </tr>
+                  <tr className="border-t border-border">
+                    <td className="py-1.5">CNAME</td>
+                    <td className="py-1.5 pr-2">{host}</td>
+                    <td className="py-1.5">cname.vercel-dns.com</td>
+                  </tr>
+                </tbody>
+              </table>
+            </>
+          )}
+          {page.domain_message && <p className="mt-3 text-xs text-muted">{page.domain_message}</p>}
+          {error && (
+            <p role="alert" className="mt-1 text-xs text-danger">
+              {error}
+            </p>
+          )}
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => run(verifyCustomDomain)}
+              className="rounded-lg border border-border px-3 py-1.5 text-xs hover:border-accent"
+            >
+              {busy ? "Checking…" : "Check now"}
+            </button>
+            {confirmRemove ? (
+              <>
+                <span className="text-xs text-muted">Stop using this address? You can connect it again later.</span>
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => run(clearCustomDomain)}
+                  className="rounded-lg border border-danger px-3 py-1.5 text-xs text-danger"
+                >
+                  Yes, remove
+                </button>
+                <button type="button" onClick={() => setConfirmRemove(false)} className="text-xs text-muted">
+                  Keep
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setConfirmRemove(true)}
+                className="rounded-lg px-3 py-1.5 text-xs text-muted hover:text-danger"
+              >
+                Remove address
+              </button>
+            )}
+          </div>
         </div>
       )}
     </div>

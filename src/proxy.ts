@@ -22,7 +22,7 @@
 // usuario se desloguea solo al navegar. Si se devuelve la de Supabase sin
 // más, se pierde la reescritura de idioma y /es/pricing da 404.
 
-import { type NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import createIntlMiddleware from "next-intl/middleware";
 import { routing } from "@/i18n/routing";
 import { updateSession } from "@/lib/supabase/middleware";
@@ -110,7 +110,52 @@ async function bookFrameAncestors(pathname: string): Promise<string | undefined>
   return value;
 }
 
+// A driving school's own address (level 3, 2026-10-20): any host that isn't
+// ControlMiles's shows only that school's enrollment page. The host -> page
+// map comes from ds_public_slug_for_host (verified addresses only), cached a
+// minute.
+const MAIN_HOSTS = new Set(
+  ["controlmiles.com", "www.controlmiles.com", "localhost", "127.0.0.1", ...(process.env.APP_HOSTS ?? "").split(",")]
+    .map((h) => h.trim().toLowerCase())
+    .filter(Boolean),
+);
+const hostCache = new Map<string, { at: number; slug: string | null }>();
+async function schoolSlugForHost(host: string): Promise<string | null> {
+  const hit = hostCache.get(host);
+  if (hit && Date.now() - hit.at < 60_000) return hit.slug;
+  let slug: string | null = null;
+  try {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/rpc/ds_public_slug_for_host`, {
+      method: "POST",
+      headers: { apikey: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!, "Content-Type": "application/json" },
+      body: JSON.stringify({ p_host: host }),
+      signal: AbortSignal.timeout(2000),
+    });
+    const value = res.ok ? ((await res.json()) as string | null) : null;
+    slug = typeof value === "string" && /^[a-z0-9-]{3,40}$/.test(value) ? value : null;
+  } catch {
+    slug = null;
+  }
+  hostCache.set(host, { at: Date.now(), slug });
+  return slug;
+}
+
 export async function proxy(request: NextRequest) {
+  const host = (request.headers.get("x-forwarded-host") ?? request.headers.get("host") ?? "")
+    .split(",")[0]
+    .trim()
+    .toLowerCase()
+    .replace(/:\d+$/, "");
+  if (host && !MAIN_HOSTS.has(host) && !host.endsWith(".vercel.app")) {
+    const slug = await schoolSlugForHost(host);
+    if (!slug) return new NextResponse("Not found", { status: 404 });
+    const path = request.nextUrl.pathname;
+    const page = `/book/${slug}`;
+    if (path !== "/" && path !== page) return NextResponse.redirect(new URL("/", request.url));
+    const target = new URL(`${page}${request.nextUrl.search}`, request.url);
+    return updateSession(request, await bookFrameAncestors(page), target);
+  }
+
   if (isNonLocalizedRoute(request.nextUrl.pathname)) {
     return updateSession(request, await bookFrameAncestors(request.nextUrl.pathname));
   }
