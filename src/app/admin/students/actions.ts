@@ -380,3 +380,77 @@ export async function setPackageActive(id: string, active: boolean): Promise<Act
   revalidatePath("/admin/students/settings");
   return { error: null, success: true };
 }
+
+// Website integration (2026-10-20, Enterprise): the school's public
+// enrollment page and the sites allowed to embed it.
+export async function savePublicPage(_p: ActionState, fd: FormData): Promise<ActionState> {
+  const org = await orgId();
+  if (!org) return { error: "Missing organization.", success: false };
+  const slug = (text(fd, "slug", 40) ?? "").toLowerCase();
+  if (!/^[a-z0-9][a-z0-9-]{1,38}[a-z0-9]$/.test(slug)) {
+    return { error: "The page address uses 3 to 40 lowercase letters, numbers and dashes.", success: false };
+  }
+  const origins: string[] = [];
+  for (const line of String(fd.get("allowed_origins") ?? "").split(/[\s,]+/)) {
+    const raw = line.trim();
+    if (!raw) continue;
+    let url: URL;
+    try {
+      url = new URL(raw.includes("://") ? raw : `https://${raw}`);
+    } catch {
+      return { error: `“${raw}” isn't a website address.`, success: false };
+    }
+    if (url.protocol !== "https:") return { error: `“${raw}” must use https.`, success: false };
+    if (!origins.includes(url.origin)) origins.push(url.origin);
+  }
+  if (origins.length > 5) return { error: "List up to 5 websites.", success: false };
+  const terms = text(fd, "terms_url", 300);
+  if (terms && !/^https:\/\//.test(terms)) return { error: "The terms link must start with https://", success: false };
+  const minAge = Number(text(fd, "min_age", 3) ?? 15);
+  if (!Number.isInteger(minAge) || minAge < 13 || minAge > 25) {
+    return { error: "Minimum age must be between 13 and 25.", success: false };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("ds_public_pages").upsert({
+    organization_id: org,
+    slug,
+    enabled: fd.get("enabled") === "on",
+    intro: text(fd, "intro", 600),
+    min_age: minAge,
+    terms_url: terms,
+    allowed_origins: origins,
+    updated_at: new Date().toISOString(),
+  });
+  if (error) {
+    if (error.code === "23505") return { error: "That page address is taken. Try another.", success: false };
+    return { error: AppError.from(error).display(), success: false };
+  }
+  revalidatePath("/admin/students/settings");
+  return { error: null, success: true };
+}
+
+export async function approveEnrollment(id: string): Promise<ActionState> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("ds_enrollment_approve", { p_id: id });
+  if (error) return { error: AppError.from(error).display(), success: false };
+  revalidatePath("/admin/students");
+  return { error: null, success: true, value: String(data ?? "") };
+}
+
+export async function declineEnrollment(id: string): Promise<ActionState> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("ds_enrollment_decline", { p_id: id });
+  if (error) return { error: AppError.from(error).display(), success: false };
+  revalidatePath("/admin/students");
+  return { error: null, success: true };
+}
+
+/** Undo an approval (while the student has nothing yet) or a decline. */
+export async function undoEnrollment(id: string): Promise<ActionState> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("ds_enrollment_undo", { p_id: id });
+  if (error) return { error: AppError.from(error).display(), success: false };
+  revalidatePath("/admin/students");
+  return { error: null, success: true };
+}

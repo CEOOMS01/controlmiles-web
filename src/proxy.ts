@@ -73,13 +73,46 @@ function isNonLocalizedRoute(pathname: string) {
     // now; both halves of this bug had to be fixed for the flow to work.
     pathname.startsWith("/invite") ||
     // Driving-school student/parent portal (link with a token, no account).
-    pathname.startsWith("/student/")
+    pathname.startsWith("/student/") ||
+    // Driving school public booking page (2026-10-20).
+    pathname.startsWith("/book/")
   );
+}
+
+// A driving school's public booking page may be shown in an iframe on the
+// sites the school lists (Settings > Website, ds_public_origins); every
+// other page keeps frame-ancestors 'none'. Cached a minute per slug.
+const originCache = new Map<string, { at: number; value: string }>();
+async function bookFrameAncestors(pathname: string): Promise<string | undefined> {
+  const slug = /^\/book\/([a-z0-9-]{3,40})(?:\/|$)/.exec(pathname)?.[1];
+  if (!slug) return undefined;
+  const hit = originCache.get(slug);
+  if (hit && Date.now() - hit.at < 60_000) return hit.value;
+  let value = "'self'";
+  try {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/rpc/ds_public_origins`, {
+      method: "POST",
+      headers: {
+        apikey: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ p_slug: slug }),
+      signal: AbortSignal.timeout(2000),
+    });
+    const origins = res.ok ? ((await res.json()) as string[] | null) : null;
+    // The database only stores https origins (fn_valid_origins); re-checked here.
+    const safe = (origins ?? []).filter((o) => /^https:\/\/[a-z0-9.-]+(:\d{2,5})?$/.test(o));
+    if (safe.length) value = `'self' ${safe.join(" ")}`;
+  } catch {
+    // Fail closed: only our own pages may frame it.
+  }
+  originCache.set(slug, { at: Date.now(), value });
+  return value;
 }
 
 export async function proxy(request: NextRequest) {
   if (isNonLocalizedRoute(request.nextUrl.pathname)) {
-    return updateSession(request);
+    return updateSession(request, await bookFrameAncestors(request.nextUrl.pathname));
   }
 
   const intlResponse = intlMiddleware(request);
@@ -114,11 +147,12 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     // .well-known/ and robots/sitemap: static files served from public/.
+    // cm-book.js: the driving school embed script (public/, 2026-10-20).
     // REAL BUG (2026-09-29): /.well-known/assetlinks.json went through
     // next-intl, got rewritten to /[locale]/.well-known/... and 404'd in
     // production, so Android never verified the /invite App Link.
     // api/trip-map/: public, token-checked route images; skipping the
     // session refresh keeps Set-Cookie off them so the CDN can cache them.
-    "/((?!_next/static|_next/image|favicon.ico|\\.well-known/|api/trip-map/|robots\\.txt|sitemap\\.xml|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|\\.well-known/|api/trip-map/|robots\\.txt|sitemap\\.xml|cm-book\\.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

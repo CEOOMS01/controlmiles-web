@@ -23,8 +23,16 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        source: "/:path*",
+        // Everything but the driving school booking pages.
+        source: "/:path((?!book/).*)",
         headers: securityHeaders,
+      },
+      {
+        // /book/<slug> may be embedded on the school's own site: no
+        // X-Frame-Options; the CSP frame-ancestors set in proxy.ts lists the
+        // allowed sites (2026-10-20).
+        source: "/book/:path*",
+        headers: securityHeaders.filter((h) => h.key !== "X-Frame-Options"),
       },
     ];
   },

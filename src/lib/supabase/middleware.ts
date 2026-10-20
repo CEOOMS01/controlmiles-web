@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { STAY_SIGNED_IN_COOKIE, authCookieOptions, staySignedInFrom } from "@/lib/auth/session-persistence";
 
-function buildCsp(nonce: string) {
+function buildCsp(nonce: string, frameAncestors = "'none'") {
   // React dev mode needs eval() for its debugging tools (stack
   // reconstruction across environments); it never uses eval() in
   // production, so this only widens the policy locally, not in prod.
@@ -50,7 +50,10 @@ function buildCsp(nonce: string) {
     // Cloudflare's default public bucket subdomain; replace/extend with
     // your own custom domain once the bucket uses one instead.
     "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://photon.komoot.io https://cgc-cre.vercel.app https://protomaps.github.io https://*.r2.dev",
-    "frame-ancestors 'none'",
+    // 'none' everywhere except a driving school's public booking page
+    // (/book/<slug>), which the school may embed on its own site
+    // (ds_public_origins; see proxy.ts).
+    `frame-ancestors ${frameAncestors}`,
     "base-uri 'self'",
     "form-action 'self'",
   ].join("; ");
@@ -68,9 +71,9 @@ function buildCsp(nonce: string) {
  * console showed CSP violations). `'strict-dynamic'` + a real nonce is
  * the correct fix, not loosening to `'unsafe-inline'`.
  */
-export async function updateSession(request: NextRequest) {
+export async function updateSession(request: NextRequest, frameAncestors?: string) {
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
-  const csp = buildCsp(nonce);
+  const csp = buildCsp(nonce, frameAncestors);
 
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-nonce", nonce);

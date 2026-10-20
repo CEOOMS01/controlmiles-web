@@ -10,6 +10,7 @@
 
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { getAuthedProfile } from "@/lib/supabase/org-context";
 import { requireFeature } from "@/lib/fleet-features";
@@ -24,6 +25,7 @@ import {
 } from "@/lib/driving-school";
 import { SettingsSection, SettingsTabs } from "@/components/settings-ui";
 import { AddPackageForm, AddProgram, AddSkillForm, DsSettingsForm, ProgramRow, ToggleButton } from "../student-forms";
+import { WebsiteForm, type PublicPageSettings } from "../website-forms";
 
 
 export default async function StudentSettingsPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
@@ -59,6 +61,33 @@ export default async function StudentSettingsPage({ searchParams }: { searchPara
   ]);
   const settings = (s as DsSettings | null) ?? DEFAULT_SETTINGS;
   const showBooking = features.has("student_booking");
+  // Website integration (2026-10-20): the public enrollment page, Enterprise.
+  const showWebsite = features.has("student_portal");
+  let publicPage: PublicPageSettings | null = null;
+  let suggestedSlug = "";
+  let siteUrl = "https://controlmiles.com";
+  if (showWebsite) {
+    const [{ data: pp }, { data: org }, h] = await Promise.all([
+      supabase
+        .from("ds_public_pages")
+        .select("slug, enabled, intro, min_age, terms_url, allowed_origins")
+        .eq("organization_id", orgId)
+        .maybeSingle(),
+      supabase.from("organizations").select("name").eq("id", orgId).maybeSingle(),
+      headers(),
+    ]);
+    publicPage = (pp as PublicPageSettings | null) ?? null;
+    suggestedSlug =
+      (org?.name ?? "my-school")
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[̀-ͯ]/g, "")
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .slice(0, 40) || "my-school";
+    const host = h.get("x-forwarded-host") ?? h.get("host");
+    if (host) siteUrl = `${h.get("x-forwarded-proto") ?? "https"}://${host}`;
+  }
   const showReminder = features.has("class_reminders");
 
   const skillGroups = new Map<string, { id: string; name: string; is_active: boolean }[]>();
@@ -72,6 +101,7 @@ export default async function StudentSettingsPage({ searchParams }: { searchPara
     ...(showReminder && !showBooking ? [{ id: "booking", label: "Reminders" }] : []),
     ...(hasEval ? [{ id: "skills", label: "Report card" }] : []),
     ...(hasPkg ? [{ id: "packages", label: "Packages" }] : []),
+    ...(showWebsite ? [{ id: "website", label: "Website" }] : []),
   ];
   const tab = tabs.some((t) => t.id === sp.tab) ? sp.tab! : "programs";
 
@@ -111,6 +141,15 @@ export default async function StudentSettingsPage({ searchParams }: { searchPara
               }
             >
               <DsSettingsForm settings={settings} showBooking={showBooking} showReminder={showReminder} />
+            </SettingsSection>
+          )}
+
+          {tab === "website" && (
+            <SettingsSection
+              title="Your website"
+              help="Students and parents send an enrollment request from your own site: a link, a button or the form inside your page. Requests wait for you in Students."
+            >
+              <WebsiteForm page={publicPage} suggestedSlug={suggestedSlug} siteUrl={siteUrl} />
             </SettingsSection>
           )}
 

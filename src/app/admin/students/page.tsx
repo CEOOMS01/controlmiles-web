@@ -23,6 +23,7 @@ import {
   type StudentProgress,
 } from "@/lib/driving-school";
 import { StudentForm } from "./student-forms";
+import { EnrollmentRequests, type EnrollmentRequest } from "./website-forms";
 
 export default async function StudentsPage({
   searchParams,
@@ -48,12 +49,33 @@ export default async function StudentsPage({
     supabase.from("organization_members").select("member_role").eq("organization_id", orgId).eq("user_id", user.id).maybeSingle(),
     getBranchScope(orgId),
   ]);
+  // Requests from the school's website (2026-10-20, Enterprise).
+  const { data: requestRows } = features.has("student_portal")
+    ? await supabase
+        .from("ds_enrollment_requests")
+        .select(
+          "id, first_name, last_name, birth_date, email, phone, guardian_name, guardian_email, guardian_phone, message, is_minor, consent_by, consent_name, sms_opt_in, created_at, program_id, branch_id, status, decided_at, student_id",
+        )
+        .eq("organization_id", orgId)
+        .order("created_at", { ascending: false })
+    : { data: null };
 
   const programs = (programRows ?? []) as Program[];
   const programOf = (s: Student) => programs.find((p) => p.id === s.program_id) ?? NO_PROGRAM;
   const progress = new Map(((progressRows ?? []) as StudentProgress[]).map((p) => [p.student_id, p]));
   const isAdmin = me?.member_role === "owner" || me?.member_role === "admin";
   const branchName = new Map(scope.branches.map((b) => [b.id, b.name]));
+  const programName = new Map(programs.map((p) => [p.id, p.name]));
+  const requests: EnrollmentRequest[] = ((requestRows ?? []) as (Omit<EnrollmentRequest, "program" | "branch"> & {
+    program_id: string | null;
+    branch_id: string | null;
+  })[])
+    .filter((r) => !scope.current || !r.branch_id || r.branch_id === scope.current.id)
+    .map((r) => ({
+      ...r,
+      program: r.program_id ? (programName.get(r.program_id) ?? null) : null,
+      branch: r.branch_id ? (branchName.get(r.branch_id) ?? null) : null,
+    }));
 
   const rows = ((students ?? []) as Student[])
     .filter((s) => !scope.current || s.branch_id === scope.current.id)
@@ -92,6 +114,8 @@ export default async function StudentsPage({
           </Link>
         )}
       </div>
+
+      <EnrollmentRequests requests={requests} />
 
       <div className="mb-6">
         <StudentForm
