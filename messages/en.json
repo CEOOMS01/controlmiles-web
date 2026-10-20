@@ -81,7 +81,7 @@
       "growthName": "Growth",
       "growthTagline": "Run the whole fleet from one dashboard.",
       "enterpriseName": "Enterprise",
-      "enterpriseTagline": "Everything, plus the full driving-school suite.",
+      "enterpriseTagline": "Everything, plus onboarding and priority support.",
       "enterprisePrice": "$27.99"
     },
     "features": {
@@ -118,11 +118,35 @@
       "routesGeofences": "Routes & geofences, where your service uses them",
       "safetyScores": "Driver safety scores",
       "fuelAlerts": "Fuel anomaly alerts",
-      "serviceGrowth": "Live run board for school fleets, trip approval for sales teams, classes and students for driving schools",
-      "studentsSuite": "Driving schools: report cards, parent portal, class reminders, packages and sealed certificates"
+      "serviceGrowth": "Live run board for school fleets, trip approval for sales teams"
     },
     "disclaimer": "Prices in USD; taxes may apply. Fleet plans are billed monthly for the vehicles on file. Not tax or financial advice.",
-    "startTrial": "Start 15-day free trial"
+    "startTrial": "Start 15-day free trial",
+    "school": {
+      "title": "For driving schools",
+      "note": "Priced per vehicle, 15-day free trial with everything in Growth. Lesson hours come from each class's real GPS trip.",
+      "starterTagline": "Your cars and instructors on the record.",
+      "growthTagline": "Classes and students, measured by GPS.",
+      "enterpriseTagline": "The full school: portal, booking and certificates.",
+      "fleetBasics": "Instructor and vehicle roster, GPS on every trip",
+      "dvir": "Vehicle inspections, fuel and maintenance",
+      "liveMap": "Live map of every car",
+      "branchStarter": "1 branch included · add 1 more for $24.99 / month",
+      "everythingStarter": "Everything in Starter",
+      "classes": "Classes and weekly schedule per instructor",
+      "students": "Student records with GPS-verified hours, night hours and miles",
+      "safety": "Instructor safety scores and fuel alerts",
+      "export": "Activity log and CSV / PDF export",
+      "branchGrowth": "2 branches included · add up to 2 more for $19.99 / month each",
+      "everythingGrowth": "Everything in Growth",
+      "reportCards": "Skill report cards after each lesson",
+      "portal": "Student and parent portal with online booking",
+      "reminders": "Class reminders by email and text",
+      "packages": "Lesson packages, payments and balances",
+      "certificates": "Sealed completion certificates and state records",
+      "branchEnterprise": "Unlimited branches",
+      "support": "Dedicated onboarding and priority support"
+    }
   },
   "portalCta": {
     "eyebrow": "REPORT PORTAL",

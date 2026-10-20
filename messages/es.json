@@ -81,7 +81,7 @@
       "growthName": "Growth",
       "growthTagline": "Gestiona toda la flota desde un solo panel.",
       "enterpriseName": "Enterprise",
-      "enterpriseTagline": "Todo, más la suite completa para autoescuelas.",
+      "enterpriseTagline": "Todo, más incorporación dedicada y soporte prioritario.",
       "enterprisePrice": "$27.99"
     },
     "features": {
@@ -118,11 +118,35 @@
       "routesGeofences": "Rutas y geocercas, donde tu servicio las usa",
       "safetyScores": "Puntuación de seguridad de conductores",
       "fuelAlerts": "Alertas de consumo de combustible",
-      "serviceGrowth": "Tablero en vivo para flotas escolares, aprobación de viajes para equipos de ventas, clases y alumnos para autoescuelas",
-      "studentsSuite": "Autoescuelas: boletas de evaluación, portal para padres, recordatorios de clase, paquetes y certificados sellados"
+      "serviceGrowth": "Tablero en vivo para flotas escolares, aprobación de viajes para equipos de ventas"
     },
     "disclaimer": "Precios en USD; pueden aplicar impuestos. Los planes de flota se cobran mensualmente por los vehículos registrados. Esto no es asesoramiento fiscal ni financiero.",
-    "startTrial": "Prueba gratis 15 días"
+    "startTrial": "Prueba gratis 15 días",
+    "school": {
+      "title": "Para escuelas de manejo",
+      "note": "Precio por vehículo, 15 días de prueba gratis con todo lo de Growth. Las horas de cada clase salen de su viaje GPS real.",
+      "starterTagline": "Tus autos e instructores, registrados.",
+      "growthTagline": "Clases y alumnos, medidos por GPS.",
+      "enterpriseTagline": "La escuela completa: portal, reservas y certificados.",
+      "fleetBasics": "Lista de instructores y vehículos, GPS en cada viaje",
+      "dvir": "Inspecciones de vehículos, combustible y mantenimiento",
+      "liveMap": "Mapa en vivo de cada auto",
+      "branchStarter": "1 sucursal incluida · agrega 1 más por $24.99 / mes",
+      "everythingStarter": "Todo lo de Starter",
+      "classes": "Clases y horario semanal por instructor",
+      "students": "Expediente de alumnos con horas, horas nocturnas y millas verificadas por GPS",
+      "safety": "Puntaje de seguridad de instructores y alertas de combustible",
+      "export": "Registro de actividad y exportación CSV / PDF",
+      "branchGrowth": "2 sucursales incluidas · agrega hasta 2 más por $19.99 / mes cada una",
+      "everythingGrowth": "Todo lo de Growth",
+      "reportCards": "Boleta de habilidades después de cada clase",
+      "portal": "Portal de alumnos y padres con reservas en línea",
+      "reminders": "Recordatorios de clase por correo y mensaje de texto",
+      "packages": "Paquetes de clases, pagos y saldos",
+      "certificates": "Certificados de finalización sellados y registros estatales",
+      "branchEnterprise": "Sucursales ilimitadas",
+      "support": "Incorporación dedicada y soporte prioritario"
+    }
   },
   "portalCta": {
     "eyebrow": "PORTAL DE REPORTES",

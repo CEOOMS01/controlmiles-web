@@ -3,11 +3,10 @@
 import { useState, useTransition } from "react";
 import { useSearchParams } from "next/navigation";
 import { startFleetCheckout, openFleetBillingPortal } from "./billing-actions";
-
-type Tier = "starter" | "growth" | "enterprise";
+import { SCHOOL_BRANCHES, SCHOOL_TIER_PRICE, schoolBranchLine, type Tier } from "@/lib/school-pricing";
 
 const TIER_LABEL: Record<Tier, string> = { starter: "Starter", growth: "Growth", enterprise: "Enterprise" };
-const TIER_PRICE: Record<Tier, string> = { starter: "$12.99", growth: "$19.99", enterprise: "$27.99" };
+const FLEET_TIER_PRICE: Record<Tier, string> = { starter: "$12.99", growth: "$19.99", enterprise: "$27.99" };
 
 export function BillingSection({
   orgId,
@@ -16,6 +15,7 @@ export function BillingSection({
   currentStatus,
   billedVehicles,
   showEnterprise = false,
+  schoolBranches = null,
 }: {
   orgId: string;
   vehicleCount: number;
@@ -26,7 +26,21 @@ export function BillingSection({
   showEnterprise?: boolean;
   currentStatus: string | null;
   billedVehicles: number | null;
+  // Driving schools (2026-10-20): their own prices, and branches beyond the
+  // plan's included ones are billed (src/lib/school-pricing.ts). The active
+  // branch count; null for other services.
+  schoolBranches?: number | null;
 }) {
+  const isSchool = schoolBranches != null;
+  const TIER_PRICE = isSchool ? SCHOOL_TIER_PRICE : FLEET_TIER_PRICE;
+  const extrasOn = (tier: Tier) => {
+    const b = SCHOOL_BRANCHES[tier];
+    return b && isSchool ? Math.min(Math.max(schoolBranches - b.included, 0), b.max - b.included) : 0;
+  };
+  const tooMany = (tier: Tier) => {
+    const b = SCHOOL_BRANCHES[tier];
+    return !!b && isSchool && schoolBranches > b.max;
+  };
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   // Stripe returns here with ?billing=success|canceled. The plan itself is
@@ -87,6 +101,17 @@ export function BillingSection({
                 <> · currently billed for {billedVehicles}; your next invoice uses your vehicle count</>
               )}
             </p>
+            {isSchool && (
+              <p className="mt-1 text-xs text-muted">
+                {SCHOOL_BRANCHES[currentTier]
+                  ? `${schoolBranches} ${schoolBranches === 1 ? "branch" : "branches"} · ${schoolBranchLine(currentTier)}${
+                      extrasOn(currentTier) > 0
+                        ? ` · ${extrasOn(currentTier)} extra billed at ${SCHOOL_BRANCHES[currentTier]!.extra}/mo`
+                        : ""
+                    }`
+                  : "Unlimited branches included"}
+              </p>
+            )}
           </div>
           <button
             onClick={manage}
@@ -115,9 +140,24 @@ export function BillingSection({
           <p className="mt-1 text-xs text-muted">
             {vehicleCount} vehicle{vehicleCount === 1 ? "" : "s"} on file today
           </p>
+          {isSchool && (
+            <p className="mt-2 text-xs text-muted">
+              {schoolBranchLine(tier)}
+              {extrasOn(tier) > 0 && !tooMany(tier) && (
+                <span className="block text-foreground">
+                  You have {schoolBranches} branches: +{extrasOn(tier)} × {SCHOOL_BRANCHES[tier]!.extra}/mo
+                </span>
+              )}
+              {tooMany(tier) && (
+                <span className="block text-danger">
+                  You have {schoolBranches} branches; this plan allows {SCHOOL_BRANCHES[tier]!.max}.
+                </span>
+              )}
+            </p>
+          )}
           <button
             onClick={() => subscribe(tier)}
-            disabled={pending || vehicleCount === 0}
+            disabled={pending || vehicleCount === 0 || tooMany(tier)}
             className="mt-4 w-full rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {pending ? "Starting…" : `Subscribe to ${TIER_LABEL[tier]}`}

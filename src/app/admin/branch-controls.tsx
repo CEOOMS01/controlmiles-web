@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useState, useTransition } from "react";
 import {
   addBranch,
@@ -137,8 +138,21 @@ const initialState: BranchFormState = { error: null, success: false };
 /** Settings: the fleet's branches. */
 export function BranchesManager({
   branches,
+  allowance = null,
 }: {
-  branches: { id: string; name: string; address: string | null; phone: string | null }[];
+  branches: {
+    id: string;
+    name: string;
+    address: string | null;
+    phone: string | null;
+  }[];
+  // Driving schools (2026-10-20): branches included in the plan, the most
+  // it allows and the monthly price of each extra one. null = no limit.
+  allowance?: {
+    included: number | null;
+    max_branches: number | null;
+    extra_price_cents: number | null;
+  } | null;
 }) {
   const [state, formAction, pending] = useActionState(addBranch, initialState);
   const [archiving, startArchive] = useTransition();
@@ -146,8 +160,36 @@ export function BranchesManager({
   const input =
     "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent";
 
+  const included = allowance?.included ?? 0;
+  const max = allowance?.max_branches ?? null;
+  const atMax = max != null && branches.length >= max;
+  const extraPrice = allowance?.extra_price_cents != null ? `$${(allowance.extra_price_cents / 100).toFixed(2)}` : null;
+  const nextIsExtra = max != null && !atMax && branches.length >= included && extraPrice;
+
   return (
     <div>
+      {max != null && (
+        <div className="mb-4 rounded-lg border border-border bg-background px-4 py-3 text-sm">
+          <p className="font-medium">
+            {branches.length} of {max} branches
+          </p>
+          <p className="mt-0.5 text-xs text-muted">
+            Your plan includes {included} {included === 1 ? "branch" : "branches"}
+            {extraPrice && max > included
+              ? `; up to ${max - included} more at ${extraPrice}/month${max - included > 1 ? " each" : ""}, billed on your next invoice.`
+              : "."}
+            {atMax && (
+              <>
+                {" "}
+                <Link href="/admin/settings?tab=billing" className="text-accent hover:underline">
+                  Upgrade your plan
+                </Link>{" "}
+                to add more.
+              </>
+            )}
+          </p>
+        </div>
+      )}
       {branches.length === 0 && <p className="text-sm text-muted">No branches yet.</p>}
       {branches.length > 0 && (
         <ul className="divide-y divide-border rounded-lg border border-border bg-background">
@@ -178,18 +220,23 @@ export function BranchesManager({
       )}
       {error && <p className="mt-2 text-sm text-danger">{error}</p>}
 
-      <form action={formAction} className="mt-4 grid gap-2 sm:grid-cols-[1fr_1fr_1fr_auto]">
-        <input name="name" placeholder="Name (e.g. Frederick)" required maxLength={80} className={input} />
-        <input name="address" placeholder="Address (optional)" className={input} />
-        <input name="phone" placeholder="Phone (optional)" className={input} />
-        <button
-          type="submit"
-          disabled={pending}
-          className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground transition hover:opacity-90 disabled:opacity-60"
-        >
-          {pending ? "Adding…" : "Add"}
-        </button>
-      </form>
+      {!atMax && nextIsExtra && (
+        <p className="mt-4 text-xs text-muted">The next branch adds {extraPrice}/month to your plan.</p>
+      )}
+      {!atMax && (
+        <form action={formAction} className="mt-4 grid gap-2 sm:grid-cols-[1fr_1fr_1fr_auto]">
+          <input name="name" placeholder="Name (e.g. Frederick)" required maxLength={80} className={input} />
+          <input name="address" placeholder="Address (optional)" className={input} />
+          <input name="phone" placeholder="Phone (optional)" className={input} />
+          <button
+            type="submit"
+            disabled={pending}
+            className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground transition hover:opacity-90 disabled:opacity-60"
+          >
+            {pending ? "Adding…" : "Add"}
+          </button>
+        </form>
+      )}
       {state.error && <p className="mt-2 text-sm text-danger">{state.error}</p>}
     </div>
   );

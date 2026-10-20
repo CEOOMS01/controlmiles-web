@@ -54,6 +54,12 @@ export default async function SettingsPage({
 
   if (!org) return null;
   const branchScope = await getBranchScope(orgId);
+  // Driving schools: branches per plan (fn_org_branch_allowance, 2026-10-20).
+  const { data: allowanceRows } =
+    tab === "branches" ? await supabase.rpc("fn_org_branch_allowance", { p_org: orgId }) : { data: null };
+  const allowance = (Array.isArray(allowanceRows) ? allowanceRows[0] : null) as
+    | { included: number | null; max_branches: number | null; extra_price_cents: number | null; active: number }
+    | null;
   const features = await getOrgFeatures(orgId);
 
   const createdDate = org.created_at
@@ -132,7 +138,10 @@ export default async function SettingsPage({
               title="Branches"
               help="Your locations (each office or yard). Put vehicles and drivers in a branch on the Team page and filter the dashboard by branch."
             >
-              <BranchesManager branches={branchScope.branches} />
+              <BranchesManager
+                branches={branchScope.branches}
+                allowance={allowance?.max_branches != null ? allowance : null}
+              />
             </SettingsSection>
           )}
 
@@ -147,6 +156,7 @@ export default async function SettingsPage({
                     : null
                 }
                 showEnterprise={org.industry_template === "driving_school"}
+                schoolBranches={org.industry_template === "driving_school" ? branchScope.branches.length : null}
                 currentStatus={org.subscription_status}
                 billedVehicles={org.subscription_vehicle_count ?? null}
               />

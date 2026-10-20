@@ -42,6 +42,9 @@ export async function startFleetCheckout(
 
   if (error) {
     const body = await readFunctionError(error);
+    if (body === "TOO_MANY_BRANCHES") {
+      return { error: "You have more branches than this plan allows. Remove one or choose a bigger plan.", url: null };
+    }
     if (body === "ALREADY_SUBSCRIBED") {
       return { error: "This fleet already has an active plan. Use Manage billing to change it.", url: null };
     }

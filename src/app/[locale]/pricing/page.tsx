@@ -52,6 +52,7 @@ import { Link } from "@/i18n/routing";
 import { LandingNav, LandingFooter } from "@/components/landing-chrome";
 import { Reveal } from "@/components/reveal";
 import { Fraunces, Public_Sans, IBM_Plex_Mono } from "next/font/google";
+import { SCHOOL_TIER_PRICE } from "@/lib/school-pricing";
 import "../landing.css";
 
 const display = Fraunces({ subsets: ["latin"], weight: ["500", "600", "700"], variable: "--font-display" });
@@ -144,10 +145,55 @@ const fleetPlans = (t: Awaited<ReturnType<typeof getTranslations>>): Plan[] => [
     tagline: t("plans.enterpriseTagline"),
     features: [
       t("features.everythingGrowth"),
-      t("features.studentsSuite"),
       t("features.onboarding"),
       t("features.customReporting"),
       t("features.prioritySupport"),
+    ],
+    cta: { label: t("signInFleet"), href: "/login" },
+  },
+];
+
+// Driving schools (2026-10-20): their own prices and branch allowance
+// (src/lib/school-pricing.ts); every line maps to a feature of that plan.
+const schoolPlans = (t: Awaited<ReturnType<typeof getTranslations>>): Plan[] => [
+  {
+    name: t("plans.starterName"),
+    price: SCHOOL_TIER_PRICE.starter,
+    unit: t("perVehicle"),
+    tagline: t("school.starterTagline"),
+    features: [t("school.fleetBasics"), t("school.dvir"), t("school.liveMap"), t("school.branchStarter")],
+    cta: { label: t("signInFleet"), href: "/login" },
+  },
+  {
+    name: t("plans.growthName"),
+    price: SCHOOL_TIER_PRICE.growth,
+    unit: t("perVehicle"),
+    tagline: t("school.growthTagline"),
+    features: [
+      t("school.everythingStarter"),
+      t("school.classes"),
+      t("school.students"),
+      t("school.safety"),
+      t("school.export"),
+      t("school.branchGrowth"),
+    ],
+    cta: { label: t("signInFleet"), href: "/login" },
+    highlight: true,
+  },
+  {
+    name: t("plans.enterpriseName"),
+    price: SCHOOL_TIER_PRICE.enterprise,
+    unit: t("perVehicle"),
+    tagline: t("school.enterpriseTagline"),
+    features: [
+      t("school.everythingGrowth"),
+      t("school.reportCards"),
+      t("school.portal"),
+      t("school.reminders"),
+      t("school.packages"),
+      t("school.certificates"),
+      t("school.branchEnterprise"),
+      t("school.support"),
     ],
     cta: { label: t("signInFleet"), href: "/login" },
   },
@@ -234,6 +280,7 @@ export default async function PricingPage({
   const t = await getTranslations("pricing");
   const GIG_PLANS = gigPlans(t);
   const FLEET_PLANS = fleetPlans(t);
+  const SCHOOL_PLANS = schoolPlans(t);
 
   return (
     <main
@@ -279,6 +326,16 @@ export default async function PricingPage({
         </p>
         <div className="mt-6 grid gap-5 sm:grid-cols-3">
           {FLEET_PLANS.map((p, i) => (
+            <PlanCard key={p.name} plan={p} index={i} mostPopular={t("mostPopular")} />
+          ))}
+        </div>
+      </section>
+
+      <section id="driving-schools" className="mx-auto max-w-6xl scroll-mt-24 px-6 pb-12 sm:px-10">
+        <h2 className="display text-2xl font-semibold">{t("school.title")}</h2>
+        <p className="mt-1 text-sm text-[var(--lg-ink-dim)]">{t("school.note")}</p>
+        <div className="mt-6 grid gap-5 sm:grid-cols-3">
+          {SCHOOL_PLANS.map((p, i) => (
             <PlanCard key={p.name} plan={p} index={i} mostPopular={t("mostPopular")} />
           ))}
         </div>
