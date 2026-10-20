@@ -1,5 +1,7 @@
 "use client";
 
+import { SaveStatus, SettingRow, UnitInput, settingsField } from "@/components/settings-ui";
+
 import { useActionState } from "react";
 import { setScheduleSettings, type ScheduleSettingsState } from "./actions";
 
@@ -32,44 +34,31 @@ export function ScheduleSettingsForm({
   const zones = US_ZONES.some((z) => z.value === timezone)
     ? US_ZONES
     : [{ value: timezone, label: timezone }, ...US_ZONES];
-  const field =
-    "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent";
 
   return (
-    <form action={formAction} className="rounded-xl border border-border bg-surface p-5">
+    <form action={formAction} className="divide-y divide-border">
       <input type="hidden" name="org_id" value={orgId} />
-      <p className="text-sm font-medium">{showClassWindow ? "Schedule & classes" : "Schedule"}</p>
-      <p className="mt-1 text-sm text-muted">
-        Shift times are your fleet&apos;s local time.
-        {showClassWindow &&
-          " The start window is how early and how late a driver can start a class; starting after its start time is marked late."}
-      </p>
-
-      <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        <div>
-          <label className="mb-1.5 block text-sm font-medium">Fleet timezone</label>
-          <select name="timezone" defaultValue={timezone} className={field}>
-            {zones.map((z) => (
-              <option key={z.value} value={z.value}>
-                {z.label}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className={showClassWindow ? "" : "hidden"}>
-          <label className="mb-1.5 block text-sm font-medium">Class start window (minutes)</label>
-          <input
-            name="shift_start_window_minutes"
-            type="number"
-            min={0}
-            max={120}
-            defaultValue={windowMinutes}
-            className={field}
-          />
-        </div>
-      </div>
-
-      <div className="mt-4 flex items-center gap-3">
+      <SettingRow title="Time zone" help="Schedules, classes and reports use your fleet's local time.">
+        <select name="timezone" defaultValue={timezone} aria-label="Time zone" className={`${settingsField} sm:w-64`}>
+          {zones.map((z) => (
+            <option key={z.value} value={z.value}>
+              {z.label}
+            </option>
+          ))}
+        </select>
+      </SettingRow>
+      {showClassWindow ? (
+        <SettingRow
+          title="Class start window"
+          help="How early or late an instructor can start a class; starting after its start time is marked late."
+        >
+          <UnitInput name="shift_start_window_minutes" defaultValue={windowMinutes} unit="minutes" min={0} max={120} />
+        </SettingRow>
+      ) : (
+        <input type="hidden" name="shift_start_window_minutes" value={windowMinutes} />
+      )}
+      <div className="flex items-center justify-end gap-3 py-3">
+        <SaveStatus pending={false} success={!pending && state.success} error={state.error} />
         <button
           type="submit"
           disabled={pending}
@@ -77,12 +66,6 @@ export function ScheduleSettingsForm({
         >
           {pending ? "Saving…" : "Save"}
         </button>
-        {!pending && state.success && <p className="text-sm text-success">Saved.</p>}
-        {state.error && (
-          <p role="alert" className="text-sm text-danger">
-            {state.error}
-          </p>
-        )}
       </div>
     </form>
   );

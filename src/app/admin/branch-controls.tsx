@@ -147,16 +147,10 @@ export function BranchesManager({
     "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent";
 
   return (
-    <div className="rounded-xl border border-border bg-surface p-5">
-      <p className="text-sm font-medium">Branches</p>
-      <p className="mt-1 text-sm text-muted">
-        Locations of your business (for example, each office or yard). Put each vehicle and driver in a branch on
-        the Team page, then filter the whole dashboard by branch from the sidebar. A driver can also work at any
-        branch.
-      </p>
-
+    <div className="p-5">
+      {branches.length === 0 && <p className="text-sm text-muted">No branches yet.</p>}
       {branches.length > 0 && (
-        <ul className="mt-4 divide-y divide-border rounded-lg border border-border bg-background">
+        <ul className="divide-y divide-border rounded-lg border border-border bg-background">
           {branches.map((b) => (
             <li key={b.id} className="flex items-center gap-3 px-4 py-2.5 text-sm">
               <span className="flex-1">

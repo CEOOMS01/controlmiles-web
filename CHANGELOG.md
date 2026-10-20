@@ -11,6 +11,14 @@ releases have their own changelog in the app repo.
 
 ## 2026-10-20
 
+### Changed (settings)
+- **Settings redesigned:** a section menu (General, Operations, Branches,
+  Billing, Preferences, Delete fleet) and one card per section; each
+  setting is a row with a short explanation beside its control (switches,
+  two-option toggles, fields with units). Switches save as soon as they're
+  flipped. The fleet-type feature list and the separate Immutability and
+  Feedback sections are folded into one-line notes.
+
 ### Changed (driving schools, later the same day)
 - **Student form:** the parent or guardian fields only appear for programs
   that have one (Teen); adult students aren't asked for them.

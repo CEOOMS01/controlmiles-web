@@ -4,6 +4,7 @@
 
 import { useActionState, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { GroupTitle, SettingRow, Switch, UnitInput } from "@/components/settings-ui";
 import {
   addAvailability,
   addPackage,
@@ -375,51 +376,6 @@ export function IssueCertificateButton({ studentId, canIssue }: { studentId: str
 // Settings layout (redesign 2026-10-20): each setting is a row with its
 // name and a one-line explanation on the left and the control on the
 // right, grouped under small headings, one Save bar per card.
-
-/** On/off switch that posts like a checkbox ("on" when on). */
-function Switch({ name, defaultChecked, label: text }: { name: string; defaultChecked: boolean; label: string }) {
-  return (
-    <label className="relative inline-flex cursor-pointer items-center">
-      <input type="checkbox" name={name} defaultChecked={defaultChecked} className="peer sr-only" aria-label={text} />
-      <span className="h-6 w-11 rounded-full bg-border transition peer-checked:bg-accent peer-focus-visible:ring-2 peer-focus-visible:ring-accent/40" />
-      <span className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition peer-checked:translate-x-5" />
-    </label>
-  );
-}
-
-/** Number field with its unit after it ("24 hours"). */
-function UnitInput(props: { name: string; defaultValue: number; unit: string; min: number; max: number; step?: number }) {
-  return (
-    <div className="flex items-center gap-2">
-      <input
-        name={props.name}
-        type="number"
-        min={props.min}
-        max={props.max}
-        step={props.step ?? 1}
-        defaultValue={props.defaultValue}
-        className={`${field} w-24 text-right`}
-      />
-      <span className="text-sm text-muted">{props.unit}</span>
-    </div>
-  );
-}
-
-function SettingRow({ title, help, children }: { title: string; help: string; children: React.ReactNode }) {
-  return (
-    <div className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-8">
-      <div className="min-w-0">
-        <p className="text-sm font-medium">{title}</p>
-        <p className="mt-0.5 text-xs text-muted">{help}</p>
-      </div>
-      <div className="shrink-0">{children}</div>
-    </div>
-  );
-}
-
-function GroupTitle({ children }: { children: React.ReactNode }) {
-  return <p className="pt-5 text-xs font-semibold tracking-wide text-muted uppercase first:pt-1">{children}</p>;
-}
 
 export function DsSettingsForm({
   settings,

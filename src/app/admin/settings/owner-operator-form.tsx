@@ -1,5 +1,7 @@
 "use client";
 
+import { SaveStatus, SettingRow, Switch } from "@/components/settings-ui";
+
 import { useActionState } from "react";
 import { setAllowDriverOwnedVehicles, type OwnerOperatorState } from "./actions";
 
@@ -13,32 +15,15 @@ export function OwnerOperatorForm({ orgId, allowed }: { orgId: string; allowed: 
   const [state, formAction, pending] = useActionState(setAllowDriverOwnedVehicles, initialState);
 
   return (
-    <form action={formAction} className="rounded-xl border border-border bg-surface p-5">
-      <input type="hidden" name="org_id" value={orgId} />
-      <label className="flex cursor-pointer items-start gap-3">
-        <input
-          type="checkbox"
-          name="allow"
-          defaultChecked={allowed}
-          disabled={pending}
-          onChange={(e) => e.currentTarget.form?.requestSubmit()}
-          className="mt-1 h-4 w-4"
-        />
-        <span>
-          <span className="block text-sm font-medium">Drivers can use their own vehicle (owner-operators)</span>
-          <span className="mt-1 block text-sm text-muted">
-            A driver without a company vehicle can register the truck or car they own in the app and drive it
-            for your fleet. It shows in Team as driver-owned and counts toward your plan&apos;s vehicles.
-          </span>
-        </span>
-      </label>
-      {pending && <p className="mt-2 text-sm text-muted">Saving…</p>}
-      {!pending && state.success && <p className="mt-2 text-sm text-success">Saved.</p>}
-      {state.error && (
-        <p role="alert" className="mt-2 text-sm text-danger">
-          {state.error}
-        </p>
-      )}
-    </form>
+    <SettingRow
+      title="Drivers can use their own vehicle"
+      help="Owner-operators register the vehicle they own in the app; it counts toward your plan's vehicles."
+    >
+      <form action={formAction} className="flex items-center gap-3">
+        <input type="hidden" name="org_id" value={orgId} />
+        <SaveStatus pending={pending} success={state.success} error={state.error} />
+        <Switch name="allow" defaultChecked={allowed} disabled={pending} autoSubmit label="Owner-operators" />
+      </form>
+    </SettingRow>
   );
 }

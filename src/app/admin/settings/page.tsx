@@ -8,7 +8,8 @@ import { getOrgFeatures } from "@/lib/fleet-features";
 import { getBranchScope } from "@/lib/branch-scope";
 import { BranchesManager } from "../branch-controls";
 import { ScheduleSettingsForm } from "./schedule-settings-form";
-import { IndustryTemplateForm } from "./industry-template-form";
+import { FleetTypeRow, ModuleOptionsForm } from "./industry-template-form";
+import { SettingsCard, SettingsNav } from "@/components/settings-ui";
 import { DeleteOrgForm } from "./delete-org-form";
 import { BillingSection } from "./billing-section";
 import { TimeFormatForm } from "./time-format-form";
@@ -48,159 +49,114 @@ export default async function SettingsPage() {
       })
     : null;
 
+  const sections = [
+    { id: "general", label: "General" },
+    { id: "operations", label: "Operations" },
+    { id: "branches", label: "Branches" },
+    { id: "billing", label: "Billing" },
+    { id: "preferences", label: "Preferences" },
+    { id: "danger", label: "Delete fleet" },
+  ];
+
+  // Settings layout (redesign 2026-10-20): a section menu and one card per
+  // section; every setting is a row with its name and a one-line
+  // explanation beside its control.
   return (
     <main className="px-6 py-10 sm:px-10">
-      <div className="mb-8">
-        <p className="text-sm font-semibold tracking-wide text-accent uppercase">
-          Settings
-        </p>
-        <h1 className="mt-1 text-2xl font-semibold">{org.name}</h1>
-      </div>
+      <p className="text-sm font-semibold tracking-wide text-accent uppercase">Settings</p>
+      <h1 className="mt-1 text-2xl font-semibold">{org.name}</h1>
 
-      <div className="max-w-2xl space-y-10">
-        <SettingsSection
-          title="General"
-          description="Your fleet's identity across the app and reports."
-        >
-          <RenameOrgForm orgId={orgId} currentName={org.name} />
-          {createdDate && (
-            <p className="mt-4 text-xs text-muted">Fleet created {createdDate}.</p>
-          )}
-        </SettingsSection>
+      <div className="mt-8 flex max-w-5xl flex-col gap-8 lg:flex-row">
+        <SettingsNav sections={sections} />
 
-        <SettingsSection
-          title="Branches"
-          description="Your business locations, to organize vehicles and drivers and filter the dashboard."
-        >
-          <BranchesManager branches={branchScope.branches} />
-        </SettingsSection>
-
-        <SettingsSection
-          title="Fleet operations"
-          description="How drivers and vehicles work day to day."
-        >
-          <div className="mb-4">
-            <IndustryTemplateForm
-              orgId={orgId}
-              orgName={org.name}
-              confirmedAt={org.fleet_type_confirmed_at ?? null}
-              current={isFleetProfile(org.industry_template) ? org.industry_template : "general"}
-              requirePretrip={org.require_pretrip_inspection !== false}
-              useShifts={org.use_shift_schedules === true}
-              canUseShifts={features.has("shift_schedules")}
-            />
-          </div>
-          {features.has("open_assignment") && (
-            <VehicleAssignmentModeForm
-              orgId={orgId}
-              currentMode={org.vehicle_assignment_mode === "open" ? "open" : "fixed"}
-            />
-          )}
-          {features.has("owner_operators") && (
-            <div className="mt-4">
-              <OwnerOperatorForm orgId={orgId} allowed={org.allow_driver_owned_vehicles === true} />
+        <div className="min-w-0 flex-1 space-y-6">
+          <SettingsCard id="general" title="General" help="Your fleet's name and type.">
+            <div className="divide-y divide-border px-5">
+              <RenameOrgForm orgId={orgId} currentName={org.name} />
+              <FleetTypeRow
+                orgName={org.name}
+                confirmedAt={org.fleet_type_confirmed_at ?? null}
+                current={isFleetProfile(org.industry_template) ? org.industry_template : "general"}
+              />
             </div>
-          )}
-          <div className="mt-4">
-            <ScheduleSettingsForm
-              orgId={orgId}
-              timezone={org.timezone ?? "America/New_York"}
-              windowMinutes={org.shift_start_window_minutes ?? 10}
-              showClassWindow={features.has("classes")}
-            />
-          </div>
-        </SettingsSection>
+            <p className="border-t border-border px-5 py-3 text-xs text-muted">
+              {createdDate ? `Created ${createdDate}. ` : ""}Driver and vehicle IDs and the miles of a closed trip are
+              locked by design and can&apos;t be edited from anywhere.
+            </p>
+          </SettingsCard>
 
-        <SettingsSection
-          title="Preferences"
-          description="Personal to your account — not shared with the rest of your team."
-        >
-          <TimeFormatForm currentFormat={myProfile?.time_format === "24h" ? "24h" : "12h"} />
-        </SettingsSection>
-
-        <SettingsSection
-          title="Billing"
-          description="Fleet plans scale with your vehicle count, billed monthly via Stripe."
-        >
-          <BillingSection
-            orgId={orgId}
-            vehicleCount={vehicleCount ?? 0}
-            currentTier={
-              org.subscription_tier === "growth" || org.subscription_tier === "starter" || org.subscription_tier === "enterprise"
-                ? org.subscription_tier
-                : null
-            }
-            showEnterprise={org.industry_template === "driving_school"}
-            currentStatus={org.subscription_status}
-            billedVehicles={org.subscription_vehicle_count ?? null}
-          />
-        </SettingsSection>
-
-        <SettingsSection
-          title="Immutability"
-          description="What's permanent by design, not just by convention."
-        >
-          <div className="rounded-xl border border-border bg-surface p-5">
-            <ul className="space-y-1.5 text-sm text-muted">
-              <li>• Driver and vehicle IDs (CM-D#### / CM-T####) — permanent once assigned</li>
-              <li>• Miles and duration on a closed trip — locked once saved and closed</li>
-              {(features.has("routes") || features.has("school")) && (
-                <li>• A closed route — locked once dispatched and completed</li>
+          <SettingsCard id="operations" title="Operations" help="How drivers and vehicles work day to day.">
+            <div className="divide-y divide-border px-5">
+              <ModuleOptionsForm
+                orgId={orgId}
+                requirePretrip={org.require_pretrip_inspection !== false}
+                useShifts={org.use_shift_schedules === true}
+                canUseShifts={features.has("shift_schedules")}
+              />
+              {features.has("open_assignment") && (
+                <VehicleAssignmentModeForm
+                  orgId={orgId}
+                  currentMode={org.vehicle_assignment_mode === "open" ? "open" : "fixed"}
+                />
               )}
-            </ul>
-            <p className="mt-3 text-xs text-muted">
-              Enforced at the database level, not just hidden in this UI —
-              they can&apos;t be edited from anywhere, including direct
-              API access.
-            </p>
-          </div>
-        </SettingsSection>
+              {features.has("owner_operators") && (
+                <OwnerOperatorForm orgId={orgId} allowed={org.allow_driver_owned_vehicles === true} />
+              )}
+              <ScheduleSettingsForm
+                orgId={orgId}
+                timezone={org.timezone ?? "America/New_York"}
+                windowMinutes={org.shift_start_window_minutes ?? 10}
+                showClassWindow={features.has("classes")}
+              />
+            </div>
+          </SettingsCard>
 
-        <SettingsSection
-          title="Feedback"
-          description="Have an idea or run into something that isn't working?"
-        >
-          <div className="rounded-xl border border-border bg-surface p-5">
-            <p className="text-sm text-muted">
-              Send it to{" "}
-              <a href="mailto:suggestions@controlmiles.com" className="text-accent hover:underline">
-                suggestions@controlmiles.com
-              </a>
-              .
-            </p>
-          </div>
-        </SettingsSection>
+          <SettingsCard
+            id="branches"
+            title="Branches"
+            help="Your locations (each office or yard). Put vehicles and drivers in a branch on the Team page and filter the dashboard by branch."
+          >
+            <BranchesManager branches={branchScope.branches} />
+          </SettingsCard>
 
-        <SettingsSection
-          title="Danger zone"
-          description="Irreversible, org-wide actions."
-          accent
-        >
-          <div className="rounded-xl border border-danger/30 bg-danger/5 p-5">
-            <DeleteOrgForm orgId={orgId} orgName={org.name} />
-          </div>
-        </SettingsSection>
+          <SettingsCard id="billing" title="Billing" help="Plans are per vehicle, billed monthly through Stripe.">
+            <div className="p-5">
+              <BillingSection
+                orgId={orgId}
+                vehicleCount={vehicleCount ?? 0}
+                currentTier={
+                  org.subscription_tier === "growth" || org.subscription_tier === "starter" || org.subscription_tier === "enterprise"
+                    ? org.subscription_tier
+                    : null
+                }
+                showEnterprise={org.industry_template === "driving_school"}
+                currentStatus={org.subscription_status}
+                billedVehicles={org.subscription_vehicle_count ?? null}
+              />
+            </div>
+          </SettingsCard>
+
+          <SettingsCard id="preferences" title="Preferences" help="Only for your account, not the rest of your team.">
+            <div className="px-5">
+              <TimeFormatForm currentFormat={myProfile?.time_format === "24h" ? "24h" : "12h"} />
+            </div>
+          </SettingsCard>
+
+          <SettingsCard id="danger" title="Delete fleet" help="Permanent and for the whole organization." danger>
+            <div className="p-5">
+              <DeleteOrgForm orgId={orgId} orgName={org.name} />
+            </div>
+          </SettingsCard>
+
+          <p className="text-center text-xs text-muted">
+            Ideas or something not working? Write to{" "}
+            <a href="mailto:suggestions@controlmiles.com" className="text-accent hover:underline">
+              suggestions@controlmiles.com
+            </a>
+            .
+          </p>
+        </div>
       </div>
     </main>
-  );
-}
-
-function SettingsSection({
-  title,
-  description,
-  accent,
-  children,
-}: {
-  title: string;
-  description: string;
-  accent?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <section>
-      <h2 className={`text-sm font-semibold ${accent ? "text-danger" : ""}`}>{title}</h2>
-      <p className="mt-0.5 text-xs text-muted">{description}</p>
-      <div className="mt-4">{children}</div>
-    </section>
   );
 }

@@ -22,19 +22,9 @@ import {
   type DsSettings,
   type Program,
 } from "@/lib/driving-school";
+import { SettingsCard as Card, SettingsNav } from "@/components/settings-ui";
 import { AddPackageForm, AddProgram, AddSkillForm, DsSettingsForm, ProgramRow, ToggleButton } from "../student-forms";
 
-function Card({ id, title, help, children }: { id: string; title: string; help: string; children: React.ReactNode }) {
-  return (
-    <section id={id} className="scroll-mt-6 rounded-xl border border-border bg-surface">
-      <header className="border-b border-border px-5 py-4">
-        <h2 className="font-semibold">{title}</h2>
-        <p className="mt-0.5 text-sm text-muted">{help}</p>
-      </header>
-      {children}
-    </section>
-  );
-}
 
 export default async function StudentSettingsPage() {
   const features = await requireFeature("students");
@@ -93,22 +83,7 @@ export default async function StudentSettingsPage() {
       <p className="mt-1 text-sm text-muted">How your school runs lessons. Changes apply to new bookings and classes.</p>
 
       <div className="mt-8 flex max-w-5xl flex-col gap-8 lg:flex-row">
-        {sections.length > 1 && (
-          <nav className="lg:sticky lg:top-6 lg:w-52 lg:shrink-0 lg:self-start">
-            <ul className="flex gap-1 overflow-x-auto text-sm lg:flex-col">
-              {sections.map((x) => (
-                <li key={x.id}>
-                  <a
-                    href={`#${x.id}`}
-                    className="block rounded-lg px-3 py-2 whitespace-nowrap text-muted hover:bg-surface hover:text-foreground"
-                  >
-                    {x.label}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </nav>
-        )}
+        {sections.length > 1 && <SettingsNav sections={sections} />}
 
         <div className="min-w-0 flex-1 space-y-6">
           <Card
