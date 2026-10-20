@@ -42,8 +42,9 @@ releases have their own changelog in the app repo.
   `fn_ds_class_numbers`, `ds_student_progress`, `ds_student_classes`,
   `ds_submit_evaluation`, portal and certificate RPCs, Enterprise tier in
   `fn_org_feature_list_internal`; `get_my_shift_day` returns the student.
-- New edge function `send-class-reminders` and Enterprise support in
-  `create-checkout-session` / `stripe-webhook` (**not deployed yet**).
+- New edge function `send-class-reminders` (hourly cron `class-reminders-hourly`
+  at :05) and Enterprise support in `create-checkout-session` /
+  `stripe-webhook` -- deployed 2026-10-19 with `send-fuel-alerts`.
 
 ### Changed (each fleet sees only its service and plan)
 - What a fleet has now comes from one list in the database,
@@ -91,7 +92,7 @@ releases have their own changelog in the app repo.
   school tables, substitutes, geofences, shifts, fuel alerts, safety events
   and the org activity log; live positions stored only with the live map;
   `trip_approvals` + `set_trip_approval`. Error `FEATURE_NOT_IN_PLAN` (414).
-- `send-fuel-alerts` skips fleets without fuel alerts (**not deployed yet**).
+- `send-fuel-alerts` skips fleets without fuel alerts (deployed 2026-10-19).
 
 ## 2026-10-09
 
