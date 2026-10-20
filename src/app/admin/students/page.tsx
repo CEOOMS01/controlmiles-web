@@ -100,6 +100,7 @@ export default async function StudentsPage({
           programs={programs.filter((p) => p.is_active)}
           stateRecords={features.has("state_records")}
           sms={features.has("sms_reminders")}
+          portal={features.has("student_portal")}
         />
       </div>
 

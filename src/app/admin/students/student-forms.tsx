@@ -57,6 +57,7 @@ export function StudentForm({
   programs = [],
   stateRecords = false,
   sms = false,
+  portal = false,
 }: {
   student?: Student;
   privateData?: { date_of_birth: string | null; permit_number: string | null } | null;
@@ -65,6 +66,8 @@ export function StudentForm({
   programs?: Program[];
   stateRecords?: boolean;
   sms?: boolean;
+  // The student and parent link only exists on plans with student_portal.
+  portal?: boolean;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(!!student);
@@ -164,7 +167,9 @@ export function StudentForm({
         <div className="rounded-lg border border-dashed border-border p-4">
           <input type="hidden" name="has_private" value="1" />
           <p className="text-sm font-semibold">Admins only (optional)</p>
-          <p className="mb-3 text-xs text-muted">Not shown to operators, instructors or the student portal.</p>
+          <p className="mb-3 text-xs text-muted">
+            {portal ? "Not shown to operators, instructors or the student portal." : "Not shown to operators or instructors."}
+          </p>
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
               <label className={label}>Date of birth</label>

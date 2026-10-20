@@ -52,6 +52,10 @@ export function BookLesson({ token, policy }: { token: string; policy: string | 
     });
 
   const days = [...new Set((slots ?? []).map((s) => s.date))];
+  // One day at a time (Calendly / Acuity style): the confirmation sits right
+  // under the times instead of after every day of the next weeks.
+  const [pickedDay, setPickedDay] = useState<string | null>(null);
+  const shownDay = pickedDay && days.includes(pickedDay) ? pickedDay : (days[0] ?? null);
 
   return (
     <div className="rounded-xl border border-border bg-surface p-5">
@@ -74,12 +78,39 @@ export function BookLesson({ token, policy }: { token: string; policy: string | 
         <div className="mt-4 space-y-4">
           <p className="text-sm text-muted">{minutes}-minute lessons. Pick a time:</p>
           {days.length === 0 && <p className="text-sm text-muted">No free times right now. Check back soon.</p>}
-          {days.map((d) => (
-            <div key={d}>
-              <p className="mb-1 text-sm font-semibold">{day(d)}</p>
+          {days.length > 0 && (
+            <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1" role="tablist" aria-label="Days">
+              {days.map((d) => {
+                const on = d === shownDay;
+                const count = slots.filter((s) => s.date === d).length;
+                return (
+                  <button
+                    key={d}
+                    type="button"
+                    role="tab"
+                    aria-selected={on}
+                    onClick={() => {
+                      setPickedDay(d);
+                      setChosen(null);
+                    }}
+                    className={`shrink-0 rounded-lg border px-3 py-2 text-left text-sm transition ${
+                      on ? "border-accent bg-accent/10 font-semibold" : "border-border hover:border-accent"
+                    }`}
+                  >
+                    <span className="block">{day(d)}</span>
+                    <span className="block text-xs font-normal text-muted">
+                      {count} {count === 1 ? "time" : "times"}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          {shownDay && (
+            <div key={shownDay}>
               <div className="flex flex-wrap gap-2">
                 {slots
-                  .filter((s) => s.date === d)
+                  .filter((s) => s.date === shownDay)
                   .map((s) => {
                     const sel = chosen === s;
                     return (
@@ -99,7 +130,7 @@ export function BookLesson({ token, policy }: { token: string; policy: string | 
                   })}
               </div>
             </div>
-          ))}
+          )}
 
           {chosen && (
             <div className="rounded-lg border border-accent/40 bg-accent/5 p-4 text-sm">

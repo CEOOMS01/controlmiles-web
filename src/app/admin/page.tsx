@@ -7,6 +7,7 @@ import { getOrgFeatures } from "@/lib/fleet-features";
 import { RouteEfficiencyChart, type RouteStatusCount } from "./route-efficiency-chart";
 import { DriverStartTimesChart, type DriverStartSeries } from "./driver-start-times-chart";
 import { driverLabel, fleetDriverIds } from "@/lib/driver-label";
+import { SchoolDashboard } from "./school-dashboard";
 
 export default async function AdminDashboardPage() {
   const supabase = await createClient();
@@ -17,7 +18,7 @@ export default async function AdminDashboardPage() {
 
   const { data: org } = await supabase
     .from("organizations")
-    .select("name, compliance_mode, created_at")
+    .select("name, compliance_mode, created_at, industry_template, timezone")
     .eq("id", orgId)
     .maybeSingle();
 
@@ -148,6 +149,25 @@ export default async function AdminDashboardPage() {
   }
   const driverSeries = Array.from(seriesMap.values())
     .slice(0, 6); // keep the chart legible -- see Baymard-style "avoid dashboard fatigue" note in the chart's own header
+
+  // Driving schools get their own dashboard (2026-10-20): lessons,
+  // students and what needs attention, each block per plan.
+  if (org?.industry_template === "driving_school") {
+    return (
+      <SchoolDashboard
+        orgId={orgId}
+        orgName={org.name}
+        timeZone={org.timezone ?? "America/New_York"}
+        features={features}
+        scope={scope}
+        map={
+          features.has("live_map") ? (
+            <FleetMap orgId={orgId} initialVehicles={vehicles} geofences={mapGeofences ?? []} />
+          ) : null
+        }
+      />
+    );
+  }
 
   return (
     <main className="px-6 py-10 sm:px-10">

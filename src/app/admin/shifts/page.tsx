@@ -507,12 +507,12 @@ export default async function ShiftsPage({
           {hasWeekly && (<>
           {hasClasses && <h2 className="mb-3 text-lg font-semibold">Weekly template</h2>}
           <div className="mb-8">
-            <ShiftForm orgId={orgId} drivers={drivers} vehicles={vehicleOptions} timeFormat={timeFormat} />
+            <ShiftForm orgId={orgId} drivers={drivers} vehicles={vehicleOptions} timeFormat={timeFormat} isClass={hasClasses} />
           </div>
 
           {byDriver.size === 0 ? (
             <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted">
-              No shifts scheduled yet.
+              {hasClasses ? "No weekly classes yet." : "No shifts scheduled yet."}
             </div>
           ) : (
             <div className="space-y-4">

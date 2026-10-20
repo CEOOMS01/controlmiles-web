@@ -437,6 +437,7 @@ export default async function StudentPage({ params }: { params: Promise<{ id: st
             branches={scope.branches.map((b) => ({ id: b.id, name: b.name }))}
             programs={programs.filter((p) => p.is_active || p.id === (student as Student).program_id)}
             stateRecords={hasStateRecords}
+            portal={hasPortal}
             sms={features.has("sms_reminders")}
           />
         </Section>

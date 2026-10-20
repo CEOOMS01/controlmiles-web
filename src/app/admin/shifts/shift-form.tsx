@@ -22,12 +22,16 @@ export function ShiftForm({
   drivers,
   vehicles,
   timeFormat,
+  isClass = false,
 }: {
   orgId: string;
   drivers: Driver[];
   vehicles: Vehicle[];
   timeFormat: "12h" | "24h";
+  // Driving schools: the weekly template holds classes, not shifts.
+  isClass?: boolean;
 }) {
+  const noun = isClass ? "weekly class" : "shift";
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -60,7 +64,7 @@ export function ShiftForm({
         onClick={() => setOpen(true)}
         className="rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground transition hover:opacity-90"
       >
-        Add shift
+        Add {noun}
       </button>
     );
   }
@@ -167,7 +171,7 @@ export function ShiftForm({
           disabled={pending}
           className="rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground transition hover:opacity-90 disabled:opacity-60"
         >
-          {pending ? "Adding…" : "Add shift"}
+          {pending ? "Adding…" : `Add ${noun}`}
         </button>
         <button
           type="button"

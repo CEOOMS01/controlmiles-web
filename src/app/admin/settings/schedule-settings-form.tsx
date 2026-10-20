@@ -38,7 +38,10 @@ export function ScheduleSettingsForm({
   return (
     <form action={formAction} className="divide-y divide-border">
       <input type="hidden" name="org_id" value={orgId} />
-      <SettingRow title="Time zone" help="Schedules, classes and reports use your fleet's local time.">
+      <SettingRow
+        title="Time zone"
+        help={showClassWindow ? "Schedules, classes and reports use your fleet's local time." : "Schedules and reports use your fleet's local time."}
+      >
         <select name="timezone" defaultValue={timezone} aria-label="Time zone" className={`${settingsField} sm:w-64`}>
           {zones.map((z) => (
             <option key={z.value} value={z.value}>
