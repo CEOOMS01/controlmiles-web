@@ -12,20 +12,20 @@ releases have their own changelog in the app repo.
 ## 2026-10-20
 
 ### Changed (settings)
-- **Settings redesigned:** a section menu (General, Operations, Branches,
-  Billing, Preferences, Delete fleet) and one card per section; each
-  setting is a row with a short explanation beside its control (switches,
-  two-option toggles, fields with units). Switches save as soon as they're
-  flipped. The fleet-type feature list and the separate Immutability and
-  Feedback sections are folded into one-line notes.
+- **Settings redesigned:** vertical tabs (General, Operations, Branches,
+  Billing, Preferences), each its own page, instead of one long page of
+  boxes. Sections are open: a heading, a one-line explanation and the
+  settings as rows divided by thin lines, each with its explanation beside
+  its control (switches, two-option toggles, fields with units). Switches
+  save as soon as they're flipped. The danger zone sits apart at the end of
+  General; returning from Stripe opens Billing. Student settings use the
+  same layout (Programs, Booking, Report card, Packages).
 
 ### Changed (driving schools, later the same day)
 - **Student form:** the parent or guardian fields only appear for programs
   that have one (Teen); adult students aren't asked for them.
-- **Student settings redesigned:** one card per section with a section menu;
-  each setting has its name and a short explanation beside its control
-  (switches and fields with units); programs are a summary list that opens
-  to edit; report card skills grouped by category; packages as a table.
+- **Student settings:** programs are a summary list that opens to edit;
+  report card skills grouped by category; packages as a table.
 
 ### Added (driving schools: phase 2, Enterprise)
 - **Programs:** Teen, Adult or your own, each with its required hours,

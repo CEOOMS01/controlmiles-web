@@ -22,11 +22,12 @@ import {
   type DsSettings,
   type Program,
 } from "@/lib/driving-school";
-import { SettingsCard as Card, SettingsNav } from "@/components/settings-ui";
+import { SettingsSection, SettingsTabs } from "@/components/settings-ui";
 import { AddPackageForm, AddProgram, AddSkillForm, DsSettingsForm, ProgramRow, ToggleButton } from "../student-forms";
 
 
-export default async function StudentSettingsPage() {
+export default async function StudentSettingsPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
+  const sp = await searchParams;
   const features = await requireFeature("students");
   const supabase = await createClient();
   const { user, profile } = await getAuthedProfile();
@@ -65,14 +66,14 @@ export default async function StudentSettingsPage() {
     if (!skillGroups.has(k.category)) skillGroups.set(k.category, []);
     skillGroups.get(k.category)!.push(k);
   }
-  const sections = [
+  const tabs = [
     { id: "programs", label: "Programs" },
-    ...(showBooking || showReminder
-      ? [{ id: "booking", label: showBooking ? "Booking and reminders" : "Reminders" }]
-      : []),
+    ...(showBooking ? [{ id: "booking", label: "Booking" }] : []),
+    ...(showReminder && !showBooking ? [{ id: "booking", label: "Reminders" }] : []),
     ...(hasEval ? [{ id: "skills", label: "Report card" }] : []),
     ...(hasPkg ? [{ id: "packages", label: "Packages" }] : []),
   ];
+  const tab = tabs.some((t) => t.id === sp.tab) ? sp.tab! : "programs";
 
   return (
     <main className="px-6 py-10 sm:px-10">
@@ -82,26 +83,26 @@ export default async function StudentSettingsPage() {
       <h1 className="mt-2 text-2xl font-semibold">Student settings</h1>
       <p className="mt-1 text-sm text-muted">How your school runs lessons. Changes apply to new bookings and classes.</p>
 
-      <div className="mt-8 flex max-w-5xl flex-col gap-8 lg:flex-row">
-        {sections.length > 1 && <SettingsNav sections={sections} />}
+      <div className="mt-8 flex max-w-5xl flex-col gap-8 lg:flex-row lg:gap-12">
+        {tabs.length > 1 && <SettingsTabs base="/admin/students/settings" current={tab} tabs={tabs} />}
 
-        <div className="min-w-0 flex-1 space-y-6">
-          <Card
-            id="programs"
-            title="Programs"
-            help="Each group of students and what it needs: required hours, lesson length and whether a parent or guardian is involved."
-          >
-            <div className="divide-y divide-border">
-              {((programs ?? []) as Program[]).map((p) => (
-                <ProgramRow key={p.id} program={p} />
-              ))}
-              <AddProgram />
-            </div>
-          </Card>
+        <div className="min-w-0 flex-1 space-y-8">
+          {tab === "programs" && (
+            <SettingsSection
+              title="Programs"
+              help="Each group of students and what it needs: required hours, lesson length and whether a parent or guardian is involved."
+            >
+              <div className="divide-y divide-border border-y border-border">
+                {((programs ?? []) as Program[]).map((p) => (
+                  <ProgramRow key={p.id} program={p} />
+                ))}
+                <AddProgram />
+              </div>
+            </SettingsSection>
+          )}
 
-          {(showBooking || showReminder) && (
-            <Card
-              id="booking"
+          {tab === "booking" && (
+            <SettingsSection
               title={showBooking ? "Booking and reminders" : "Reminders"}
               help={
                 showBooking
@@ -110,18 +111,17 @@ export default async function StudentSettingsPage() {
               }
             >
               <DsSettingsForm settings={settings} showBooking={showBooking} showReminder={showReminder} />
-            </Card>
+            </SettingsSection>
           )}
 
-          {hasEval && (
-            <Card
-              id="skills"
+          {tab === "skills" && (
+            <SettingsSection
               title="Report card"
               help="After each class the instructor rates the skills practiced: needs work, developing, good or mastered."
             >
-              <div className="divide-y divide-border">
+              <div className="divide-y divide-border border-y border-border">
                 {[...skillGroups.entries()].map(([category, list]) => (
-                  <div key={category} className="px-5 py-4">
+                  <div key={category} className="py-4">
                     <p className="mb-2 text-xs font-semibold tracking-wide text-muted uppercase">{category}</p>
                     <ul className="space-y-1.5 text-sm">
                       {list.map((k) => (
@@ -135,30 +135,30 @@ export default async function StudentSettingsPage() {
                 ))}
               </div>
               <AddSkillForm />
-            </Card>
+            </SettingsSection>
           )}
 
-          {hasPkg && (
-            <Card id="packages" title="Packages" help="Lesson packages you sell. Payments are recorded on each student.">
+          {tab === "packages" && (
+            <SettingsSection title="Packages" help="Lesson packages you sell. Payments are recorded on each student.">
               {(packages ?? []).length === 0 ? (
-                <p className="px-5 py-4 text-sm text-muted">No packages yet.</p>
+                <p className="text-sm text-muted">No packages yet.</p>
               ) : (
                 <table className="w-full text-sm">
                   <thead className="text-left text-xs text-muted">
                     <tr>
-                      <th className="px-5 py-2 font-medium">Package</th>
+                      <th className="py-2 pr-3 font-medium">Package</th>
                       <th className="px-3 py-2 font-medium">Time</th>
                       <th className="px-3 py-2 font-medium">Price</th>
-                      <th className="px-5 py-2" />
+                      <th className="py-2 pl-3" />
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-border border-t border-border">
+                  <tbody className="divide-y divide-border border-y border-border">
                     {(packages ?? []).map((p) => (
                       <tr key={p.id} className={p.is_active ? "" : "text-muted"}>
-                        <td className="px-5 py-2.5">{p.name}</td>
+                        <td className="py-2.5 pr-3">{p.name}</td>
                         <td className="px-3 py-2.5">{formatMinutes(p.minutes)}</td>
                         <td className="px-3 py-2.5">{money(p.price_cents)}</td>
-                        <td className="px-5 py-2.5 text-right">
+                        <td className="py-2.5 pl-3 text-right">
                           <ToggleButton id={p.id} active={p.is_active} kind="package" />
                         </td>
                       </tr>
@@ -167,7 +167,7 @@ export default async function StudentSettingsPage() {
                 </table>
               )}
               <AddPackageForm />
-            </Card>
+            </SettingsSection>
           )}
         </div>
       </div>

@@ -390,7 +390,7 @@ export function DsSettingsForm({
   const hidden = (name: string, value: string | number) => <input type="hidden" name={name} value={value} />;
   return (
     <form action={action}>
-      <div className="divide-y divide-border px-5">
+      <div className="divide-y divide-border border-y border-border">
         {showBooking ? (
           <>
             <div>
@@ -460,7 +460,7 @@ export function DsSettingsForm({
           hidden("reminder_hours", settings.reminder_hours)
         )}
       </div>
-      <div className="flex items-center justify-end gap-3 rounded-b-xl border-t border-border bg-background/60 px-5 py-3">
+      <div className="flex items-center justify-end gap-3 pt-4">
         <Feedback state={state} ok="Saved." />
         <button type="submit" disabled={pending} className={primaryBtn}>
           {pending ? "Saving…" : "Save changes"}
@@ -488,7 +488,7 @@ function ProgramEditor({ program, onDone }: { program?: Program; onDone: () => v
     return r;
   }, initial);
   return (
-    <form action={action} className="space-y-1 bg-background/60 px-5 py-4">
+    <form action={action} className="my-3 space-y-1 rounded-xl bg-surface p-4">
       {program && <input type="hidden" name="id" value={program.id} />}
       {program && <input type="hidden" name="has_active" value="1" />}
       <div className="grid gap-4 sm:grid-cols-2">
@@ -537,7 +537,7 @@ export function ProgramRow({ program }: { program: Program }) {
   const [editing, setEditing] = useState(false);
   if (editing) return <ProgramEditor program={program} onDone={() => setEditing(false)} />;
   return (
-    <div className="flex items-center justify-between gap-4 px-5 py-4">
+    <div className="flex items-center justify-between gap-4 py-4">
       <div className="min-w-0">
         <p className="flex items-center gap-2 text-sm font-medium">
           {program.name}
@@ -556,7 +556,7 @@ export function AddProgram() {
   const [open, setOpen] = useState(false);
   if (open) return <ProgramEditor onDone={() => setOpen(false)} />;
   return (
-    <div className="px-5 py-3">
+    <div className="py-3">
       <button type="button" onClick={() => setOpen(true)} className="text-sm font-medium text-accent hover:underline">
         + Add program
       </button>
@@ -664,7 +664,7 @@ export function RemoveButton({ id, kind }: { id: string; kind: "availability" | 
 export function AddSkillForm() {
   const [state, action, pending] = useActionState(addSkill, initial);
   return (
-    <form action={action} className="flex flex-wrap items-center gap-2 border-t border-border px-5 py-3">
+    <form action={action} className="flex flex-wrap items-center gap-2 pt-4">
       <input name="category" placeholder="Category (e.g. Parking)" maxLength={60} className={`${field} sm:w-48`} />
       <input name="name" placeholder="New skill" maxLength={80} className={`${field} sm:w-56`} />
       <button type="submit" disabled={pending} className={secondaryBtn}>
@@ -692,7 +692,7 @@ export function ToggleButton({ id, active, kind }: { id: string; active: boolean
 export function AddPackageForm() {
   const [state, action, pending] = useActionState(addPackage, initial);
   return (
-    <form action={action} className="flex flex-wrap items-center gap-2 border-t border-border px-5 py-3">
+    <form action={action} className="flex flex-wrap items-center gap-2 pt-4">
       <input name="name" placeholder="Name (e.g. 6-hour teen package)" maxLength={80} className={`${field} sm:w-64`} />
       <input name="hours" type="number" min="0.5" step="0.5" placeholder="Hours" className={`${field} w-24`} />
       <input name="price" type="number" min="0" step="0.01" placeholder="Price $" className={`${field} w-28`} />

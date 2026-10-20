@@ -9,12 +9,27 @@ import { getBranchScope } from "@/lib/branch-scope";
 import { BranchesManager } from "../branch-controls";
 import { ScheduleSettingsForm } from "./schedule-settings-form";
 import { FleetTypeRow, ModuleOptionsForm } from "./industry-template-form";
-import { SettingsCard, SettingsNav } from "@/components/settings-ui";
+import { SettingsSection, SettingsTabs } from "@/components/settings-ui";
 import { DeleteOrgForm } from "./delete-org-form";
 import { BillingSection } from "./billing-section";
 import { TimeFormatForm } from "./time-format-form";
 
-export default async function SettingsPage() {
+const TABS = [
+  { id: "general", label: "General" },
+  { id: "operations", label: "Operations" },
+  { id: "branches", label: "Branches" },
+  { id: "billing", label: "Billing" },
+  { id: "preferences", label: "Preferences" },
+];
+
+export default async function SettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string; billing?: string }>;
+}) {
+  const sp = await searchParams;
+  // Stripe returns with ?billing=, so that lands on Billing.
+  const tab = TABS.some((t) => t.id === sp.tab) ? sp.tab! : sp.billing ? "billing" : "general";
   const supabase = await createClient();
   const { user, profile } = await getAuthedProfile();
   if (!user) return null;
@@ -49,78 +64,80 @@ export default async function SettingsPage() {
       })
     : null;
 
-  const sections = [
-    { id: "general", label: "General" },
-    { id: "operations", label: "Operations" },
-    { id: "branches", label: "Branches" },
-    { id: "billing", label: "Billing" },
-    { id: "preferences", label: "Preferences" },
-    { id: "danger", label: "Delete fleet" },
-  ];
-
-  // Settings layout (redesign 2026-10-20): a section menu and one card per
-  // section; every setting is a row with its name and a one-line
-  // explanation beside its control.
+  // Settings layout (redesign 2026-10-20): vertical tabs, one section per
+  // page, open sections (heading, help, rows divided by thin lines) instead
+  // of boxed cards; the danger zone sits apart at the end of General.
   return (
     <main className="px-6 py-10 sm:px-10">
       <p className="text-sm font-semibold tracking-wide text-accent uppercase">Settings</p>
       <h1 className="mt-1 text-2xl font-semibold">{org.name}</h1>
 
-      <div className="mt-8 flex max-w-5xl flex-col gap-8 lg:flex-row">
-        <SettingsNav sections={sections} />
+      <div className="mt-8 flex max-w-5xl flex-col gap-8 lg:flex-row lg:gap-12">
+        <SettingsTabs base="/admin/settings" current={tab} tabs={TABS} />
 
-        <div className="min-w-0 flex-1 space-y-6">
-          <SettingsCard id="general" title="General" help="Your fleet's name and type.">
-            <div className="divide-y divide-border px-5">
-              <RenameOrgForm orgId={orgId} currentName={org.name} />
-              <FleetTypeRow
-                orgName={org.name}
-                confirmedAt={org.fleet_type_confirmed_at ?? null}
-                current={isFleetProfile(org.industry_template) ? org.industry_template : "general"}
-              />
-            </div>
-            <p className="border-t border-border px-5 py-3 text-xs text-muted">
-              {createdDate ? `Created ${createdDate}. ` : ""}Driver and vehicle IDs and the miles of a closed trip are
-              locked by design and can&apos;t be edited from anywhere.
-            </p>
-          </SettingsCard>
+        <div className="min-w-0 flex-1 space-y-8">
+          {tab === "general" && (
+            <>
+              <SettingsSection title="General" help="Your fleet's name and type.">
+                <div className="divide-y divide-border border-y border-border">
+                  <RenameOrgForm orgId={orgId} currentName={org.name} />
+                  <FleetTypeRow
+                    orgName={org.name}
+                    confirmedAt={org.fleet_type_confirmed_at ?? null}
+                    current={isFleetProfile(org.industry_template) ? org.industry_template : "general"}
+                  />
+                </div>
+                <p className="mt-3 text-xs text-muted">
+                  {createdDate ? `Created ${createdDate}. ` : ""}Driver and vehicle IDs and the miles of a closed trip
+                  are locked by design and can&apos;t be edited from anywhere.
+                </p>
+              </SettingsSection>
 
-          <SettingsCard id="operations" title="Operations" help="How drivers and vehicles work day to day.">
-            <div className="divide-y divide-border px-5">
-              <ModuleOptionsForm
-                orgId={orgId}
-                requirePretrip={org.require_pretrip_inspection !== false}
-                useShifts={org.use_shift_schedules === true}
-                canUseShifts={features.has("shift_schedules")}
-              />
-              {features.has("open_assignment") && (
-                <VehicleAssignmentModeForm
+              <SettingsSection title="Danger zone" help="Permanent and for the whole organization." danger>
+                <DeleteOrgForm orgId={orgId} orgName={org.name} />
+              </SettingsSection>
+            </>
+          )}
+
+          {tab === "operations" && (
+            <SettingsSection title="Operations" help="How drivers and vehicles work day to day.">
+              <div className="divide-y divide-border border-y border-border">
+                <ModuleOptionsForm
                   orgId={orgId}
-                  currentMode={org.vehicle_assignment_mode === "open" ? "open" : "fixed"}
+                  requirePretrip={org.require_pretrip_inspection !== false}
+                  useShifts={org.use_shift_schedules === true}
+                  canUseShifts={features.has("shift_schedules")}
                 />
-              )}
-              {features.has("owner_operators") && (
-                <OwnerOperatorForm orgId={orgId} allowed={org.allow_driver_owned_vehicles === true} />
-              )}
-              <ScheduleSettingsForm
-                orgId={orgId}
-                timezone={org.timezone ?? "America/New_York"}
-                windowMinutes={org.shift_start_window_minutes ?? 10}
-                showClassWindow={features.has("classes")}
-              />
-            </div>
-          </SettingsCard>
+                {features.has("open_assignment") && (
+                  <VehicleAssignmentModeForm
+                    orgId={orgId}
+                    currentMode={org.vehicle_assignment_mode === "open" ? "open" : "fixed"}
+                  />
+                )}
+                {features.has("owner_operators") && (
+                  <OwnerOperatorForm orgId={orgId} allowed={org.allow_driver_owned_vehicles === true} />
+                )}
+                <ScheduleSettingsForm
+                  orgId={orgId}
+                  timezone={org.timezone ?? "America/New_York"}
+                  windowMinutes={org.shift_start_window_minutes ?? 10}
+                  showClassWindow={features.has("classes")}
+                />
+              </div>
+            </SettingsSection>
+          )}
 
-          <SettingsCard
-            id="branches"
-            title="Branches"
-            help="Your locations (each office or yard). Put vehicles and drivers in a branch on the Team page and filter the dashboard by branch."
-          >
-            <BranchesManager branches={branchScope.branches} />
-          </SettingsCard>
+          {tab === "branches" && (
+            <SettingsSection
+              title="Branches"
+              help="Your locations (each office or yard). Put vehicles and drivers in a branch on the Team page and filter the dashboard by branch."
+            >
+              <BranchesManager branches={branchScope.branches} />
+            </SettingsSection>
+          )}
 
-          <SettingsCard id="billing" title="Billing" help="Plans are per vehicle, billed monthly through Stripe.">
-            <div className="p-5">
+          {tab === "billing" && (
+            <SettingsSection title="Billing" help="Plans are per vehicle, billed monthly through Stripe.">
               <BillingSection
                 orgId={orgId}
                 vehicleCount={vehicleCount ?? 0}
@@ -133,22 +150,18 @@ export default async function SettingsPage() {
                 currentStatus={org.subscription_status}
                 billedVehicles={org.subscription_vehicle_count ?? null}
               />
-            </div>
-          </SettingsCard>
+            </SettingsSection>
+          )}
 
-          <SettingsCard id="preferences" title="Preferences" help="Only for your account, not the rest of your team.">
-            <div className="px-5">
-              <TimeFormatForm currentFormat={myProfile?.time_format === "24h" ? "24h" : "12h"} />
-            </div>
-          </SettingsCard>
+          {tab === "preferences" && (
+            <SettingsSection title="Preferences" help="Only for your account, not the rest of your team.">
+              <div className="divide-y divide-border border-y border-border">
+                <TimeFormatForm currentFormat={myProfile?.time_format === "24h" ? "24h" : "12h"} />
+              </div>
+            </SettingsSection>
+          )}
 
-          <SettingsCard id="danger" title="Delete fleet" help="Permanent and for the whole organization." danger>
-            <div className="p-5">
-              <DeleteOrgForm orgId={orgId} orgName={org.name} />
-            </div>
-          </SettingsCard>
-
-          <p className="text-center text-xs text-muted">
+          <p className="pt-4 text-xs text-muted">
             Ideas or something not working? Write to{" "}
             <a href="mailto:suggestions@controlmiles.com" className="text-accent hover:underline">
               suggestions@controlmiles.com

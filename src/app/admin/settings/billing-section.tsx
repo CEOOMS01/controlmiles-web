@@ -106,7 +106,7 @@ export function BillingSection({
     {returnNotice}
     <div className={`grid gap-3 ${showEnterprise ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
       {((showEnterprise ? ["starter", "growth", "enterprise"] : ["starter", "growth"]) as Tier[]).map((tier) => (
-        <div key={tier} className="rounded-xl border border-border bg-background p-5">
+        <div key={tier} className="rounded-xl border border-border bg-surface p-5">
           <p className="text-sm font-semibold">{TIER_LABEL[tier]}</p>
           <p className="mt-1 text-2xl font-semibold tabular-nums">
             {TIER_PRICE[tier]}

@@ -11,48 +11,63 @@ import type { ReactNode } from "react";
 export const settingsField =
   "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/20";
 
-export function SettingsCard({
-  id,
+/**
+ * One open section: heading, one-line help, then its rows divided by thin
+ * lines. No box around it (redesign 2026-10-20: settings read as a page,
+ * not as stacked tables).
+ */
+export function SettingsSection({
   title,
   help,
   danger,
   children,
 }: {
-  id: string;
   title: string;
-  help: string;
+  help?: string;
   danger?: boolean;
   children: ReactNode;
 }) {
   return (
-    <section
-      id={id}
-      className={`scroll-mt-6 rounded-xl border bg-surface ${danger ? "border-danger/40" : "border-border"}`}
-    >
-      <header className={`border-b px-5 py-4 ${danger ? "border-danger/30" : "border-border"}`}>
-        <h2 className={`font-semibold ${danger ? "text-danger" : ""}`}>{title}</h2>
-        <p className="mt-0.5 text-sm text-muted">{help}</p>
-      </header>
-      {children}
+    <section className="border-t border-border pt-8 first:border-t-0 first:pt-0">
+      <h2 className={`text-base font-semibold ${danger ? "text-danger" : ""}`}>{title}</h2>
+      {help && <p className="mt-1 max-w-2xl text-sm text-muted">{help}</p>}
+      <div className="mt-4">{children}</div>
     </section>
   );
 }
 
-/** Left-hand section menu; scrolls sideways on phones. */
-export function SettingsNav({ sections }: { sections: { id: string; label: string }[] }) {
+/**
+ * Vertical tabs on the left (sideways on phones); each tab is its own page
+ * (?tab=), so a section never scrolls past the others.
+ */
+export function SettingsTabs({
+  base,
+  current,
+  tabs,
+}: {
+  base: string;
+  current: string;
+  tabs: { id: string; label: string }[];
+}) {
   return (
-    <nav className="lg:sticky lg:top-6 lg:w-52 lg:shrink-0 lg:self-start">
-      <ul className="flex gap-1 overflow-x-auto text-sm lg:flex-col">
-        {sections.map((x) => (
-          <li key={x.id}>
-            <a
-              href={`#${x.id}`}
-              className="block rounded-lg px-3 py-2 whitespace-nowrap text-muted hover:bg-surface hover:text-foreground"
-            >
-              {x.label}
-            </a>
-          </li>
-        ))}
+    <nav className="lg:sticky lg:top-6 lg:w-52 lg:shrink-0 lg:self-start" aria-label="Settings">
+      <ul className="flex gap-1 overflow-x-auto border-b border-border pb-2 text-sm lg:flex-col lg:border-b-0 lg:pb-0">
+        {tabs.map((t) => {
+          const active = t.id === current;
+          return (
+            <li key={t.id}>
+              <a
+                href={`${base}?tab=${t.id}`}
+                aria-current={active ? "page" : undefined}
+                className={`block rounded-lg px-3 py-2 whitespace-nowrap transition ${
+                  active ? "bg-accent/10 font-medium text-accent" : "text-muted hover:bg-surface hover:text-foreground"
+                }`}
+              >
+                {t.label}
+              </a>
+            </li>
+          );
+        })}
       </ul>
     </nav>
   );
