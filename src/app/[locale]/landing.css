@@ -298,6 +298,18 @@
   transform: translateY(-2px);
 }
 
+/* .nav-pill is unlayered CSS, so it beat Tailwind's `hidden` and
+   `inline-flex` utilities: "Pricing" showed on phones and pushed the nav
+   past the screen edge (found 2026-10-20 adding the CMFleet button). */
+.nav-pill.inline-flex {
+  display: inline-flex;
+}
+@media (max-width: 39.999rem) {
+  .nav-pill.hidden {
+    display: none;
+  }
+}
+
 @keyframes nav-in-left {
   from {
     opacity: 0;

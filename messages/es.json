@@ -3,7 +3,8 @@
     "pricing": "Precios",
     "verifyReport": "Verificar un reporte",
     "signIn": "Iniciar sesión",
-    "languageLabel": "Idioma"
+    "languageLabel": "Idioma",
+    "cmfleet": "CMFleet"
   },
   "footer": {
     "privacy": "Política de Privacidad",
@@ -172,5 +173,119 @@
     "fleetNote": "¿Tienes una flota? El panel de controlmiles.com es para administradores de flotas.",
     "fleetLink": "Precios para flotas",
     "back": "Volver a controlmiles.com"
+  },
+  "cmfleet": {
+    "metaTitle": "CMFleet — Registros GPS de flota y software para escuelas de manejo | ControlMiles",
+    "metaDescription": "CMFleet registra cada vehículo: viajes GPS, fotos del odómetro, inspecciones y reportes desde el teléfono de tus conductores. Las escuelas de manejo tienen clases, alumnos, portal para padres y certificados. Sin hardware, pago mensual.",
+    "hero": {
+      "eyebrow": "CMFLEET POR CONTROLMILES",
+      "title": "Tu flota, registrada.",
+      "subtitle": "Viajes GPS, fotos del odómetro, inspecciones y reportes de cada vehículo, directo desde el teléfono de tus conductores. Sin rastreadores que instalar y sin contratos largos.",
+      "ctaPrimary": "Prueba gratis 15 días",
+      "ctaSecondary": "Ver precios",
+      "note": "Toda cuenta empieza con 15 días de Growth, gratis."
+    },
+    "stats": {
+      "hardwareValue": "0",
+      "hardwareLabel": "equipos que instalar en el auto",
+      "trialValue": "15 días",
+      "trialLabel": "de prueba gratis con todo lo de Growth",
+      "contractValue": "Mensual",
+      "contractLabel": "pago mes a mes, sin contrato de varios años"
+    },
+    "preview": {
+      "title": "Hoy",
+      "lessons": "Clases",
+      "hours": "Horas enseñadas",
+      "live": "En ruta",
+      "trip": "Viaje sellado",
+      "odometer": "Foto del odómetro verificada",
+      "sample": "Vista de ejemplo"
+    },
+    "services": {
+      "eyebrow": "UN PRODUCTO, CONFIGURADO POR SERVICIO",
+      "title": "Hecho para cómo trabaja tu flota.",
+      "subtitle": "Elige tu servicio al registrarte. Cada equipo ve solo las herramientas que usa su servicio.",
+      "schoolTitle": "Escuelas de manejo",
+      "schoolBody": "Clases, alumnos, horas de clase verificadas por GPS, portal para padres, reservas en línea y certificados.",
+      "truckingTitle": "Transporte de carga",
+      "truckingBody": "Millas IFTA por estado, inspecciones, combustible y mantenimiento.",
+      "transportTitle": "Transporte escolar",
+      "transportBody": "Rutas escolares, asistencia y tablero de rutas en vivo.",
+      "salesTitle": "Equipos de ventas",
+      "salesBody": "Viajes de trabajo con aprobación del gerente y reportes de millaje limpios.",
+      "generalTitle": "Cualquier otra flota",
+      "generalBody": "Lista de vehículos y conductores, viajes GPS, fotos del odómetro y exportaciones."
+    },
+    "how": {
+      "eyebrow": "CÓMO FUNCIONA",
+      "title": "Tres pasos, sin visita de instalador.",
+      "step1Title": "Agrega tus vehículos y tu equipo",
+      "step1Body": "Crea la flota, agrega los vehículos e invita a conductores o instructores con un código.",
+      "step2Title": "Tus conductores usan la app CMFleet",
+      "step2Body": "Cada viaje se registra por GPS con una foto del odómetro al inicio y al final.",
+      "step3Title": "Tú lo manejas desde el panel",
+      "step3Body": "Mapa en vivo, horarios, inspecciones, alertas y reportes que resisten una auditoría."
+    },
+    "school": {
+      "eyebrow": "PARA ESCUELAS DE MANEJO",
+      "title": "La escuela, los autos y las horas, en un solo lugar.",
+      "body": "La mayoría de las escuelas paga por separado un software de horarios y rastreadores GPS. CMFleet hace las dos cosas: las horas de cada clase salen del viaje GPS real del auto, no de lo que alguien escribió.",
+      "b1": "Horas de clase, horas nocturnas y millas medidas por GPS",
+      "b2": "Clases semanales por instructor y auto, con disponibilidad y días libres",
+      "b3": "Portal de alumnos y padres con reservas en línea y política de cancelación",
+      "b4": "Boleta de habilidades después de cada clase",
+      "b5": "Paquetes de clases, pagos y saldos",
+      "b6": "Certificados de finalización sellados y registro de horas imprimible",
+      "b7": "Sucursales: asigna autos, instructores y alumnos a cada sede"
+    },
+    "pricing": {
+      "eyebrow": "PRECIOS",
+      "title": "Precio por vehículo. Pago mensual.",
+      "subtitle": "Pagas por los autos que usas, no por usuarios. Cambia de plan o de vehículos cuando quieras; la siguiente factura sigue a tu flota.",
+      "schoolsTitle": "Escuelas de manejo",
+      "fleetsTitle": "Todas las demás flotas",
+      "fleetsNote": "Transporte de carga, transporte escolar, equipos de ventas y flotas generales.",
+      "taxNote": "Precios en USD; pueden aplicar impuestos."
+    },
+    "compare": {
+      "eyebrow": "POR QUÉ CMFLEET",
+      "title": "Un precio en lugar de tres herramientas.",
+      "colItem": "Lo que necesitas",
+      "colTypical": "Lo habitual",
+      "colCm": "CMFleet",
+      "r1": "Software de horarios y alumnos",
+      "r1Typical": "$49–$399 / mes",
+      "r1Cm": "Incluido",
+      "r2": "Rastreo GPS",
+      "r2Typical": "$20–$45 / vehículo / mes, más hardware",
+      "r2Cm": "Incluido, desde el teléfono",
+      "r3": "Contrato",
+      "r3Typical": "Con frecuencia de 12 a 36 meses",
+      "r3Cm": "Mes a mes",
+      "r4": "Horas de clase verificadas por GPS",
+      "r4Typical": "No disponible",
+      "r4Cm": "En cada clase",
+      "source": "Lo habitual: precios publicados por los proveedores o reportados por terceros, octubre de 2026."
+    },
+    "faq": {
+      "title": "Preguntas",
+      "q1": "¿Tengo que instalar algo en el auto?",
+      "a1": "No. Conductores e instructores usan la app CMFleet en su teléfono. El GPS y las fotos del odómetro salen del teléfono.",
+      "q2": "¿Cómo se cuentan las horas de un alumno?",
+      "a2": "Con el viaje GPS de cada clase terminada: tiempo total, tiempo nocturno y millas. Nadie escribe las horas a mano.",
+      "q3": "¿Qué cuenta como vehículo?",
+      "a3": "Cada vehículo activo de tu flota. Los vehículos archivados no se cobran y la siguiente factura sigue tu cantidad actual.",
+      "q4": "¿Qué es una sucursal?",
+      "a4": "Una sede de tu escuela. Starter incluye 1 y Growth 2; puedes agregar algunas más con un cargo mensual, y Enterprise incluye sucursales ilimitadas.",
+      "q5": "¿Puedo cambiar o cancelar mi plan?",
+      "a5": "Sí. Los planes se cobran mes a mes con Stripe y los manejas desde Ajustes > Facturación."
+    },
+    "cta": {
+      "title": "Registra tu flota esta misma semana.",
+      "body": "Se configura en minutos. 15 días de Growth, gratis.",
+      "button": "Crear la cuenta de tu flota",
+      "signIn": "Iniciar sesión"
+    }
   }
 }

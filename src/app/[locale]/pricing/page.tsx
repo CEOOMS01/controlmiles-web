@@ -52,22 +52,12 @@ import { Link } from "@/i18n/routing";
 import { LandingNav, LandingFooter } from "@/components/landing-chrome";
 import { Reveal } from "@/components/reveal";
 import { Fraunces, Public_Sans, IBM_Plex_Mono } from "next/font/google";
-import { SCHOOL_TIER_PRICE } from "@/lib/school-pricing";
+import { fleetPlans, schoolPlans, type Plan } from "@/lib/fleet-plans";
 import "../landing.css";
 
 const display = Fraunces({ subsets: ["latin"], weight: ["500", "600", "700"], variable: "--font-display" });
 const body = Public_Sans({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-plex-sans" });
 const plexMono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-mono-plex" });
-
-type Plan = {
-  name: string;
-  price: string;
-  unit: string;
-  tagline: string;
-  features: string[];
-  cta: { label: string; href: string };
-  highlight?: boolean;
-};
 
 const gigPlans = (t: Awaited<ReturnType<typeof getTranslations>>): Plan[] => [
   {
@@ -97,105 +87,6 @@ const gigPlans = (t: Awaited<ReturnType<typeof getTranslations>>): Plan[] => [
     ],
     cta: { label: t("startTrial"), href: "/app-required" },
     highlight: true,
-  },
-];
-
-const fleetPlans = (t: Awaited<ReturnType<typeof getTranslations>>): Plan[] => [
-  {
-    name: t("plans.starterName"),
-    price: "$12.99",
-    unit: t("perVehicle"),
-    tagline: t("plans.starterTagline"),
-    features: [
-      t("features.rosters"),
-      t("features.gpsPerDriver"),
-      t("features.odometerVerification"),
-      t("features.portalAnyDriver"),
-      t("features.revocation"),
-      t("features.dvir"),
-      t("features.fuelMaintenance"),
-      t("features.serviceStarter"),
-    ],
-    cta: { label: t("signInFleet"), href: "/login" },
-  },
-  {
-    name: t("plans.growthName"),
-    price: "$19.99",
-    unit: t("perVehicle"),
-    tagline: t("plans.growthTagline"),
-    features: [
-      t("features.everythingStarter"),
-      t("features.liveMap"),
-      t("features.routesGeofences"),
-      t("features.assignmentModes"),
-      t("features.fleetExport"),
-      t("features.activityLog"),
-      t("features.safetyScores"),
-      t("features.fuelAlerts"),
-      t("features.shiftScheduling"),
-      t("features.serviceGrowth"),
-    ],
-    cta: { label: t("signInFleet"), href: "/login" },
-    highlight: true,
-  },
-  {
-    name: t("plans.enterpriseName"),
-    price: t("plans.enterprisePrice"),
-    unit: t("perVehicle"),
-    tagline: t("plans.enterpriseTagline"),
-    features: [
-      t("features.everythingGrowth"),
-      t("features.onboarding"),
-      t("features.customReporting"),
-      t("features.prioritySupport"),
-    ],
-    cta: { label: t("signInFleet"), href: "/login" },
-  },
-];
-
-// Driving schools (2026-10-20): their own prices and branch allowance
-// (src/lib/school-pricing.ts); every line maps to a feature of that plan.
-const schoolPlans = (t: Awaited<ReturnType<typeof getTranslations>>): Plan[] => [
-  {
-    name: t("plans.starterName"),
-    price: SCHOOL_TIER_PRICE.starter,
-    unit: t("perVehicle"),
-    tagline: t("school.starterTagline"),
-    features: [t("school.fleetBasics"), t("school.dvir"), t("school.liveMap"), t("school.branchStarter")],
-    cta: { label: t("signInFleet"), href: "/login" },
-  },
-  {
-    name: t("plans.growthName"),
-    price: SCHOOL_TIER_PRICE.growth,
-    unit: t("perVehicle"),
-    tagline: t("school.growthTagline"),
-    features: [
-      t("school.everythingStarter"),
-      t("school.classes"),
-      t("school.students"),
-      t("school.safety"),
-      t("school.export"),
-      t("school.branchGrowth"),
-    ],
-    cta: { label: t("signInFleet"), href: "/login" },
-    highlight: true,
-  },
-  {
-    name: t("plans.enterpriseName"),
-    price: SCHOOL_TIER_PRICE.enterprise,
-    unit: t("perVehicle"),
-    tagline: t("school.enterpriseTagline"),
-    features: [
-      t("school.everythingGrowth"),
-      t("school.reportCards"),
-      t("school.portal"),
-      t("school.reminders"),
-      t("school.packages"),
-      t("school.certificates"),
-      t("school.branchEnterprise"),
-      t("school.support"),
-    ],
-    cta: { label: t("signInFleet"), href: "/login" },
   },
 ];
 

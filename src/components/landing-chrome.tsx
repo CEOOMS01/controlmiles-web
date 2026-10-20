@@ -46,7 +46,8 @@ export async function LandingNav() {
           className="nav-mark-in rounded"
           priority
         />
-        <span className="nav-word-in display text-xl font-semibold">
+        {/* Narrow phones: the mark alone, so language, CMFleet and Sign in fit. */}
+        <span className="nav-word-in display hidden text-xl font-semibold min-[440px]:inline">
           Control<span style={{ color: "var(--lg-blue-deep)" }}>Miles</span>
         </span>
       </Link>
@@ -68,6 +69,18 @@ export async function LandingNav() {
         <span className="nav-action-in" style={navDelay(0.35)}>
           <LanguageSwitcher label={t("languageLabel")} />
         </span>
+        {/* CMFleet (2026-10-20, user request): the Fleet product's own page,
+            in Fleet's black with its logo. */}
+        <Link
+          href="/fleet"
+          aria-label={t("cmfleet")}
+          className="nav-action-in nav-pill inline-flex shrink-0 items-center gap-2 rounded-full border border-black bg-black p-1.5 font-medium text-white transition hover:bg-neutral-800 sm:pr-4"
+          style={navDelay(0.38)}
+        >
+          <Image src="/cmfleet-logo.png" alt="" width={24} height={24} className="rounded-full ring-1 ring-white/25" />
+          {/* On a phone the nav has room only for the mark. */}
+          <span className="hidden sm:inline">{t("cmfleet")}</span>
+        </Link>
         <Link
           href="/pricing"
           className="nav-action-in nav-pill hidden rounded-full border border-[var(--lg-line)] px-4 py-2 font-medium text-[var(--lg-ink-dim)] transition hover:border-[var(--lg-blue)] hover:text-[var(--lg-ink)] sm:inline"

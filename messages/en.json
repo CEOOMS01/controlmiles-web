@@ -3,7 +3,8 @@
     "pricing": "Pricing",
     "verifyReport": "Verify a report",
     "signIn": "Sign in",
-    "languageLabel": "Language"
+    "languageLabel": "Language",
+    "cmfleet": "CMFleet"
   },
   "footer": {
     "privacy": "Privacy Policy",
@@ -172,5 +173,119 @@
     "fleetNote": "Run a fleet? The controlmiles.com dashboard is for fleet admins.",
     "fleetLink": "Fleet pricing",
     "back": "Back to controlmiles.com"
+  },
+  "cmfleet": {
+    "metaTitle": "CMFleet — GPS fleet records and driving school software | ControlMiles",
+    "metaDescription": "CMFleet puts every vehicle on the record: GPS trips, odometer photos, inspections and reports from your drivers' phones. Driving schools get classes, students, a parent portal and certificates. No hardware, billed monthly.",
+    "hero": {
+      "eyebrow": "CMFLEET BY CONTROLMILES",
+      "title": "Your fleet, on the record.",
+      "subtitle": "GPS trips, odometer photos, inspections and reports for every vehicle, straight from your drivers' phones. No trackers to install and no long contracts.",
+      "ctaPrimary": "Start 15-day free trial",
+      "ctaSecondary": "See pricing",
+      "note": "Every account starts with 15 days of Growth, free."
+    },
+    "stats": {
+      "hardwareValue": "0",
+      "hardwareLabel": "devices to install in the car",
+      "trialValue": "15 days",
+      "trialLabel": "free trial with everything in Growth",
+      "contractValue": "Monthly",
+      "contractLabel": "billing, no multi-year contract"
+    },
+    "preview": {
+      "title": "Today",
+      "lessons": "Lessons",
+      "hours": "Hours taught",
+      "live": "On the road",
+      "trip": "Trip sealed",
+      "odometer": "Odometer photo verified",
+      "sample": "Sample view"
+    },
+    "services": {
+      "eyebrow": "ONE PRODUCT, SET UP PER SERVICE",
+      "title": "Built for how your fleet actually works.",
+      "subtitle": "Pick your service when you sign up. Each team only sees the tools its service uses.",
+      "schoolTitle": "Driving schools",
+      "schoolBody": "Classes, students, GPS-verified lesson hours, a parent portal, online booking and certificates.",
+      "truckingTitle": "Trucking",
+      "truckingBody": "IFTA miles by state, inspections, fuel and maintenance records.",
+      "transportTitle": "Student transport",
+      "transportBody": "School routes, attendance and a live run board.",
+      "salesTitle": "Sales teams",
+      "salesBody": "Business trips with manager approval and clean mileage reports.",
+      "generalTitle": "Any other fleet",
+      "generalBody": "Vehicle and driver rosters, GPS trips, odometer photos and exports."
+    },
+    "how": {
+      "eyebrow": "HOW IT WORKS",
+      "title": "Three steps, no installer visit.",
+      "step1Title": "Add your vehicles and team",
+      "step1Body": "Create the fleet, add vehicles and invite drivers or instructors with a code.",
+      "step2Title": "Drivers use the CMFleet app",
+      "step2Body": "Each trip is recorded by GPS with an odometer photo at the start and end.",
+      "step3Title": "You run it from the dashboard",
+      "step3Body": "Live map, schedules, inspections, alerts and reports that hold up in an audit."
+    },
+    "school": {
+      "eyebrow": "FOR DRIVING SCHOOLS",
+      "title": "The school, the cars and the hours, in one place.",
+      "body": "Most schools pay for scheduling software and GPS trackers separately. CMFleet does both: the lesson's hours come from the car's real GPS trip, not from what someone typed.",
+      "b1": "Lesson hours, night hours and miles measured by GPS",
+      "b2": "Weekly classes per instructor and car, with availability and time off",
+      "b3": "Student and parent portal with online booking and a cancellation policy",
+      "b4": "Skill report cards after each lesson",
+      "b5": "Lesson packages, payments and balances",
+      "b6": "Sealed completion certificates and a printable hour log",
+      "b7": "Branches: put cars, instructors and students in each location"
+    },
+    "pricing": {
+      "eyebrow": "PRICING",
+      "title": "Priced per vehicle. Billed monthly.",
+      "subtitle": "Pay for the cars you run, not for seats. Change plans or vehicles any time; the next invoice follows your fleet.",
+      "schoolsTitle": "Driving schools",
+      "fleetsTitle": "Every other fleet",
+      "fleetsNote": "Trucking, student transport, sales teams and general fleets.",
+      "taxNote": "Prices in USD; taxes may apply."
+    },
+    "compare": {
+      "eyebrow": "WHY CMFLEET",
+      "title": "One price instead of three tools.",
+      "colItem": "What you need",
+      "colTypical": "Typical setup",
+      "colCm": "CMFleet",
+      "r1": "Scheduling and student software",
+      "r1Typical": "$49–$399 / month",
+      "r1Cm": "Included",
+      "r2": "GPS tracking",
+      "r2Typical": "$20–$45 / vehicle / month, plus hardware",
+      "r2Cm": "Included, from the phone",
+      "r3": "Contract",
+      "r3Typical": "Often 12 to 36 months",
+      "r3Cm": "Month to month",
+      "r4": "Lesson hours verified by GPS",
+      "r4Typical": "Not offered",
+      "r4Cm": "Every class",
+      "source": "Typical setup: prices published by vendors or reported by third parties, October 2026."
+    },
+    "faq": {
+      "title": "Questions",
+      "q1": "Do I need to install anything in the car?",
+      "a1": "No. Drivers and instructors use the CMFleet app on their phone. GPS and odometer photos come from the phone.",
+      "q2": "How are a student's hours counted?",
+      "a2": "From the GPS trip of each finished class: total time, night time and miles. Nobody types the hours in.",
+      "q3": "What counts as a vehicle?",
+      "a3": "Each active vehicle in your fleet. Archived vehicles are not billed, and the next invoice follows your current count.",
+      "q4": "What is a branch?",
+      "a4": "A location of your school. Starter includes 1 and Growth 2; you can add a few more for a monthly fee, and Enterprise includes unlimited branches.",
+      "q5": "Can I change or cancel my plan?",
+      "a5": "Yes. Plans are billed monthly through Stripe and you manage them from Settings > Billing."
+    },
+    "cta": {
+      "title": "Put your fleet on the record this week.",
+      "body": "Set up in minutes. 15 days of Growth, free.",
+      "button": "Create your fleet account",
+      "signIn": "Sign in"
+    }
   }
 }
