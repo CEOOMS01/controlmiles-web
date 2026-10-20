@@ -12,12 +12,15 @@ export function ClassBlockForm({
   orgId,
   drivers,
   vehicles,
+  students = [],
   timeFormat,
   defaultDate,
 }: {
   orgId: string;
   drivers: Option[];
   vehicles: Option[];
+  // Driving school students (2026-10-19): empty when the plan has none.
+  students?: Option[];
   timeFormat: "12h" | "24h";
   defaultDate: string;
 }) {
@@ -63,12 +66,26 @@ export function ClassBlockForm({
     >
       <input type="hidden" name="org_id" value={orgId} />
 
+      {students.length > 0 && (
+        <div>
+          <label className="mb-1.5 block text-sm font-medium">Student</label>
+          <select name="student_id" defaultValue="" className={field}>
+            <option value="">No student</option>
+            {students.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
-          <label className="mb-1.5 block text-sm font-medium">Driver</label>
+          <label className="mb-1.5 block text-sm font-medium">Instructor</label>
           <select name="driver_id" required defaultValue="" className={field}>
             <option value="" disabled>
-              Select a driver
+              Select an instructor
             </option>
             {drivers.map((d) => (
               <option key={d.id} value={d.id}>

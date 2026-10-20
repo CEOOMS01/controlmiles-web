@@ -31,7 +31,7 @@ export type CheckoutState = { error: string | null; url: string | null };
 
 export async function startFleetCheckout(
   orgId: string,
-  tier: "starter" | "growth",
+  tier: "starter" | "growth" | "enterprise",
 ): Promise<CheckoutState> {
   const supabase = await createClient();
   // The seat count is computed server-side from the org's vehicles; the

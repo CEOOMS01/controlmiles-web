@@ -71,7 +71,9 @@ function isNonLocalizedRoute(pathname: string) {
     // sent has 404'd on click, silently, since the feature shipped. The
     // page itself (src/app/invite/[token]/) was ALSO never built until
     // now; both halves of this bug had to be fixed for the flow to work.
-    pathname.startsWith("/invite")
+    pathname.startsWith("/invite") ||
+    // Driving-school student/parent portal (link with a token, no account).
+    pathname.startsWith("/student/")
   );
 }
 

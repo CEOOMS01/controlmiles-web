@@ -81,8 +81,8 @@
       "growthName": "Growth",
       "growthTagline": "Gestiona toda la flota desde un solo panel.",
       "enterpriseName": "Enterprise",
-      "enterpriseTagline": "Implantación a medida para flotas grandes.",
-      "enterprisePrice": "Consúltanos"
+      "enterpriseTagline": "Todo, más la suite completa para autoescuelas.",
+      "enterprisePrice": "$27.99"
     },
     "features": {
       "gpsCarousel": "Rastreo GPS de viajes, con inicio y fin desde el carrusel de apps gig",
@@ -113,12 +113,13 @@
       "oneVehicle": "1 vehículo",
       "fiveVehicles": "Hasta 5 vehículos",
       "fuelMaintenance": "Registro de combustible y mantenimiento",
-      "serviceStarter": "Lo que tu servicio necesita: IFTA para camiones, clases por hora para autoescuelas, rutas escolares y asistencia para transporte de estudiantes",
+      "serviceStarter": "Lo que tu servicio necesita: IFTA para camiones, rutas escolares y asistencia para transporte de estudiantes",
       "liveMap": "Mapa en vivo",
       "routesGeofences": "Rutas y geocercas, donde tu servicio las usa",
       "safetyScores": "Puntuación de seguridad de conductores",
       "fuelAlerts": "Alertas de consumo de combustible",
-      "serviceGrowth": "Tablero en vivo para flotas escolares, aprobación de viajes para equipos de ventas"
+      "serviceGrowth": "Tablero en vivo para flotas escolares, aprobación de viajes para equipos de ventas, clases y alumnos para autoescuelas",
+      "studentsSuite": "Autoescuelas: boletas de evaluación, portal para padres, recordatorios de clase, paquetes y certificados sellados"
     },
     "disclaimer": "Precios en USD; pueden aplicar impuestos. Los planes de flota se cobran mensualmente por los vehículos registrados. Esto no es asesoramiento fiscal ni financiero.",
     "startTrial": "Prueba gratis 15 días"

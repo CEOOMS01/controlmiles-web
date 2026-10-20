@@ -11,6 +11,40 @@ releases have their own changelog in the app repo.
 
 ## 2026-10-19
 
+### Added (driving schools: students, phase 1 — later the same day)
+- **Students** (menu, driving schools on Growth and up): register a student
+  with parent/guardian, branch and status; date of birth and permit number
+  are optional and visible to admins only. The list shows each student's
+  hours and night hours against the school's requirement, classes, next
+  class and hours bought.
+- **Hours from real trips:** each finished class counts the time and miles
+  of its GPS trip; night = sunset to sunrise where the class drove. Nobody
+  types hours in.
+- **Classes:** pick the student when scheduling; the day view shows them.
+- **Student page:** progress, classes with instructor, car, time, night time,
+  miles and route map, report cards and skill progress, packages and
+  balance (record payments), the parent/student link and the certificate.
+- **Report cards** (written by the instructor in the Fleet app), **parent
+  portal by link** (`/student/<token>`, no account, revocable, 180 days),
+  **packages & balance**, **sealed certificate PDF** (only once the required
+  hours and night hours are met, SHA-256 seal) and **class reminder emails**
+  — Enterprise plan for driving schools.
+- **Students → Settings:** required hours / night hours, reminder window,
+  report card skills (21 defaults, editable) and packages.
+- **Plans for driving schools:** Starter = miles only (classes moved to
+  Growth); Growth = classes + students; Enterprise = $27.99/car with the
+  full suite, self-serve in Settings → Billing (Stripe price
+  `STRIPE_PRICE_ID_FLEET_ENTERPRISE` still to create). Pricing page updated.
+
+### Backend
+- Migration `20261019120000_driving_school_students.sql` (applied): `ds_*`
+  tables with RLS, `shift_blocks.student_id`, `fn_sun_times`,
+  `fn_ds_class_numbers`, `ds_student_progress`, `ds_student_classes`,
+  `ds_submit_evaluation`, portal and certificate RPCs, Enterprise tier in
+  `fn_org_feature_list_internal`; `get_my_shift_day` returns the student.
+- New edge function `send-class-reminders` and Enterprise support in
+  `create-checkout-session` / `stripe-webhook` (**not deployed yet**).
+
 ### Changed (each fleet sees only its service and plan)
 - What a fleet has now comes from one list in the database,
   `fn_org_features` (service = fleet type, plan = Starter / Growth; user-

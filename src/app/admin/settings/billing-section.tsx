@@ -4,10 +4,10 @@ import { useState, useTransition } from "react";
 import { useSearchParams } from "next/navigation";
 import { startFleetCheckout, openFleetBillingPortal } from "./billing-actions";
 
-type Tier = "starter" | "growth";
+type Tier = "starter" | "growth" | "enterprise";
 
-const TIER_LABEL: Record<Tier, string> = { starter: "Starter", growth: "Growth" };
-const TIER_PRICE: Record<Tier, string> = { starter: "$12.99", growth: "$19.99" };
+const TIER_LABEL: Record<Tier, string> = { starter: "Starter", growth: "Growth", enterprise: "Enterprise" };
+const TIER_PRICE: Record<Tier, string> = { starter: "$12.99", growth: "$19.99", enterprise: "$27.99" };
 
 export function BillingSection({
   orgId,
@@ -15,10 +15,15 @@ export function BillingSection({
   currentTier,
   currentStatus,
   billedVehicles,
+  showEnterprise = false,
 }: {
   orgId: string;
   vehicleCount: number;
-  currentTier: "starter" | "growth" | null;
+  currentTier: Tier | null;
+  // Enterprise is self-serve where it has features of its own (driving
+  // schools: students' report cards, portal, reminders, packages,
+  // certificates); elsewhere it stays "Contact us".
+  showEnterprise?: boolean;
   currentStatus: string | null;
   billedVehicles: number | null;
 }) {
@@ -99,8 +104,8 @@ export function BillingSection({
   return (
     <div>
     {returnNotice}
-    <div className="grid gap-3 sm:grid-cols-2">
-      {(["starter", "growth"] as Tier[]).map((tier) => (
+    <div className={`grid gap-3 ${showEnterprise ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
+      {((showEnterprise ? ["starter", "growth", "enterprise"] : ["starter", "growth"]) as Tier[]).map((tier) => (
         <div key={tier} className="rounded-xl border border-border bg-surface p-5">
           <p className="text-sm font-semibold">{TIER_LABEL[tier]}</p>
           <p className="mt-1 text-2xl font-semibold tabular-nums">

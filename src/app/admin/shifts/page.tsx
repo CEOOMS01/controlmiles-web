@@ -157,6 +157,7 @@ type ClassBlock = {
   start_time: string;
   end_time: string;
   note: string | null;
+  student_id: string | null;
   source: "template" | "one_off";
   status: "scheduled" | "in_progress" | "done" | "cancelled";
   late_minutes: number | null;
@@ -265,6 +266,18 @@ export default async function ShiftsPage({
     return v.display_id ? `${name || v.nickname || "Vehicle"} (${v.display_id})` : name || v.nickname || null;
   };
   const vehicleOptions = (vehicles ?? []).map((v) => ({ id: v.id, label: vehicleLabel(v) ?? "Vehicle" }));
+  // Driving school students (2026-10-19): picked on each class.
+  const { data: studentRows } = features.has("students")
+    ? await supabase
+        .from("ds_students")
+        .select("id, first_name, last_name, status")
+        .eq("organization_id", orgId)
+        .order("last_name")
+    : { data: [] as { id: string; first_name: string; last_name: string; status: string }[] };
+  const studentNames = new Map((studentRows ?? []).map((s) => [s.id, `${s.first_name} ${s.last_name}`]));
+  const studentOptions = (studentRows ?? [])
+    .filter((s) => s.status === "active" || s.status === "registered")
+    .map((s) => ({ id: s.id, label: `${s.first_name} ${s.last_name}` }));
 
   // Grouped by driver -- one card per driver, days listed inside, instead
   // of a flat table where the same driver's name repeats on every row.
@@ -307,7 +320,7 @@ export default async function ShiftsPage({
               <div>
                 <h2 className="text-lg font-semibold">Day schedule</h2>
                 <p className="text-sm text-muted">
-                  Hourly classes for one day. Drivers can start a class from {windowMin} min before
+                  Hourly classes for one day. Instructors can start a class from {windowMin} min before
                   to {windowMin} min after its start; between classes nothing is tracked and their
                   day stays open until they end it.
                 </p>
@@ -351,6 +364,7 @@ export default async function ShiftsPage({
                 orgId={orgId}
                 drivers={drivers}
                 vehicles={vehicleOptions}
+                students={studentOptions}
                 timeFormat={timeFormat}
                 defaultDate={selectedDate}
               />
@@ -392,7 +406,14 @@ export default async function ShiftsPage({
                                 <td className="px-4 py-2.5 text-muted">
                                   {b.vehicle_id ? vehicleNames.get(b.vehicle_id) ?? "Vehicle" : "—"}
                                 </td>
-                                <td className="px-4 py-2.5 text-muted">{b.note ?? ""}</td>
+                                <td className="px-4 py-2.5">
+                                  {b.student_id && studentNames.get(b.student_id) ? (
+                                    <a href={`/admin/students/${b.student_id}`} className="font-medium hover:text-accent">
+                                      {studentNames.get(b.student_id)}
+                                    </a>
+                                  ) : null}
+                                  {b.note && <span className="block text-xs text-muted">{b.note}</span>}
+                                </td>
                                 <td className="px-4 py-2.5 text-xs text-muted">
                                   {b.source === "template" ? "Weekly" : "One-off"}
                                 </td>

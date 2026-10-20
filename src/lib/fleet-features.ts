@@ -28,7 +28,13 @@ export type FleetFeature =
   | "open_assignment"
   | "routes"
   | "geofences"
-  | "trip_approval";
+  | "trip_approval"
+  | "students"
+  | "student_evaluations"
+  | "student_portal"
+  | "class_reminders"
+  | "student_packages"
+  | "student_certificates";
 
 export type FeatureSet = { has: (f: FleetFeature) => boolean; list: FleetFeature[] };
 

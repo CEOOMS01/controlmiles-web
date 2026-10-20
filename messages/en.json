@@ -81,8 +81,8 @@
       "growthName": "Growth",
       "growthTagline": "Run the whole fleet from one dashboard.",
       "enterpriseName": "Enterprise",
-      "enterpriseTagline": "Custom rollout for larger fleets.",
-      "enterprisePrice": "Contact us"
+      "enterpriseTagline": "Everything, plus the full driving-school suite.",
+      "enterprisePrice": "$27.99"
     },
     "features": {
       "gpsCarousel": "GPS trip tracking, start/stop from the gig-app carousel",
@@ -113,12 +113,13 @@
       "oneVehicle": "1 vehicle",
       "fiveVehicles": "Up to 5 vehicles",
       "fuelMaintenance": "Fuel log & maintenance records",
-      "serviceStarter": "What your service needs: IFTA for trucking, hourly classes for driving schools, school routes & attendance for student transport",
+      "serviceStarter": "What your service needs: IFTA for trucking, school routes & attendance for student transport",
       "liveMap": "Live map",
       "routesGeofences": "Routes & geofences, where your service uses them",
       "safetyScores": "Driver safety scores",
       "fuelAlerts": "Fuel anomaly alerts",
-      "serviceGrowth": "Live run board for school fleets, trip approval for sales teams"
+      "serviceGrowth": "Live run board for school fleets, trip approval for sales teams, classes and students for driving schools",
+      "studentsSuite": "Driving schools: report cards, parent portal, class reminders, packages and sealed certificates"
     },
     "disclaimer": "Prices in USD; taxes may apply. Fleet plans are billed monthly for the vehicles on file. Not tax or financial advice.",
     "startTrial": "Start 15-day free trial"

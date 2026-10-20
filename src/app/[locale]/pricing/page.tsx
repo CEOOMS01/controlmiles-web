@@ -140,15 +140,16 @@ const fleetPlans = (t: Awaited<ReturnType<typeof getTranslations>>): Plan[] => [
   {
     name: t("plans.enterpriseName"),
     price: t("plans.enterprisePrice"),
-    unit: "",
+    unit: t("perVehicle"),
     tagline: t("plans.enterpriseTagline"),
     features: [
       t("features.everythingGrowth"),
+      t("features.studentsSuite"),
       t("features.onboarding"),
       t("features.customReporting"),
       t("features.prioritySupport"),
     ],
-    cta: { label: "info@controlmiles.com", href: "mailto:info@controlmiles.com" },
+    cta: { label: t("signInFleet"), href: "/login" },
   },
 ];
 

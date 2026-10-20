@@ -16,7 +16,7 @@ export const FLEET_PROFILES = [
   { value: "passenger", title: "Passenger transport", body: "Shuttles, medical transport, charters." },
   { value: "school_transport", title: "School transportation", body: "Student routes with stops, schools and riders, live." },
   { value: "sales", title: "Sales & company cars", body: "Sales reps and employees driving company cars." },
-  { value: "driving_school", title: "Driving school", body: "Adds hourly classes per instructor and vehicle." },
+  { value: "driving_school", title: "Driving school", body: "Classes per instructor and car, students and their hours." },
   { value: "general", title: "Mixed / other", body: "A bit of everything: IFTA, owner-operators, routes and geofences." },
 ] as const;
 
@@ -37,7 +37,7 @@ export function profileTitle(v: string | null | undefined): string {
 }
 
 /** What a service includes beyond the base plan -- shown before the owner confirms it (it's locked afterwards). Mirrors fn_org_feature_list_internal. */
-const SERVICE_EXTRAS: Record<FleetProfile, { starter: string[]; growth: string[] }> = {
+const SERVICE_EXTRAS: Record<FleetProfile, { starter: string[]; growth: string[]; enterprise?: string[] }> = {
   delivery: { starter: ["Owner-operator vehicles"], growth: ["Routes", "Geofences"] },
   field_service: { starter: [], growth: ["Routes", "Geofences"] },
   trucking: { starter: ["IFTA fuel-tax reports", "Owner-operator vehicles"], growth: ["Routes", "Geofences"] },
@@ -48,7 +48,11 @@ const SERVICE_EXTRAS: Record<FleetProfile, { starter: string[]; growth: string[]
     growth: ["Live run board", "Substitute crew for the day", "Attendance export", "Geofences"],
   },
   sales: { starter: [], growth: ["Geofences", "Trip approval"] },
-  driving_school: { starter: ["Hourly classes per instructor and vehicle", "Day schedule", "Live map of your drivers"], growth: [] },
+  driving_school: {
+    starter: ["Live map of your drivers"],
+    growth: ["Hourly classes per instructor and car", "Day schedule", "Students and their hours"],
+    enterprise: ["Report cards", "Parent portal", "Class reminders", "Packages", "Sealed certificates"],
+  },
   general: { starter: ["IFTA fuel-tax reports", "Owner-operator vehicles"], growth: ["Routes", "Geofences"] },
 };
 
@@ -57,9 +61,10 @@ const PRETRIP_BY_DEFAULT: ReadonlySet<FleetProfile> = new Set(["general", "truck
 
 /** What a fleet type includes, per plan -- shown before the owner confirms it. */
 export function profileSummary(profile: FleetProfile): string[] {
-  const { starter, growth } = SERVICE_EXTRAS[profile];
+  const { starter, growth, enterprise } = SERVICE_EXTRAS[profile];
   const lines = [...starter];
   if (growth.length) lines.push(`With Growth: ${growth.join(", ").toLowerCase()}`);
+  if (enterprise?.length) lines.push(`With Enterprise: ${enterprise.join(", ").toLowerCase()}`);
   lines.push(PRETRIP_BY_DEFAULT.has(profile) ? "Daily pre-trip inspection required" : "Pre-trip inspection optional");
   return lines;
 }

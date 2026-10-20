@@ -180,6 +180,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
           )}
           {has("routes") && <AdminNavLink href="/admin/routes">Routes</AdminNavLink>}
           {showShifts && <AdminNavLink href="/admin/shifts">{has("classes") ? "Classes" : "Shifts"}</AdminNavLink>}
+          {has("students") && <AdminNavLink href="/admin/students">Students</AdminNavLink>}
           {has("geofences") && <AdminNavLink href="/admin/geofences">Geofences</AdminNavLink>}
           <AdminNavLink href="/admin/import">Import</AdminNavLink>
           {/* Everything below here is outside an Operator's real RLS/RPC

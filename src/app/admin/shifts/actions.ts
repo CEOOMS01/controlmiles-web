@@ -115,22 +115,23 @@ export async function addClassBlock(
   const startTime = String(formData.get("start_time") ?? "").trim();
   const endTime = String(formData.get("end_time") ?? "").trim();
   const note = String(formData.get("note") ?? "").trim() || null;
+  const studentId = String(formData.get("student_id") ?? "").trim() || null;
 
-  if (!orgId || !driverId) return { error: "Pick a driver.", success: false };
+  if (!orgId || !driverId) return { error: "Pick an instructor.", success: false };
   if (!/^\d{4}-\d{2}-\d{2}$/.test(blockDate)) return { error: "Pick a date.", success: false };
   if (!startTime || !endTime) return { error: "Enter a start and end time.", success: false };
   if (endTime <= startTime) return { error: "The class must end after it starts.", success: false };
 
-  const tierError = await requireGrowth(orgId);
-  if (tierError) return { error: tierError, success: false };
-
   const supabase = await createClient();
+  const { data: features } = await supabase.rpc("fn_org_features", { p_org_id: orgId });
+  if (!Array.isArray(features) || !features.includes("classes")) return { error: AppError.featureNotInPlan.message, success: false };
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { error: "Not authenticated.", success: false };
 
   const { error } = await supabase.from("shift_blocks").insert({
+    student_id: features.includes("students") ? studentId : null,
     organization_id: orgId,
     driver_id: driverId,
     vehicle_id: vehicleId,

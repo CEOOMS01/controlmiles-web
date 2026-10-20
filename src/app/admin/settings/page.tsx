@@ -125,7 +125,12 @@ export default async function SettingsPage() {
           <BillingSection
             orgId={orgId}
             vehicleCount={vehicleCount ?? 0}
-            currentTier={org.subscription_tier === "growth" ? "growth" : org.subscription_tier === "starter" ? "starter" : null}
+            currentTier={
+              org.subscription_tier === "growth" || org.subscription_tier === "starter" || org.subscription_tier === "enterprise"
+                ? org.subscription_tier
+                : null
+            }
+            showEnterprise={org.industry_template === "driving_school"}
             currentStatus={org.subscription_status}
             billedVehicles={org.subscription_vehicle_count ?? null}
           />
