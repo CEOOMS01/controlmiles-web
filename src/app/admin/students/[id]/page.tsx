@@ -14,7 +14,9 @@ import { getBranchScope } from "@/lib/branch-scope";
 import { requireFeature } from "@/lib/fleet-features";
 import { driverLabel, fleetDriverIds } from "@/lib/driver-label";
 import {
-  DEFAULT_SETTINGS,
+  NO_PROGRAM,
+  PROGRAM_COLUMNS,
+  STUDENT_COLUMNS,
   SCORE_CLASS,
   SCORE_LABELS,
   formatMinutes,
@@ -22,7 +24,7 @@ import {
   percentOf,
   requirementMet,
   studentName,
-  type DsSettings,
+  type Program,
   type Student,
   type StudentProgress,
 } from "@/lib/driving-school";
@@ -96,7 +98,7 @@ export default async function StudentPage({ params }: { params: Promise<{ id: st
 
   const { data: student } = await supabase
     .from("ds_students")
-    .select("id, first_name, last_name, phone, email, guardian_name, guardian_phone, guardian_email, status, notes, branch_id")
+    .select(STUDENT_COLUMNS)
     .eq("id", id)
     .eq("organization_id", orgId)
     .maybeSingle();
@@ -112,7 +114,7 @@ export default async function StudentPage({ params }: { params: Promise<{ id: st
     { data: priv },
     { data: progRows },
     { data: classRows },
-    { data: settingsRow },
+    { data: programRows },
     { data: vehicles },
     fleetIds,
     scope,
@@ -121,13 +123,15 @@ export default async function StudentPage({ params }: { params: Promise<{ id: st
     supabase.from("ds_student_private").select("date_of_birth, permit_number").eq("student_id", id).maybeSingle(),
     supabase.rpc("ds_student_progress", { p_org: orgId, p_student: id }),
     supabase.rpc("ds_student_classes", { p_student: id }),
-    supabase.from("ds_settings").select("required_minutes, required_night_minutes, reminder_hours").eq("organization_id", orgId).maybeSingle(),
+    supabase.from("ds_programs").select(PROGRAM_COLUMNS).eq("organization_id", orgId).order("sort").order("name"),
     supabase.from("vehicles").select("id, nickname, make, model, display_id").eq("organization_id", orgId),
     fleetDriverIds(supabase, orgId),
     getBranchScope(orgId),
   ]);
   const isAdmin = me?.member_role === "owner" || me?.member_role === "admin";
-  const settings: DsSettings = settingsRow ?? DEFAULT_SETTINGS;
+  const programs = (programRows ?? []) as Program[];
+  const program = programs.find((p) => p.id === (student as Student).program_id) ?? NO_PROGRAM;
+  const hasStateRecords = features.has("state_records");
   const progress = ((progRows ?? []) as StudentProgress[])[0];
   const classes = (classRows ?? []) as ClassRow[];
   const done = classes.filter((c) => c.status === "done");
@@ -184,7 +188,7 @@ export default async function StudentPage({ params }: { params: Promise<{ id: st
 
   const minutes = Number(progress?.minutes ?? 0);
   const night = Number(progress?.night_minutes ?? 0);
-  const met = requirementMet({ minutes, night_minutes: night }, settings);
+  const met = requirementMet({ minutes, night_minutes: night }, program);
   const bought = (myPackages ?? []).reduce((a, p) => a + Number(p.minutes), 0);
   const owed = (myPackages ?? []).reduce((a, p) => a + Number(p.price_cents) - Number(p.amount_paid_cents), 0);
 
@@ -201,9 +205,15 @@ export default async function StudentPage({ params }: { params: Promise<{ id: st
       <div className="mt-8 grid gap-6 lg:grid-cols-2">
         <Section title="Hours">
           <div className="space-y-4">
-            <Bar value={minutes} required={settings.required_minutes} label="Behind the wheel" />
-            {settings.required_night_minutes > 0 && (
-              <Bar value={night} required={settings.required_night_minutes} label="At night" />
+            <p className="text-sm text-muted">
+              Program: <span className="font-medium text-foreground">{program.name}</span>
+              {program.required_minutes === 0 && " · no required hours"}
+            </p>
+            {program.required_minutes > 0 && (
+              <Bar value={minutes} required={program.required_minutes} label="Behind the wheel" />
+            )}
+            {program.required_night_minutes > 0 && (
+              <Bar value={night} required={program.required_night_minutes} label="At night" />
             )}
             <div className="grid grid-cols-3 gap-3 text-sm">
               <div>
@@ -220,6 +230,19 @@ export default async function StudentPage({ params }: { params: Promise<{ id: st
               </div>
             </div>
             <p className="text-xs text-muted">From each finished class&apos;s GPS trip; can&apos;t be typed in or edited.</p>
+            {hasStateRecords && (
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3 text-sm">
+                <span className="text-muted">
+                  State certificate:{" "}
+                  <span className="text-foreground">
+                    {student.state_cert_number ? `${student.state_cert_type ?? ""} ${student.state_cert_number}`.trim() : "not recorded"}
+                  </span>
+                </span>
+                <a href={`/admin/students/${id}/log`} className="text-accent hover:underline">
+                  Print hour log (PDF)
+                </a>
+              </div>
+            )}
           </div>
         </Section>
 
@@ -412,6 +435,9 @@ export default async function StudentPage({ params }: { params: Promise<{ id: st
             privateData={priv}
             isAdmin={isAdmin}
             branches={scope.branches.map((b) => ({ id: b.id, name: b.name }))}
+            programs={programs.filter((p) => p.is_active || p.id === (student as Student).program_id)}
+            stateRecords={hasStateRecords}
+            sms={features.has("sms_reminders")}
           />
         </Section>
       </div>

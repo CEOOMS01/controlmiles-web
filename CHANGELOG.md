@@ -9,6 +9,30 @@ here. The Supabase changes they depend on live in the app repo
 (`controlmiles/supabase/`) and are listed under **Backend** below. Mobile app
 releases have their own changelog in the app repo.
 
+## 2026-10-20
+
+### Added (driving schools: phase 2, Enterprise)
+- **Programs:** Teen, Adult or your own, each with its required hours,
+  night hours, lesson length and whether the guardian gets the emails.
+  Adult students can have no required hours. Set up under Students >
+  Settings; each student picks a program.
+- **Online booking from the student link:** free times come from each
+  instructor's weekly hours, minus time off and classes already scheduled.
+  The school sets the notice, how far ahead, how many upcoming lessons a
+  student may hold and the cancellation policy, which the student accepts
+  before booking. When the school sells packages, a booking needs hours
+  left.
+- **Cancel from the student link:** free before the school's window; later
+  it counts as a used lesson. A freed time is emailed once to the other
+  students of the same program.
+- **Instructor availability and time off** on the Classes page.
+- **State records:** the state certificate number on each student and a
+  printable hour log (PDF) with every class's GPS time, night time, miles,
+  instructor and car, totals and a signature line. Office only; the permit
+  number is printed for owners and admins.
+- **Text reminders opt-in** on the student link (consent stored with the
+  number); texts go out once an SMS provider is connected.
+
 ## 2026-10-19
 
 ### Added (driving schools: students, phase 1 — later the same day)

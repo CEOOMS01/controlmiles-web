@@ -10,13 +10,15 @@ import { getAuthedProfile } from "@/lib/supabase/org-context";
 import { getBranchScope } from "@/lib/branch-scope";
 import { requireFeature } from "@/lib/fleet-features";
 import {
-  DEFAULT_SETTINGS,
+  NO_PROGRAM,
+  PROGRAM_COLUMNS,
+  STUDENT_COLUMNS,
   formatMinutes,
   percentOf,
   requirementMet,
   statusLabel,
   studentName,
-  type DsSettings,
+  type Program,
   type Student,
   type StudentProgress,
 } from "@/lib/driving-school";
@@ -38,19 +40,17 @@ export default async function StudentsPage({
   const statusFilter = typeof sp.status === "string" ? sp.status : "current";
   const q = typeof sp.q === "string" ? sp.q.trim().toLowerCase() : "";
 
-  const [{ data: students }, { data: progressRows }, { data: settingsRow }, { data: me }, scope] = await Promise.all([
-    supabase
-      .from("ds_students")
-      .select("id, first_name, last_name, phone, email, guardian_name, guardian_phone, guardian_email, status, notes, branch_id")
-      .eq("organization_id", orgId)
-      .order("last_name"),
+  await supabase.rpc("ds_ensure_default_programs", { p_org: orgId });
+  const [{ data: students }, { data: progressRows }, { data: programRows }, { data: me }, scope] = await Promise.all([
+    supabase.from("ds_students").select(STUDENT_COLUMNS).eq("organization_id", orgId).order("last_name"),
     supabase.rpc("ds_student_progress", { p_org: orgId }),
-    supabase.from("ds_settings").select("required_minutes, required_night_minutes, reminder_hours").eq("organization_id", orgId).maybeSingle(),
+    supabase.from("ds_programs").select(PROGRAM_COLUMNS).eq("organization_id", orgId).order("sort").order("name"),
     supabase.from("organization_members").select("member_role").eq("organization_id", orgId).eq("user_id", user.id).maybeSingle(),
     getBranchScope(orgId),
   ]);
 
-  const settings: DsSettings = settingsRow ?? DEFAULT_SETTINGS;
+  const programs = (programRows ?? []) as Program[];
+  const programOf = (s: Student) => programs.find((p) => p.id === s.program_id) ?? NO_PROGRAM;
   const progress = new Map(((progressRows ?? []) as StudentProgress[]).map((p) => [p.student_id, p]));
   const isAdmin = me?.member_role === "owner" || me?.member_role === "admin";
   const branchName = new Map(scope.branches.map((b) => [b.id, b.name]));
@@ -82,9 +82,8 @@ export default async function StudentsPage({
           <p className="text-sm font-semibold tracking-wide text-accent uppercase">Students</p>
           <h1 className="mt-1 text-2xl font-semibold">Students and their hours</h1>
           <p className="mt-2 max-w-2xl text-sm text-muted">
-            Hours come from each finished class&apos;s GPS trip, split into day and night. Required:{" "}
-            {formatMinutes(settings.required_minutes)}
-            {settings.required_night_minutes > 0 && `, ${formatMinutes(settings.required_night_minutes)} at night`}.
+            Hours come from each finished class&apos;s GPS trip, split into day and night. What each student needs
+            comes from their program (teen, adult or your own).
           </p>
         </div>
         {isAdmin && (
@@ -95,7 +94,13 @@ export default async function StudentsPage({
       </div>
 
       <div className="mb-6">
-        <StudentForm isAdmin={isAdmin} branches={scope.branches.map((b) => ({ id: b.id, name: b.name }))} />
+        <StudentForm
+          isAdmin={isAdmin}
+          branches={scope.branches.map((b) => ({ id: b.id, name: b.name }))}
+          programs={programs.filter((p) => p.is_active)}
+          stateRecords={features.has("state_records")}
+          sms={features.has("sms_reminders")}
+        />
       </div>
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
@@ -137,8 +142,9 @@ export default async function StudentsPage({
                 const p = progress.get(s.id);
                 const minutes = Number(p?.minutes ?? 0);
                 const night = Number(p?.night_minutes ?? 0);
-                const pct = percentOf(minutes, settings.required_minutes);
-                const met = p ? requirementMet(p, settings) : settings.required_minutes === 0;
+                const prog = programOf(s);
+                const pct = percentOf(minutes, prog.required_minutes);
+                const met = requirementMet({ minutes, night_minutes: night }, prog);
                 return (
                   <tr key={s.id} className="border-b border-border last:border-0">
                     <td className="px-4 py-3">
@@ -146,7 +152,9 @@ export default async function StudentsPage({
                         {studentName(s)}
                       </Link>
                       <p className="text-xs text-muted">
-                        {[s.guardian_name, s.branch_id ? branchName.get(s.branch_id) : null].filter(Boolean).join(" · ")}
+                        {[prog.id ? prog.name : null, s.guardian_name, s.branch_id ? branchName.get(s.branch_id) : null]
+                          .filter(Boolean)
+                          .join(" · ")}
                       </p>
                     </td>
                     <td className="px-4 py-3">

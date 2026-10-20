@@ -7,6 +7,8 @@ import { ClassBlockForm } from "./class-block-form";
 import { ClassBlockActions } from "./class-block-actions";
 import { driverLabel, fleetDriverIds } from "@/lib/driver-label";
 import { requireFeature } from "@/lib/fleet-features";
+import { WEEKDAYS } from "@/lib/driving-school";
+import { AvailabilityForm, RemoveButton, TimeOffForm } from "../students/student-forms";
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -279,6 +281,29 @@ export default async function ShiftsPage({
     .filter((s) => s.status === "active" || s.status === "registered")
     .map((s) => ({ id: s.id, label: `${s.first_name} ${s.last_name}` }));
 
+  // Online booking (driving school phase 2, 2026-10-19): when each
+  // instructor teaches; the portal offers only these hours.
+  const hasBooking = features.has("student_booking");
+  const [{ data: availRows }, { data: offRows }] = hasBooking
+    ? await Promise.all([
+        supabase
+          .from("ds_availability")
+          .select("id, instructor_id, weekday, start_time, end_time, vehicle_id")
+          .eq("organization_id", orgId)
+          .order("weekday")
+          .order("start_time"),
+        supabase
+          .from("ds_time_off")
+          .select("id, instructor_id, date_from, date_to, note")
+          .eq("organization_id", orgId)
+          .gte("date_to", selectedDate)
+          .order("date_from"),
+      ])
+    : [{ data: [] }, { data: [] }];
+  const driverName = new Map(drivers.map((d) => [d.id, d.label]));
+  const vehicleName = new Map(vehicleOptions.map((v) => [v.id, v.label]));
+  const t5 = (t: string) => t.slice(0, 5);
+
   // Grouped by driver -- one card per driver, days listed inside, instead
   // of a flat table where the same driver's name repeats on every row.
   const byDriver = new Map<
@@ -436,6 +461,47 @@ export default async function ShiftsPage({
               );
             })()}
           </section>
+
+          {hasBooking && (
+            <section className="mb-10">
+              <h2 className="mb-1 text-lg font-semibold">Instructor availability</h2>
+              <p className="mb-3 text-sm text-muted">
+                Students book online only inside these hours, and never over a class already scheduled.
+              </p>
+              <AvailabilityForm instructors={drivers} vehicles={vehicleOptions} />
+              {(availRows ?? []).length > 0 && (
+                <ul className="mt-3 divide-y divide-border rounded-xl border border-border bg-surface text-sm">
+                  {(availRows ?? []).map((a) => (
+                    <li key={a.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5">
+                      <span>
+                        <span className="font-medium">{driverName.get(a.instructor_id) ?? "Instructor"}</span> ·{" "}
+                        {WEEKDAYS[a.weekday]} {t5(a.start_time)}–{t5(a.end_time)}
+                        {a.vehicle_id && <span className="text-muted"> · {vehicleName.get(a.vehicle_id) ?? "Vehicle"}</span>}
+                      </span>
+                      <RemoveButton id={a.id} kind="availability" />
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              <h3 className="mt-6 mb-2 font-semibold">Time off</h3>
+              <TimeOffForm instructors={drivers} />
+              {(offRows ?? []).length > 0 && (
+                <ul className="mt-3 divide-y divide-border rounded-xl border border-border bg-surface text-sm">
+                  {(offRows ?? []).map((o) => (
+                    <li key={o.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5">
+                      <span>
+                        <span className="font-medium">{driverName.get(o.instructor_id) ?? "Instructor"}</span> ·{" "}
+                        {o.date_from === o.date_to ? o.date_from : `${o.date_from} to ${o.date_to}`}
+                        {o.note && <span className="text-muted"> · {o.note}</span>}
+                      </span>
+                      <RemoveButton id={o.id} kind="time_off" />
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          )}
 
           </>)}
           {hasWeekly && (<>

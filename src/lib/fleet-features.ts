@@ -34,7 +34,10 @@ export type FleetFeature =
   | "student_portal"
   | "class_reminders"
   | "student_packages"
-  | "student_certificates";
+  | "student_certificates"
+  | "student_booking"
+  | "state_records"
+  | "sms_reminders";
 
 export type FeatureSet = { has: (f: FleetFeature) => boolean; list: FleetFeature[] };
 

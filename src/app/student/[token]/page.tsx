@@ -10,6 +10,12 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { SCORE_CLASS, SCORE_LABELS, formatMinutes, percentOf } from "@/lib/driving-school";
+import { BookLesson, CancelLesson, SmsOptIn } from "./portal-booking";
+
+/** Inside the free-cancellation window? (module level: reads the clock) */
+function isLateToCancel(startsAt: string, freeHours: number): boolean {
+  return new Date(startsAt).getTime() - Date.now() < freeHours * 3600_000;
+}
 
 export const metadata: Metadata = { title: "Your driving lessons · ControlMiles", robots: { index: false } };
 
@@ -17,12 +23,16 @@ type View = {
   school: string;
   timezone: string;
   student: { first_name: string; last_name: string };
+  program: string;
   required_minutes: number;
   required_night_minutes: number;
   minutes: number;
   night_minutes: number;
   miles: number;
-  upcoming: { date: string; start: string; end: string; instructor: string | null }[];
+  upcoming: { id: string; date: string; start: string; end: string; instructor: string | null; starts_at: string }[];
+  booking: { enabled: boolean; cancel_free_hours: number; policy: string | null; max_upcoming: number };
+  balance: { purchased: number; used: number; booked: number; available: number } | null;
+  sms: { available: boolean; consent: boolean; phone: string | null };
   classes: {
     date: string;
     start: string;
@@ -81,9 +91,26 @@ export default async function StudentPortalPage({ params }: { params: Promise<{ 
         {v.student.first_name} {v.student.last_name}
       </h1>
 
+      {v.program && <p className="mt-1 text-sm text-muted">{v.program}</p>}
+
       <section className="mt-6 space-y-4 rounded-xl border border-border bg-surface p-5">
-        <Bar value={v.minutes} required={v.required_minutes} label="Behind the wheel" />
+        {v.required_minutes > 0 && <Bar value={v.minutes} required={v.required_minutes} label="Behind the wheel" />}
         {v.required_night_minutes > 0 && <Bar value={v.night_minutes} required={v.required_night_minutes} label="At night" />}
+        {v.required_minutes === 0 && (
+          <p className="text-sm">
+            <span className="font-semibold">{formatMinutes(v.minutes)}</span> behind the wheel
+            {v.night_minutes > 0 && `, ${formatMinutes(v.night_minutes)} at night`}.
+          </p>
+        )}
+        {v.balance && (
+          <p className="text-sm">
+            Lesson time left in your packages:{" "}
+            <span className={`font-semibold ${v.balance.available < 0 ? "text-danger" : ""}`}>
+              {formatMinutes(Math.max(0, v.balance.available))}
+            </span>
+            {v.balance.booked > 0 && <span className="text-muted"> (after the {formatMinutes(v.balance.booked)} you have booked)</span>}
+          </p>
+        )}
         <p className="text-sm text-muted">
           {v.classes.length} classes · {Number(v.miles).toFixed(1)} miles. Every class is recorded by GPS during the lesson.
         </p>
@@ -105,6 +132,12 @@ export default async function StudentPortalPage({ params }: { params: Promise<{ 
         </section>
       )}
 
+      {v.booking.enabled && (
+        <section className="mt-6">
+          <BookLesson token={token} policy={v.booking.policy} />
+        </section>
+      )}
+
       <section className="mt-6">
         <h2 className="mb-2 text-lg font-semibold">Upcoming classes</h2>
         {v.upcoming.length === 0 ? (
@@ -112,9 +145,14 @@ export default async function StudentPortalPage({ params }: { params: Promise<{ 
         ) : (
           <ul className="space-y-2">
             {v.upcoming.map((u, i) => (
-              <li key={i} className="rounded-lg border border-border bg-surface px-4 py-3 text-sm">
-                <span className="font-medium">{day(u.date)}</span> · {time12(u.start)}–{time12(u.end)}
-                {u.instructor && <span className="text-muted"> · {u.instructor}</span>}
+              <li key={i} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-surface px-4 py-3 text-sm">
+                <span>
+                  <span className="font-medium">{day(u.date)}</span> · {time12(u.start)}–{time12(u.end)}
+                  {u.instructor && <span className="text-muted"> · {u.instructor.trim()}</span>}
+                </span>
+                {v.booking.enabled && u.id && (
+                  <CancelLesson token={token} blockId={u.id} late={isLateToCancel(u.starts_at, v.booking.cancel_free_hours)} />
+                )}
               </li>
             ))}
           </ul>
@@ -149,6 +187,12 @@ export default async function StudentPortalPage({ params }: { params: Promise<{ 
           </ul>
         )}
       </section>
+
+      {v.sms.available && (
+        <section className="mt-6">
+          <SmsOptIn token={token} consent={v.sms.consent} phone={v.sms.phone} />
+        </section>
+      )}
 
       <p className="mt-10 text-center text-xs text-muted">ControlMiles · This page is private to you; don&apos;t share the link.</p>
     </main>

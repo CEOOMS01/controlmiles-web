@@ -10,8 +10,16 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getAuthedProfile } from "@/lib/supabase/org-context";
 import { requireFeature } from "@/lib/fleet-features";
-import { DEFAULT_SETTINGS, formatMinutes, money } from "@/lib/driving-school";
-import { AddPackageForm, AddSkillForm, DsSettingsForm, ToggleButton } from "../student-forms";
+import {
+  DEFAULT_SETTINGS,
+  DS_SETTINGS_COLUMNS,
+  PROGRAM_COLUMNS,
+  formatMinutes,
+  money,
+  type DsSettings,
+  type Program,
+} from "@/lib/driving-school";
+import { AddPackageForm, AddSkillForm, DsSettingsForm, ProgramForm, ToggleButton } from "../student-forms";
 
 export default async function StudentSettingsPage() {
   const features = await requireFeature("students");
@@ -31,9 +39,11 @@ export default async function StudentSettingsPage() {
   const hasEval = features.has("student_evaluations");
   const hasPkg = features.has("student_packages");
   if (hasEval) await supabase.rpc("ds_ensure_default_skills", { p_org: orgId });
+  await supabase.rpc("ds_ensure_default_programs", { p_org: orgId });
 
-  const [{ data: s }, { data: skills }, { data: packages }] = await Promise.all([
-    supabase.from("ds_settings").select("required_minutes, required_night_minutes, reminder_hours").eq("organization_id", orgId).maybeSingle(),
+  const [{ data: s }, { data: programs }, { data: skills }, { data: packages }] = await Promise.all([
+    supabase.from("ds_settings").select(DS_SETTINGS_COLUMNS).eq("organization_id", orgId).maybeSingle(),
+    supabase.from("ds_programs").select(PROGRAM_COLUMNS).eq("organization_id", orgId).order("sort").order("name"),
     hasEval
       ? supabase.from("ds_skills").select("id, category, name, is_active").eq("organization_id", orgId).order("sort")
       : Promise.resolve({ data: [] as { id: string; category: string; name: string; is_active: boolean }[] }),
@@ -41,7 +51,9 @@ export default async function StudentSettingsPage() {
       ? supabase.from("ds_packages").select("id, name, minutes, price_cents, is_active").eq("organization_id", orgId).order("name")
       : Promise.resolve({ data: [] as { id: string; name: string; minutes: number; price_cents: number; is_active: boolean }[] }),
   ]);
-  const settings = s ?? DEFAULT_SETTINGS;
+  const settings = (s as DsSettings | null) ?? DEFAULT_SETTINGS;
+  const showBooking = features.has("student_booking");
+  const showReminder = features.has("class_reminders");
 
   return (
     <main className="px-6 py-10 sm:px-10">
@@ -52,15 +64,30 @@ export default async function StudentSettingsPage() {
 
       <div className="mt-8 max-w-3xl space-y-10">
         <section>
-          <h2 className="mb-1 text-lg font-semibold">Required hours</h2>
-          <p className="mb-3 text-sm text-muted">What a student needs before their certificate (your state&apos;s rule or your own).</p>
-          <DsSettingsForm
-            requiredHours={settings.required_minutes / 60}
-            requiredNightHours={settings.required_night_minutes / 60}
-            reminderHours={settings.reminder_hours}
-            showReminder={features.has("class_reminders")}
-          />
+          <h2 className="mb-1 text-lg font-semibold">Programs</h2>
+          <p className="mb-3 text-sm text-muted">
+            Teens, adults or your own: the hours each one needs (your state&apos;s rule or yours), class length and
+            whether the guardian gets the notices. Adults usually need no hours and have no guardian.
+          </p>
+          <div className="space-y-2">
+            {((programs ?? []) as Program[]).map((p) => (
+              <ProgramForm key={p.id} program={p} />
+            ))}
+            <ProgramForm />
+          </div>
         </section>
+
+        {(showBooking || showReminder) && (
+          <section>
+            <h2 className="mb-1 text-lg font-semibold">{showBooking ? "Online booking and reminders" : "Reminders"}</h2>
+            <p className="mb-3 text-sm text-muted">
+              {showBooking
+                ? "Rules for booking from the student link, and when the reminder email goes out."
+                : "When the reminder email goes out."}
+            </p>
+            <DsSettingsForm settings={settings} showBooking={showBooking} showReminder={showReminder} />
+          </section>
+        )}
 
         {hasEval && (
           <section>
