@@ -146,7 +146,14 @@ export default async function SettingsPage({
           )}
 
           {tab === "billing" && (
-            <SettingsSection title="Billing" help="Plans are per vehicle, billed monthly through Stripe.">
+            <SettingsSection
+              title="Billing"
+              help={
+                org.industry_template === "driving_school"
+                  ? "A monthly base with 3 cars, then per extra car, billed monthly through Stripe."
+                  : "Plans are per vehicle, billed monthly through Stripe."
+              }
+            >
               <BillingSection
                 orgId={orgId}
                 vehicleCount={vehicleCount ?? 0}

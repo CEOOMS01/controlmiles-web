@@ -125,7 +125,7 @@
     "startTrial": "Start 15-day free trial",
     "school": {
       "title": "For driving schools",
-      "note": "Priced per vehicle, 15-day free trial with everything in Growth. Lesson hours come from each class's real GPS trip.",
+      "note": "A monthly base with 3 cars and the software included, then a price per extra car. 15-day free trial with everything in Growth. Lesson hours come from each class's real GPS trip.",
       "starterTagline": "Your cars and instructors on the record.",
       "growthTagline": "Classes and students, measured by GPS.",
       "enterpriseTagline": "The full school: portal, booking and certificates.",
@@ -146,7 +146,11 @@
       "packages": "Lesson packages, payments and balances",
       "certificates": "Sealed completion certificates and state records",
       "branchEnterprise": "Unlimited branches",
-      "support": "Dedicated onboarding and priority support"
+      "support": "Dedicated onboarding and priority support",
+      "unit": "/ month",
+      "carsStarter": "3 cars included · $12.99 / month per extra car · up to 10 cars",
+      "carsGrowth": "3 cars included · $19.99 / month per extra car ($16.99 from the 16th)",
+      "carsEnterprise": "3 cars included · $27.99 / month per extra car ($23.99 from the 16th)"
     }
   },
   "portalCta": {
@@ -232,12 +236,15 @@
     },
     "pricing": {
       "eyebrow": "PRICING",
-      "title": "Priced per vehicle. Billed monthly.",
-      "subtitle": "Pay for the cars you run, not for seats. Change plans or vehicles any time; the next invoice follows your fleet.",
+      "title": "A base with 3 cars. Then per car.",
+      "subtitle": "Driving schools pay a monthly base that includes the software and 3 cars, plus each extra car; from the 16th car it costs less. Other fleets pay per vehicle. Billed monthly, and the next invoice follows your fleet.",
       "schoolsTitle": "Driving schools",
       "fleetsTitle": "Every other fleet",
       "fleetsNote": "Trucking, student transport, sales teams and general fleets.",
-      "taxNote": "Prices in USD; taxes may apply."
+      "taxNote": "Prices in USD; taxes may apply.",
+      "examplesTitle": "What a school pays per month",
+      "examplesCars": "Cars",
+      "examplesNote": "Before extra branches and taxes."
     },
     "compare": {
       "eyebrow": "WHY CMFLEET",
@@ -266,7 +273,7 @@
       "q2": "How are a student's hours counted?",
       "a2": "From the GPS trip of each finished class: total time, night time and miles. Nobody types the hours in.",
       "q3": "What counts as a vehicle?",
-      "a3": "Each active vehicle in your fleet. Archived vehicles are not billed, and the next invoice follows your current count.",
+      "a3": "Each active vehicle in your fleet. Driving school plans include 3 cars in the base and charge each extra car; archived vehicles are not billed, and the next invoice follows your current count.",
       "q4": "What is a branch?",
       "a4": "A location of your school. Starter includes 1 and Growth 2; you can add a few more for a monthly fee, and Enterprise includes unlimited branches.",
       "q5": "Can I change or cancel my plan?",

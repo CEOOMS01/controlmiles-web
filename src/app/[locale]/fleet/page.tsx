@@ -22,6 +22,7 @@ import { LandingNav, LandingFooter } from "@/components/landing-chrome";
 import { PlanCard } from "@/components/plan-card";
 import { Reveal } from "@/components/reveal";
 import { fleetPlans, schoolPlans } from "@/lib/fleet-plans";
+import { schoolMonthlyCents, usd } from "@/lib/school-pricing";
 import "../landing.css";
 import "./fleet-metal.css";
 
@@ -258,6 +259,34 @@ export default async function CMFleetPage({ params }: { params: Promise<{ locale
           {SCHOOL.map((p, i) => (
             <PlanCard key={p.name} plan={{ ...p, cta: { label: t("hero.ctaPrimary"), href: "/signup" } }} index={i} mostPopular={tp("mostPopular")} />
           ))}
+        </div>
+
+        {/* Examples straight from the pricing function, so they always match billing. */}
+        <div className="mt-8 overflow-x-auto rounded-2xl border border-[var(--lg-line)] bg-[var(--lg-bg-raised)]">
+          <table className="w-full min-w-[480px] text-left text-sm">
+            <caption className="px-5 pt-4 text-left font-semibold">{t("pricing.examplesTitle")}</caption>
+            <thead className="text-[var(--lg-ink-dim)]">
+              <tr className="border-b border-[var(--lg-line)]">
+                <th scope="col" className="px-5 py-3 font-medium">{t("pricing.examplesCars")}</th>
+                {SCHOOL.map((p) => (
+                  <th key={p.name} scope="col" className="px-5 py-3 font-medium">{p.name}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[var(--lg-line)]">
+              {[3, 5, 10, 20].map((cars) => (
+                <tr key={cars}>
+                  <th scope="row" className="mono px-5 py-3 font-medium">{cars}</th>
+                  {(["starter", "growth", "enterprise"] as const).map((tier) => (
+                    <td key={tier} className="mono px-5 py-3">
+                      {tier === "starter" && cars > 10 ? "—" : usd(schoolMonthlyCents(tier, cars))}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p className="px-5 pb-4 text-xs text-[var(--lg-ink-dim)]">{t("pricing.examplesNote")}</p>
         </div>
 
         <h3 className="display mt-16 text-2xl font-semibold">{t("pricing.fleetsTitle")}</h3>

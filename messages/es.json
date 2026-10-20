@@ -125,7 +125,7 @@
     "startTrial": "Prueba gratis 15 días",
     "school": {
       "title": "Para escuelas de manejo",
-      "note": "Precio por vehículo, 15 días de prueba gratis con todo lo de Growth. Las horas de cada clase salen de su viaje GPS real.",
+      "note": "Una base mensual con el software y 3 autos incluidos, y luego un precio por auto adicional. 15 días de prueba gratis con todo lo de Growth. Las horas de cada clase salen de su viaje GPS real.",
       "starterTagline": "Tus autos e instructores, registrados.",
       "growthTagline": "Clases y alumnos, medidos por GPS.",
       "enterpriseTagline": "La escuela completa: portal, reservas y certificados.",
@@ -146,7 +146,11 @@
       "packages": "Paquetes de clases, pagos y saldos",
       "certificates": "Certificados de finalización sellados y registros estatales",
       "branchEnterprise": "Sucursales ilimitadas",
-      "support": "Incorporación dedicada y soporte prioritario"
+      "support": "Incorporación dedicada y soporte prioritario",
+      "unit": "/ mes",
+      "carsStarter": "3 autos incluidos · $12.99 / mes por auto adicional · hasta 10 autos",
+      "carsGrowth": "3 autos incluidos · $19.99 / mes por auto adicional ($16.99 desde el auto 16)",
+      "carsEnterprise": "3 autos incluidos · $27.99 / mes por auto adicional ($23.99 desde el auto 16)"
     }
   },
   "portalCta": {
@@ -232,12 +236,15 @@
     },
     "pricing": {
       "eyebrow": "PRECIOS",
-      "title": "Precio por vehículo. Pago mensual.",
-      "subtitle": "Pagas por los autos que usas, no por usuarios. Cambia de plan o de vehículos cuando quieras; la siguiente factura sigue a tu flota.",
+      "title": "Una base con 3 autos. Luego, por auto.",
+      "subtitle": "Las escuelas de manejo pagan una base mensual que incluye el software y 3 autos, más cada auto adicional; desde el auto 16 cuesta menos. Las demás flotas pagan por vehículo. Pago mensual, y la siguiente factura sigue a tu flota.",
       "schoolsTitle": "Escuelas de manejo",
       "fleetsTitle": "Todas las demás flotas",
       "fleetsNote": "Transporte de carga, transporte escolar, equipos de ventas y flotas generales.",
-      "taxNote": "Precios en USD; pueden aplicar impuestos."
+      "taxNote": "Precios en USD; pueden aplicar impuestos.",
+      "examplesTitle": "Lo que paga una escuela al mes",
+      "examplesCars": "Autos",
+      "examplesNote": "Sin sucursales adicionales ni impuestos."
     },
     "compare": {
       "eyebrow": "POR QUÉ CMFLEET",
@@ -266,7 +273,7 @@
       "q2": "¿Cómo se cuentan las horas de un alumno?",
       "a2": "Con el viaje GPS de cada clase terminada: tiempo total, tiempo nocturno y millas. Nadie escribe las horas a mano.",
       "q3": "¿Qué cuenta como vehículo?",
-      "a3": "Cada vehículo activo de tu flota. Los vehículos archivados no se cobran y la siguiente factura sigue tu cantidad actual.",
+      "a3": "Cada vehículo activo de tu flota. Los planes de escuela incluyen 3 autos en la base y cobran cada auto adicional; los vehículos archivados no se cobran y la siguiente factura sigue tu cantidad actual.",
       "q4": "¿Qué es una sucursal?",
       "a4": "Una sede de tu escuela. Starter incluye 1 y Growth 2; puedes agregar algunas más con un cargo mensual, y Enterprise incluye sucursales ilimitadas.",
       "q5": "¿Puedo cambiar o cancelar mi plan?",

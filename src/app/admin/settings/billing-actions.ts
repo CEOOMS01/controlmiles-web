@@ -42,6 +42,9 @@ export async function startFleetCheckout(
 
   if (error) {
     const body = await readFunctionError(error);
+    if (body === "TOO_MANY_VEHICLES") {
+      return { error: "You have more cars than this plan allows. Choose a bigger plan.", url: null };
+    }
     if (body === "TOO_MANY_BRANCHES") {
       return { error: "You have more branches than this plan allows. Remove one or choose a bigger plan.", url: null };
     }
