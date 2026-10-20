@@ -193,15 +193,6 @@
       "contractValue": "Mensual",
       "contractLabel": "pago mes a mes, sin contrato de varios años"
     },
-    "preview": {
-      "title": "Hoy",
-      "lessons": "Clases",
-      "hours": "Horas enseñadas",
-      "live": "En ruta",
-      "trip": "Viaje sellado",
-      "odometer": "Foto del odómetro verificada",
-      "sample": "Vista de ejemplo"
-    },
     "services": {
       "eyebrow": "UN PRODUCTO, CONFIGURADO POR SERVICIO",
       "title": "Hecho para cómo trabaja tu flota.",
@@ -286,6 +277,18 @@
       "body": "Se configura en minutos. 15 días de Growth, gratis.",
       "button": "Crear la cuenta de tu flota",
       "signIn": "Iniciar sesión"
+    },
+    "card": {
+      "title": "Todo lo que tu flota necesita, en una sola cuenta",
+      "gps": "Viaje GPS en cada recorrido",
+      "gpsBody": "Inicio, fin y ruta, desde el teléfono del conductor.",
+      "odo": "Foto del odómetro al inicio y al final",
+      "odoBody": "Se lee sola y queda guardada con el viaje.",
+      "insp": "Inspecciones, combustible y mantenimiento",
+      "inspBody": "Revisiones previas y cada recibo en un solo lugar.",
+      "reports": "Reportes que resisten una auditoría",
+      "reportsBody": "Viajes sellados, exportaciones y certificados.",
+      "foot": "Funciona en el teléfono de tu equipo. Ningún equipo en el auto."
     }
   }
 }

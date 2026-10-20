@@ -90,7 +90,7 @@ export async function LandingNav() {
         </Link>
         <Link
           href="/login"
-          className="nav-action-in nav-pill rounded-full border border-[var(--lg-ink)] bg-[var(--lg-ink)] px-4 py-2 font-medium text-[var(--lg-bg)] transition hover:border-[var(--lg-blue-deep)] hover:bg-[var(--lg-blue-deep)]"
+          className="nav-action-in nav-pill rounded-full border border-[#7a4528] bg-[#7a4528] px-4 py-2 font-medium text-[var(--lg-bg)] transition hover:border-[var(--lg-amber)] hover:bg-[var(--lg-amber)]"
           style={navDelay(0.45)}
         >
           {t("signIn")}

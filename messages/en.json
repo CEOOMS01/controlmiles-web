@@ -193,15 +193,6 @@
       "contractValue": "Monthly",
       "contractLabel": "billing, no multi-year contract"
     },
-    "preview": {
-      "title": "Today",
-      "lessons": "Lessons",
-      "hours": "Hours taught",
-      "live": "On the road",
-      "trip": "Trip sealed",
-      "odometer": "Odometer photo verified",
-      "sample": "Sample view"
-    },
     "services": {
       "eyebrow": "ONE PRODUCT, SET UP PER SERVICE",
       "title": "Built for how your fleet actually works.",
@@ -286,6 +277,18 @@
       "body": "Set up in minutes. 15 days of Growth, free.",
       "button": "Create your fleet account",
       "signIn": "Sign in"
+    },
+    "card": {
+      "title": "Everything your fleet needs, in one account",
+      "gps": "GPS trip on every drive",
+      "gpsBody": "Start, stop and route, from the driver's phone.",
+      "odo": "Odometer photo at both ends",
+      "odoBody": "Read automatically and kept with the trip.",
+      "insp": "Inspections, fuel and maintenance",
+      "inspBody": "Pre-trip checks and every receipt in one place.",
+      "reports": "Reports that hold up",
+      "reportsBody": "Sealed trips, exports and certificates.",
+      "foot": "Runs on your team's phones. No device in the car."
     }
   }
 }
