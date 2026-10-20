@@ -11,6 +11,14 @@ releases have their own changelog in the app repo.
 
 ## 2026-10-20
 
+### Changed (driving schools, later the same day)
+- **Student form:** the parent or guardian fields only appear for programs
+  that have one (Teen); adult students aren't asked for them.
+- **Student settings redesigned:** one card per section with a section menu;
+  each setting has its name and a short explanation beside its control
+  (switches and fields with units); programs are a summary list that opens
+  to edit; report card skills grouped by category; packages as a table.
+
 ### Added (driving schools: phase 2, Enterprise)
 - **Programs:** Teen, Adult or your own, each with its required hours,
   night hours, lesson length and whether the guardian gets the emails.

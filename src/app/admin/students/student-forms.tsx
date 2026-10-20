@@ -67,6 +67,11 @@ export function StudentForm({
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(!!student);
+  // Parent or guardian only for programs that have one (teens); an adult
+  // program doesn't ask for it (user rule, 2026-10-20).
+  const [programId, setProgramId] = useState(student?.program_id ?? programs[0]?.id ?? "");
+  const selectedProgram = programs.find((p) => p.id === programId);
+  const askGuardian = programs.length === 0 || (selectedProgram?.notify_guardian ?? true);
   const [state, action, pending] = useActionState(async (p: ActionState, fd: FormData) => {
     const r = student ? await updateStudent(p, fd) : await createStudent(p, fd);
     if (r.success && !student && r.value) router.push(`/admin/students/${r.value}`);
@@ -106,25 +111,27 @@ export function StudentForm({
       {programs.length > 0 && (
         <div>
           <label className={label}>Program</label>
-          <select name="program_id" defaultValue={student?.program_id ?? programs[0]?.id ?? ""} className={field}>
+          <select name="program_id" value={programId} onChange={(e) => setProgramId(e.target.value)} className={field}>
             {programs.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name}
               </option>
             ))}
           </select>
-          <p className="mt-1 text-xs text-muted">Teen, adult or your own: decides the hours required and who gets notices.</p>
+          <p className="mt-1 text-xs text-muted">Decides the hours required and whether a parent or guardian is asked for.</p>
         </div>
       )}
 
+      {askGuardian && (
       <div>
-        <p className="mb-2 text-sm font-semibold">Parent or guardian (optional, usually for teens)</p>
+        <p className="mb-2 text-sm font-semibold">Parent or guardian (optional)</p>
         <div className="grid gap-3 sm:grid-cols-3">
           <input name="guardian_name" placeholder="Name" maxLength={120} defaultValue={student?.guardian_name ?? ""} className={field} />
           <input name="guardian_phone" type="tel" placeholder="Phone" maxLength={30} defaultValue={student?.guardian_phone ?? ""} className={field} />
           <input name="guardian_email" type="email" placeholder="Email" maxLength={120} defaultValue={student?.guardian_email ?? ""} className={field} />
         </div>
       </div>
+      )}
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
@@ -365,6 +372,55 @@ export function IssueCertificateButton({ studentId, canIssue }: { studentId: str
 }
 
 // ---------------- settings ----------------
+// Settings layout (redesign 2026-10-20): each setting is a row with its
+// name and a one-line explanation on the left and the control on the
+// right, grouped under small headings, one Save bar per card.
+
+/** On/off switch that posts like a checkbox ("on" when on). */
+function Switch({ name, defaultChecked, label: text }: { name: string; defaultChecked: boolean; label: string }) {
+  return (
+    <label className="relative inline-flex cursor-pointer items-center">
+      <input type="checkbox" name={name} defaultChecked={defaultChecked} className="peer sr-only" aria-label={text} />
+      <span className="h-6 w-11 rounded-full bg-border transition peer-checked:bg-accent peer-focus-visible:ring-2 peer-focus-visible:ring-accent/40" />
+      <span className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition peer-checked:translate-x-5" />
+    </label>
+  );
+}
+
+/** Number field with its unit after it ("24 hours"). */
+function UnitInput(props: { name: string; defaultValue: number; unit: string; min: number; max: number; step?: number }) {
+  return (
+    <div className="flex items-center gap-2">
+      <input
+        name={props.name}
+        type="number"
+        min={props.min}
+        max={props.max}
+        step={props.step ?? 1}
+        defaultValue={props.defaultValue}
+        className={`${field} w-24 text-right`}
+      />
+      <span className="text-sm text-muted">{props.unit}</span>
+    </div>
+  );
+}
+
+function SettingRow({ title, help, children }: { title: string; help: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-8">
+      <div className="min-w-0">
+        <p className="text-sm font-medium">{title}</p>
+        <p className="mt-0.5 text-xs text-muted">{help}</p>
+      </div>
+      <div className="shrink-0">{children}</div>
+    </div>
+  );
+}
+
+function GroupTitle({ children }: { children: React.ReactNode }) {
+  return <p className="pt-5 text-xs font-semibold tracking-wide text-muted uppercase first:pt-1">{children}</p>;
+}
+
 export function DsSettingsForm({
   settings,
   showBooking,
@@ -377,122 +433,178 @@ export function DsSettingsForm({
   const [state, action, pending] = useActionState(saveDsSettings, initial);
   const hidden = (name: string, value: string | number) => <input type="hidden" name={name} value={value} />;
   return (
-    <form action={action} className="space-y-4 rounded-xl border border-border bg-surface p-5">
-      {showBooking ? (
-        <>
-          <label className="flex items-start gap-2 text-sm">
-            <input type="checkbox" name="booking_enabled" defaultChecked={settings.booking_enabled} className="mt-1" />
-            <span>
-              <span className="font-semibold">Students can book online</span>
-              <span className="block text-xs text-muted">
-                From their link they see your instructors&apos; free slots and book. Classes appear in Classes and in the
-                instructor&apos;s app.
-              </span>
-            </span>
-          </label>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    <form action={action}>
+      <div className="divide-y divide-border px-5">
+        {showBooking ? (
+          <>
             <div>
-              <label className={label}>Minimum notice (hours)</label>
-              <input name="booking_lead_hours" type="number" min="0" max="336" defaultValue={settings.booking_lead_hours} className={field} />
+              <GroupTitle>Online booking</GroupTitle>
+              <SettingRow
+                title="Students book from their link"
+                help="They see your instructors' free times and book; the class shows up in Classes and in the instructor's app."
+              >
+                <Switch name="booking_enabled" defaultChecked={settings.booking_enabled} label="Online booking" />
+              </SettingRow>
             </div>
+            <SettingRow title="Minimum notice" help="How long before a lesson it can still be booked.">
+              <UnitInput name="booking_lead_hours" defaultValue={settings.booking_lead_hours} unit="hours" min={0} max={336} />
+            </SettingRow>
+            <SettingRow title="Booking window" help="How far ahead students can book.">
+              <UnitInput name="booking_horizon_days" defaultValue={settings.booking_horizon_days} unit="days" min={1} max={90} />
+            </SettingRow>
+            <SettingRow title="Upcoming lessons per student" help="Lessons a student can hold booked at once.">
+              <UnitInput name="booking_max_upcoming" defaultValue={settings.booking_max_upcoming} unit="lessons" min={1} max={20} />
+            </SettingRow>
+
             <div>
-              <label className={label}>Book up to (days ahead)</label>
-              <input name="booking_horizon_days" type="number" min="1" max="90" defaultValue={settings.booking_horizon_days} className={field} />
+              <GroupTitle>Cancellations</GroupTitle>
+              <SettingRow
+                title="Free cancellation"
+                help="Up to this many hours before the lesson. Later, it counts as a used lesson."
+              >
+                <UnitInput name="cancel_free_hours" defaultValue={settings.cancel_free_hours} unit="hours before" min={0} max={336} />
+              </SettingRow>
             </div>
-            <div>
-              <label className={label}>Upcoming classes per student</label>
-              <input name="booking_max_upcoming" type="number" min="1" max="20" defaultValue={settings.booking_max_upcoming} className={field} />
+            <div className="py-4">
+              <p className="text-sm font-medium">Cancellation policy</p>
+              <p className="mt-0.5 mb-2 text-xs text-muted">
+                Students read and accept it before booking. A freed time is emailed to the program&apos;s other students.
+              </p>
+              <textarea
+                name="cancellation_policy"
+                rows={3}
+                maxLength={1000}
+                defaultValue={settings.cancellation_policy ?? ""}
+                placeholder="e.g. Cancel up to 24 hours before for free. Later cancellations count as a used lesson."
+                className={field}
+              />
             </div>
-            <div>
-              <label className={label}>Free cancellation until (hours before)</label>
-              <input name="cancel_free_hours" type="number" min="0" max="336" defaultValue={settings.cancel_free_hours} className={field} />
-            </div>
-          </div>
+          </>
+        ) : (
+          <>
+            {hidden("booking_lead_hours", settings.booking_lead_hours)}
+            {hidden("booking_horizon_days", settings.booking_horizon_days)}
+            {hidden("booking_max_upcoming", settings.booking_max_upcoming)}
+            {hidden("cancel_free_hours", settings.cancel_free_hours)}
+            {settings.booking_enabled && hidden("booking_enabled", "on")}
+            {settings.cancellation_policy && hidden("cancellation_policy", settings.cancellation_policy)}
+          </>
+        )}
+        {showReminder ? (
           <div>
-            <label className={label}>Cancellation policy (shown before booking)</label>
-            <textarea
-              name="cancellation_policy"
-              rows={2}
-              maxLength={1000}
-              defaultValue={settings.cancellation_policy ?? ""}
-              placeholder="e.g. Cancel up to 24 hours before for free. Later cancellations count as a used lesson."
-              className={field}
-            />
-            <p className="mt-1 text-xs text-muted">
-              A late cancellation counts as a used lesson; a freed slot is emailed to the program&apos;s other students.
-            </p>
+            <GroupTitle>Reminders</GroupTitle>
+            <SettingRow
+              title="Email reminder"
+              help="Sent to the student, and to the parent or guardian when the program has one."
+            >
+              <UnitInput name="reminder_hours" defaultValue={settings.reminder_hours} unit="hours before" min={1} max={168} />
+            </SettingRow>
           </div>
-        </>
-      ) : (
-        <>
-          {hidden("booking_lead_hours", settings.booking_lead_hours)}
-          {hidden("booking_horizon_days", settings.booking_horizon_days)}
-          {hidden("booking_max_upcoming", settings.booking_max_upcoming)}
-          {hidden("cancel_free_hours", settings.cancel_free_hours)}
-          {settings.booking_enabled && hidden("booking_enabled", "on")}
-          {settings.cancellation_policy && hidden("cancellation_policy", settings.cancellation_policy)}
-        </>
-      )}
-      {showReminder ? (
-        <div className="max-w-xs">
-          <label className={label}>Email reminder before a class (hours)</label>
-          <input name="reminder_hours" type="number" min="1" max="168" defaultValue={settings.reminder_hours} className={field} />
-        </div>
-      ) : (
-        hidden("reminder_hours", settings.reminder_hours)
-      )}
-      <Feedback state={state} ok="Saved." />
-      <button type="submit" disabled={pending} className={primaryBtn}>
-        {pending ? "Saving…" : "Save"}
-      </button>
+        ) : (
+          hidden("reminder_hours", settings.reminder_hours)
+        )}
+      </div>
+      <div className="flex items-center justify-end gap-3 rounded-b-xl border-t border-border bg-background/60 px-5 py-3">
+        <Feedback state={state} ok="Saved." />
+        <button type="submit" disabled={pending} className={primaryBtn}>
+          {pending ? "Saving…" : "Save changes"}
+        </button>
+      </div>
     </form>
   );
 }
 
 // ---------------- programs ----------------
-export function ProgramForm({ program }: { program?: Program }) {
-  const [state, action, pending] = useActionState(saveProgram, initial);
+function programSummary(p: Program): string {
+  const parts = [
+    p.required_minutes > 0 ? `${p.required_minutes / 60} h required` : "No required hours",
+    p.required_night_minutes > 0 ? `${p.required_night_minutes / 60} h at night` : null,
+    `${p.class_minutes}-min lessons`,
+    p.notify_guardian ? "Parent or guardian" : null,
+  ];
+  return parts.filter(Boolean).join(" · ");
+}
+
+function ProgramEditor({ program, onDone }: { program?: Program; onDone: () => void }) {
+  const [state, action, pending] = useActionState(async (p: ActionState, fd: FormData) => {
+    const r = await saveProgram(p, fd);
+    if (r.success) onDone();
+    return r;
+  }, initial);
   return (
-    <form action={action} className="grid items-end gap-2 rounded-lg border border-border bg-surface p-3 sm:grid-cols-12">
+    <form action={action} className="space-y-1 bg-background/60 px-5 py-4">
       {program && <input type="hidden" name="id" value={program.id} />}
       {program && <input type="hidden" name="has_active" value="1" />}
-      <div className="sm:col-span-3">
-        <label className="mb-1 block text-xs text-muted">Program</label>
-        <input name="name" required maxLength={60} defaultValue={program?.name ?? ""} placeholder="e.g. Teen" className={field} />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label className={label}>Name</label>
+          <input name="name" required maxLength={60} defaultValue={program?.name ?? ""} placeholder="e.g. Teen" className={field} />
+        </div>
+        <div>
+          <label className={label}>Lesson length</label>
+          <UnitInput name="class_minutes" defaultValue={program?.class_minutes ?? 60} unit="minutes" min={15} max={480} step={15} />
+        </div>
+        <div>
+          <label className={label}>Hours required</label>
+          <UnitInput name="required_hours" defaultValue={(program?.required_minutes ?? 0) / 60} unit="hours" min={0} max={200} step={0.5} />
+          <p className="mt-1 text-xs text-muted">Your state&apos;s rule for this group, or 0 for none.</p>
+        </div>
+        <div>
+          <label className={label}>Of them at night</label>
+          <UnitInput name="required_night_hours" defaultValue={(program?.required_night_minutes ?? 0) / 60} unit="hours" min={0} max={200} step={0.5} />
+        </div>
       </div>
-      <div className="sm:col-span-2">
-        <label className="mb-1 block text-xs text-muted">Hours required</label>
-        <input name="required_hours" type="number" min="0" step="0.5" defaultValue={(program?.required_minutes ?? 0) / 60} className={field} />
-      </div>
-      <div className="sm:col-span-2">
-        <label className="mb-1 block text-xs text-muted">Of them at night</label>
-        <input name="required_night_hours" type="number" min="0" step="0.5" defaultValue={(program?.required_night_minutes ?? 0) / 60} className={field} />
-      </div>
-      <div className="sm:col-span-2">
-        <label className="mb-1 block text-xs text-muted">Class length (min)</label>
-        <input name="class_minutes" type="number" min="15" max="480" step="15" defaultValue={program?.class_minutes ?? 60} className={field} />
-      </div>
-      <div className="flex flex-col gap-1 text-xs sm:col-span-2">
-        <label className="flex items-center gap-1">
-          <input type="checkbox" name="notify_guardian" defaultChecked={program?.notify_guardian ?? false} /> Notify guardian
-        </label>
+      <div className="divide-y divide-border">
+        <SettingRow title="Parent or guardian" help="Ask for one when registering, and copy them on reminders. Usually on for teens.">
+          <Switch name="notify_guardian" defaultChecked={program?.notify_guardian ?? false} label="Parent or guardian" />
+        </SettingRow>
         {program && (
-          <label className="flex items-center gap-1">
-            <input type="checkbox" name="is_active" defaultChecked={program.is_active} /> Active
-          </label>
+          <SettingRow title="Active" help="Off: no longer offered when registering students.">
+            <Switch name="is_active" defaultChecked={program.is_active} label="Active" />
+          </SettingRow>
         )}
       </div>
-      <div className="sm:col-span-1">
-        <button type="submit" disabled={pending} className={secondaryBtn}>
-          {program ? "Save" : "Add"}
+      <div className="flex items-center justify-end gap-3 pt-2">
+        <Feedback state={state} />
+        <button type="button" onClick={onDone} className="px-3 py-2 text-sm text-muted hover:text-foreground">
+          Cancel
+        </button>
+        <button type="submit" disabled={pending} className={primaryBtn}>
+          {pending ? "Saving…" : program ? "Save program" : "Add program"}
         </button>
       </div>
-      {(state.error || state.success) && (
-        <div className="sm:col-span-12">
-          <Feedback state={state} ok="Saved." />
-        </div>
-      )}
     </form>
+  );
+}
+
+export function ProgramRow({ program }: { program: Program }) {
+  const [editing, setEditing] = useState(false);
+  if (editing) return <ProgramEditor program={program} onDone={() => setEditing(false)} />;
+  return (
+    <div className="flex items-center justify-between gap-4 px-5 py-4">
+      <div className="min-w-0">
+        <p className="flex items-center gap-2 text-sm font-medium">
+          {program.name}
+          {!program.is_active && <span className="rounded-full bg-border px-2 py-0.5 text-xs text-muted">Off</span>}
+        </p>
+        <p className="mt-0.5 text-xs text-muted">{programSummary(program)}</p>
+      </div>
+      <button type="button" onClick={() => setEditing(true)} className={secondaryBtn}>
+        Edit
+      </button>
+    </div>
+  );
+}
+
+export function AddProgram() {
+  const [open, setOpen] = useState(false);
+  if (open) return <ProgramEditor onDone={() => setOpen(false)} />;
+  return (
+    <div className="px-5 py-3">
+      <button type="button" onClick={() => setOpen(true)} className="text-sm font-medium text-accent hover:underline">
+        + Add program
+      </button>
+    </div>
   );
 }
 
@@ -596,15 +708,13 @@ export function RemoveButton({ id, kind }: { id: string; kind: "availability" | 
 export function AddSkillForm() {
   const [state, action, pending] = useActionState(addSkill, initial);
   return (
-    <form action={action} className="flex flex-wrap items-end gap-2">
-      <input name="category" placeholder="Category (e.g. Parking)" maxLength={60} className={`${field} w-48`} />
-      <input name="name" placeholder="Skill" maxLength={80} className={`${field} w-56`} />
+    <form action={action} className="flex flex-wrap items-center gap-2 border-t border-border px-5 py-3">
+      <input name="category" placeholder="Category (e.g. Parking)" maxLength={60} className={`${field} sm:w-48`} />
+      <input name="name" placeholder="New skill" maxLength={80} className={`${field} sm:w-56`} />
       <button type="submit" disabled={pending} className={secondaryBtn}>
         Add skill
       </button>
-      <div className="w-full">
-        <Feedback state={state} />
-      </div>
+      <Feedback state={state} />
     </form>
   );
 }
@@ -626,16 +736,14 @@ export function ToggleButton({ id, active, kind }: { id: string; active: boolean
 export function AddPackageForm() {
   const [state, action, pending] = useActionState(addPackage, initial);
   return (
-    <form action={action} className="flex flex-wrap items-end gap-2">
-      <input name="name" placeholder="Name (e.g. 6-hour teen package)" maxLength={80} className={`${field} w-64`} />
+    <form action={action} className="flex flex-wrap items-center gap-2 border-t border-border px-5 py-3">
+      <input name="name" placeholder="Name (e.g. 6-hour teen package)" maxLength={80} className={`${field} sm:w-64`} />
       <input name="hours" type="number" min="0.5" step="0.5" placeholder="Hours" className={`${field} w-24`} />
       <input name="price" type="number" min="0" step="0.01" placeholder="Price $" className={`${field} w-28`} />
       <button type="submit" disabled={pending} className={secondaryBtn}>
         Add package
       </button>
-      <div className="w-full">
-        <Feedback state={state} />
-      </div>
+      <Feedback state={state} />
     </form>
   );
 }
