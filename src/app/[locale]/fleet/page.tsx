@@ -23,13 +23,14 @@ import { PlanCard } from "@/components/plan-card";
 import { Reveal } from "@/components/reveal";
 import { fleetPlans, schoolPlans } from "@/lib/fleet-plans";
 import "../landing.css";
+import "./fleet-metal.css";
 
 const display = Fraunces({ subsets: ["latin"], weight: ["500", "600", "700"], style: ["normal", "italic"], variable: "--font-display" });
 const body = Public_Sans({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-plex-sans" });
 const plexMono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-mono-plex" });
 
-// Fleet's own color: the black of the CMFleet app icon.
-const FLEET_BLACK = "#0b0b0b";
+// Fleet's look (2026-10-20, user choice "C, and change the background too"):
+// brushed gunmetal for the page and its accents, see fleet-metal.css.
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -94,7 +95,7 @@ export default async function CMFleetPage({ params }: { params: Promise<{ locale
 
   return (
     <main
-      className={`landing ${display.variable} ${body.variable} ${plexMono.variable}`}
+      className={`landing cmfleet-metal ${display.variable} ${body.variable} ${plexMono.variable}`}
       style={{ fontFamily: "var(--font-plex-sans), system-ui, sans-serif" }}
     >
       <LandingNav />
@@ -103,8 +104,8 @@ export default async function CMFleetPage({ params }: { params: Promise<{ locale
       <section className="mx-auto grid max-w-6xl gap-14 px-6 pb-20 pt-10 sm:px-10 md:grid-cols-[1.1fr_0.9fr] md:items-start md:gap-16 md:pt-20">
         <div>
           <p
-            className="rise inline-flex items-center gap-2 rounded-full py-1 pl-1 pr-3 text-xs font-semibold tracking-wide text-white"
-            style={{ background: FLEET_BLACK, animationDelay: "0.05s" }}
+            className="cf-metal rise inline-flex items-center gap-2 rounded-full py-1 pl-1 pr-3 text-xs font-semibold tracking-wide text-white"
+            style={{ animationDelay: "0.05s" }}
           >
             <Image src="/cmfleet-logo.png" alt="" width={22} height={22} className="rounded-full ring-1 ring-white/25" />
             CMFleet
@@ -124,14 +125,13 @@ export default async function CMFleetPage({ params }: { params: Promise<{ locale
           <div className="rise mt-9 flex flex-wrap gap-3" style={{ animationDelay: "0.42s" }}>
             <Link
               href="/signup"
-              className="rounded-full px-6 py-3 text-sm font-semibold text-white transition hover:opacity-90"
-              style={{ background: FLEET_BLACK }}
+              className="cf-metal cf-metal-btn rounded-full px-6 py-3 text-sm font-semibold text-white"
             >
               {t("hero.ctaPrimary")}
             </Link>
             <a
               href="#pricing"
-              className="rounded-full border border-[var(--lg-line)] bg-white px-6 py-3 text-sm font-semibold text-[var(--lg-ink)] transition hover:border-[var(--lg-ink)]"
+              className="rounded-full border border-[var(--lg-line)] bg-[var(--lg-bg-raised)] px-6 py-3 text-sm font-semibold text-[var(--lg-ink)] transition hover:border-[var(--lg-ink)]"
             >
               {t("hero.ctaSecondary")}
             </a>
@@ -143,8 +143,8 @@ export default async function CMFleetPage({ params }: { params: Promise<{ locale
 
         {/* What one account includes (replaces the sample "Today" card). */}
         <div className="rise" style={{ animationDelay: "0.2s" }}>
-          <div className="overflow-hidden rounded-2xl border border-[var(--lg-line)] bg-white shadow-[0_20px_50px_-24px_rgba(33,28,20,0.25)]">
-            <div className="flex items-center gap-3 px-6 py-4 text-white" style={{ background: FLEET_BLACK }}>
+          <div className="overflow-hidden rounded-2xl border border-[var(--lg-line)] bg-[var(--lg-bg-raised)] shadow-[0_30px_70px_-30px_rgba(0,0,0,0.7)]">
+            <div className="cf-metal flex items-center gap-3 px-6 py-4 text-white">
               <Image src="/cmfleet-logo.png" alt="" width={34} height={34} className="rounded-full ring-1 ring-white/25" />
               <p className="text-sm font-semibold leading-snug">{t("card.title")}</p>
             </div>
@@ -153,7 +153,7 @@ export default async function CMFleetPage({ params }: { params: Promise<{ locale
                 <li key={c.key} className="flex gap-4 px-6 py-4">
                   <span
                     className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
-                    style={{ background: "var(--lg-bg)", color: FLEET_BLACK }}
+                    style={{ background: "var(--lg-bg)", color: "var(--lg-ink)" }}
                   >
                     <Icon d={c.icon} />
                   </span>
@@ -200,8 +200,7 @@ export default async function CMFleetPage({ params }: { params: Promise<{ locale
               className="lift rounded-2xl border border-[var(--lg-line)] bg-[var(--lg-bg-raised)] p-6"
             >
               <span
-                className="flex h-10 w-10 items-center justify-center rounded-full text-white"
-                style={{ background: FLEET_BLACK }}
+                className="cf-metal flex h-10 w-10 items-center justify-center rounded-full text-white"
               >
                 <Icon d={s.icon} />
               </span>
@@ -219,7 +218,7 @@ export default async function CMFleetPage({ params }: { params: Promise<{ locale
           <h2 className="display mt-4 text-3xl font-semibold sm:text-4xl">{t("how.title")}</h2>
           <ol className="mt-10 grid gap-8 sm:grid-cols-3">
             {[1, 2, 3].map((n) => (
-              <li key={n} className="border-t-2 pt-5" style={{ borderColor: FLEET_BLACK }}>
+              <li key={n} className="border-t-2 border-[var(--lg-steel)] pt-5">
                 <span className="mono text-sm text-[var(--lg-ink-dim)]">0{n}</span>
                 <h3 className="display mt-2 text-xl font-semibold">{t(`how.step${n}Title`)}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-[var(--lg-ink-dim)]">{t(`how.step${n}Body`)}</p>
@@ -272,7 +271,7 @@ export default async function CMFleetPage({ params }: { params: Promise<{ locale
       </section>
 
       {/* Comparison: the one dark band, in Fleet black. */}
-      <section className="text-white" style={{ background: FLEET_BLACK }}>
+      <section className="cf-metal-deep text-white">
         <div className="mx-auto max-w-6xl px-6 py-20 sm:px-10">
           <p className="mono text-xs font-medium tracking-[0.2em] text-white/50">{t("compare.eyebrow")}</p>
           <h2 className="display mt-4 text-3xl font-semibold sm:text-4xl">{t("compare.title")}</h2>
@@ -332,8 +331,7 @@ export default async function CMFleetPage({ params }: { params: Promise<{ locale
           </div>
           <Link
             href="/signup"
-            className="rounded-full px-7 py-3.5 text-sm font-semibold text-white transition hover:opacity-90"
-            style={{ background: FLEET_BLACK }}
+            className="cf-metal cf-metal-btn rounded-full px-7 py-3.5 text-sm font-semibold text-white"
           >
             {t("cta.button")}
           </Link>
