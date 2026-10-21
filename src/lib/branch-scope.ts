@@ -37,7 +37,23 @@ export const getBranchScope = cache(async (orgId: string): Promise<BranchScope> 
     .order("name");
   const branches = (rows ?? []) as Branch[];
 
-  const selected = (await cookies()).get(BRANCH_COOKIE)?.value;
+  const cookie = (await cookies()).get(BRANCH_COOKIE)?.value;
+  // A branch admin (2026-10-20) starts on the branch they run; picking "All
+  // branches" in the menu saves that choice (cookie "all").
+  let selected = cookie;
+  if (!cookie && branches.length > 0) {
+    const { data: auth } = await supabase.auth.getUser();
+    if (auth?.user) {
+      const { data: mine } = await supabase
+        .from("branches")
+        .select("id")
+        .eq("organization_id", orgId)
+        .eq("manager_id", auth.user.id)
+        .eq("is_archived", false)
+        .limit(1);
+      selected = (mine?.[0]?.id as string | undefined) ?? undefined;
+    }
+  }
   const current = branches.find((b) => b.id === selected) ?? null;
   if (!current) {
     return { branches, current: null, vehicleIds: null, driverIds: null, vehicleIn: () => true, driverIn: () => true };

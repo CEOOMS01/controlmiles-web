@@ -7,6 +7,7 @@ import { isFleetProfile } from "@/lib/fleet-profiles";
 import { getOrgFeatures } from "@/lib/fleet-features";
 import { getBranchScope } from "@/lib/branch-scope";
 import { BranchesManager } from "../branch-controls";
+import { BranchAdmins } from "./branch-admins";
 import { ScheduleSettingsForm } from "./schedule-settings-form";
 import { FleetTypeRow, ModuleOptionsForm } from "./industry-template-form";
 import { SettingsSection, SettingsTabs } from "@/components/settings-ui";
@@ -54,6 +55,13 @@ export default async function SettingsPage({
 
   if (!org) return null;
   const branchScope = await getBranchScope(orgId);
+  const { data: me } = await supabase
+    .from("organization_members")
+    .select("member_role")
+    .eq("organization_id", orgId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  const myRole = me?.member_role as string | undefined;
   // Enterprise add-on: the enrollment page on the school's own address (+$29).
   const { data: domainRow } =
     tab === "billing"
@@ -141,12 +149,13 @@ export default async function SettingsPage({
           {tab === "branches" && (
             <SettingsSection
               title="Branches"
-              help="Your locations (each office or yard). Put vehicles and drivers in a branch on the Team page and filter the dashboard by branch."
+              help="Your locations, under you as the owner. Each one can have an admin in charge; instructors, students and vehicles belong to a branch, and the menu filters everything by branch."
             >
               <BranchesManager
                 branches={branchScope.branches}
                 allowance={allowance?.max_branches != null ? allowance : null}
               />
+              <BranchAdmins orgId={orgId} isOwner={myRole === "owner"} />
             </SettingsSection>
           )}
 

@@ -16,7 +16,8 @@ import { DriverVehicleSelect } from "./driver-vehicle-select";
 import { AddVehicleForm } from "../vehicles/add-vehicle-form";
 import { ArchiveButton } from "../vehicles/vehicle-row-actions";
 import { getBranchScope } from "@/lib/branch-scope";
-import { MemberBranchSelect, VehicleBranchSelect } from "../branch-controls";
+import { VehicleBranchSelect } from "../branch-controls";
+import { BranchMove } from "../branch-move";
 import { getOrgFeatures } from "@/lib/fleet-features";
 
 // Team+Vehicles unification (explicit user request, 2026-09-23): this
@@ -226,14 +227,22 @@ export default async function RosterPage({ searchParams }: { searchParams: Promi
                     </td>
                     {branchOptions.length > 0 && (
                       <td className="px-4 py-3">
-                        {m.member_role === "driver" ? (
-                          <MemberBranchSelect
-                            userId={m.user_id}
+                        {/* Branches sit under the owner; the owner or an admin moves
+                            people between them with a reason (2026-10-20). */}
+                        {m.member_role === "owner" ? (
+                          <span className="text-muted">All branches</span>
+                        ) : canManageOperators && m.is_active ? (
+                          <BranchMove
+                            subjectType="member"
+                            subjectId={m.user_id}
+                            subjectName={name}
                             current={m.any_branch ? "any" : (m.branch_id ?? "")}
                             branches={branchOptions}
                           />
                         ) : (
-                          <span className="text-muted">—</span>
+                          <span className="text-muted">
+                            {m.any_branch ? "Any branch" : (branchName.get(m.branch_id ?? "") ?? "—")}
+                          </span>
                         )}
                       </td>
                     )}

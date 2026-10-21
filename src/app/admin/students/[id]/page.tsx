@@ -6,6 +6,7 @@
 // report cards, packages and balance, portal link and certificate. What
 // the plan doesn't include isn't shown.
 
+import { BranchMove } from "../../branch-move";
 import { PageHeader, PageTabs } from "@/components/page-ui";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -237,6 +238,17 @@ export default async function StudentPage({
           ]
             .filter(Boolean)
             .join(" · ")}
+          actions={
+            isAdmin && scope.branches.length > 0 ? (
+              <BranchMove
+                subjectType="student"
+                subjectId={id}
+                subjectName={studentName(student as Student)}
+                current={(student as Student).branch_id ?? ""}
+                branches={scope.branches.map((b) => ({ id: b.id, name: b.name }))}
+              />
+            ) : undefined
+          }
         />
       </div>
       {/* Redesign (2026-10-20): one student, sections as tabs. */}

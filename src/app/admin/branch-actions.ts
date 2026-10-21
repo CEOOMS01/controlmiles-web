@@ -12,11 +12,9 @@ export type ActionResult = { error: string | null };
 /** The sidebar's branch filter ("" = all branches). */
 export async function selectBranch(branchId: string) {
   const jar = await cookies();
-  if (branchId) {
-    jar.set(BRANCH_COOKIE, branchId, { path: "/", sameSite: "lax", httpOnly: true, maxAge: 60 * 60 * 24 * 365 });
-  } else {
-    jar.delete(BRANCH_COOKIE);
-  }
+  // "" = all branches, saved as "all" so a branch admin's own branch
+  // doesn't come back as the default (branch-scope.ts, 2026-10-20).
+  jar.set(BRANCH_COOKIE, branchId || "all", { path: "/", sameSite: "lax", httpOnly: true, maxAge: 60 * 60 * 24 * 365 });
   revalidatePath("/admin", "layout");
 }
 
@@ -70,6 +68,40 @@ export async function setMemberBranch(userId: string, value: string): Promise<Ac
     p_branch_id: value && value !== "any" ? value : null,
     p_any_branch: value === "any",
   });
+  if (error) return { error: AppError.from(error).display() };
+  revalidatePath("/admin", "layout");
+  return { error: null };
+}
+
+/** Move an instructor or a student to another branch, with the reason (2026-10-20). */
+export async function moveToBranch(
+  subjectType: "member" | "student",
+  subjectId: string,
+  to: string,
+  note: string,
+): Promise<ActionResult> {
+  const { profile } = await getAuthedProfile();
+  const orgId = profile?.default_org_id;
+  if (!orgId) return { error: "Missing organization." };
+  if (note.trim().length < 3) return { error: "Write why you are making this move." };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("move_to_branch", {
+    p_organization_id: orgId,
+    p_subject_type: subjectType,
+    p_subject_id: subjectId,
+    p_to_branch: to && to !== "any" ? to : null,
+    p_any: to === "any",
+    p_note: note.trim().slice(0, 500),
+  });
+  if (error) return { error: AppError.from(error).display() };
+  revalidatePath("/admin", "layout");
+  return { error: null };
+}
+
+/** Owner only: the admin who runs a branch ("" = nobody). */
+export async function setBranchManager(branchId: string, userId: string): Promise<ActionResult> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_branch_manager", { p_branch_id: branchId, p_user_id: userId || null });
   if (error) return { error: AppError.from(error).display() };
   revalidatePath("/admin", "layout");
   return { error: null };

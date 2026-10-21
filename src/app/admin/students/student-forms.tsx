@@ -165,10 +165,12 @@ export function StudentForm({
             ))}
           </select>
         </div>
-        {branches.length > 0 && (
+        {/* Editing: the branch changes only with Move and a reason (2026-10-20). */}
+        {student && <input type="hidden" name="branch_id" value={student.branch_id ?? ""} />}
+        {branches.length > 0 && !student && (
           <div>
             <label className={label}>Branch</label>
-            <select name="branch_id" defaultValue={student?.branch_id ?? ""} className={field}>
+            <select name="branch_id" defaultValue="" className={field}>
               <option value="">No branch</option>
               {branches.map((b) => (
                 <option key={b.id} value={b.id}>
