@@ -19,11 +19,11 @@ export function OrgSwitcher({
   // what every single-org account already saw before this existed).
   if (orgs.length < 2) {
     const name = orgs.find((o) => o.id === currentOrgId)?.name ?? "";
-    return <p className="mt-1 truncate px-2 text-xs text-muted">{name}</p>;
+    return <p className="truncate px-1.5 text-xs text-sidebar-muted">{name}</p>;
   }
 
   return (
-    <div className="mt-1 px-2">
+    <div>
       <select
         value={currentOrgId}
         disabled={pending}
@@ -39,7 +39,7 @@ export function OrgSwitcher({
             setError(result?.error ?? null);
           });
         }}
-        className="w-full truncate rounded-md border border-border bg-background px-1.5 py-1 text-xs text-muted outline-none transition hover:text-foreground focus:border-accent disabled:opacity-60"
+        className="w-full truncate rounded-lg border border-sidebar-border bg-surface px-2.5 py-1.5 text-sm text-foreground outline-none transition hover:border-border-strong focus:border-accent disabled:opacity-60"
       >
         {orgs.map((org) => (
           <option key={org.id} value={org.id}>

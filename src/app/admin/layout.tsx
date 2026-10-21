@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import Link from "next/link";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
@@ -10,6 +11,8 @@ import { getOrgFeatures } from "@/lib/fleet-features";
 import { getBranchScope } from "@/lib/branch-scope";
 import { BranchSelector } from "./branch-controls";
 import { LEGAL_TERMS_VERSION } from "@/lib/legal-version";
+import { ThemeToggle, type ThemeChoice } from "@/components/theme-toggle";
+import { AdminNav, type NavGroup, type NavItem } from "./admin-nav";
 
 export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   const supabase = await createClient();
@@ -139,112 +142,103 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
     redirect("/onboarding/fleet-type");
   }
 
-  return (
-    <div className="flex flex-1">
-      <aside className="hidden w-56 shrink-0 border-r border-border bg-surface px-4 py-6 sm:block">
-        <div className="flex items-center gap-2 px-2">
-          <Image
-            src="/logo_controlmiles.png"
-            alt="ControlMiles"
-            width={28}
-            height={28}
-            className="rounded"
-          />
-          <p className="text-sm font-semibold tracking-wide text-accent uppercase">
-            ControlMiles
-          </p>
-        </div>
+  // Menu (2026-10-20 redesign): grouped by area, icons, current page
+  // highlighted; the same gating as before (plan features, operator role).
+  const operations: NavItem[] = [
+    { href: "/admin/roster", label: "Team", icon: "team" },
+    ...(has("school_live") ? [{ href: "/admin/school", label: "School: live", icon: "bus" as const }] : []),
+    ...(has("school")
+      ? [
+          { href: "/admin/school/routes", label: "School routes", icon: "route" as const },
+          { href: "/admin/school/students", label: "Schools & students", icon: "students" as const },
+          { href: "/admin/school/attendance", label: "Attendance", icon: "attendance" as const },
+        ]
+      : []),
+    ...(has("routes") ? [{ href: "/admin/routes", label: "Routes", icon: "route" as const }] : []),
+    ...(showShifts ? [{ href: "/admin/shifts", label: has("classes") ? "Classes" : "Shifts", icon: "calendar" as const }] : []),
+    ...(has("students") ? [{ href: "/admin/students", label: "Students", icon: "students" as const }] : []),
+    ...(has("geofences") ? [{ href: "/admin/geofences", label: "Geofences", icon: "geofence" as const }] : []),
+    ...(!isOperatorOnly && has("trip_approval")
+      ? [{ href: "/admin/approvals", label: "Trip approval", icon: "approval" as const }]
+      : []),
+  ];
+  // Everything below stays outside an Operator's RLS/RPC scope: hidden,
+  // never shown-but-empty.
+  const fleet: NavItem[] = isOperatorOnly
+    ? []
+    : [
+        {
+          href: "/admin/fuel",
+          label: "Fuel",
+          icon: "fuel",
+          badge: has("fuel_alerts") ? (openFuelAlerts ?? 0) : 0,
+        },
+        ...(has("ifta") ? [{ href: "/admin/ifta", label: "IFTA", icon: "ifta" as const }] : []),
+        { href: "/admin/maintenance", label: "Maintenance", icon: "maintenance" },
+        { href: "/admin/reviews", label: "Reviews", icon: "reviews" },
+        ...(has("safety_scores") ? [{ href: "/admin/safety", label: "Safety", icon: "safety" as const }] : []),
+      ];
+  const admin: NavItem[] = [
+    { href: "/admin/import", label: "Import", icon: "import" },
+    ...(!isOperatorOnly && has("activity_log") ? [{ href: "/admin/activity", label: "Activity", icon: "activity" as const }] : []),
+    ...(!isOperatorOnly && has("fleet_export") ? [{ href: "/admin/export", label: "Export", icon: "export" as const }] : []),
+    ...(!isOperatorOnly ? [{ href: "/admin/settings", label: "Settings", icon: "settings" as const }] : []),
+  ];
+  const groups: NavGroup[] = [
+    { items: [{ href: "/admin", label: "Dashboard", icon: "dashboard" }] },
+    ...(operations.length ? [{ title: "Operations", items: operations }] : []),
+    ...(fleet.length ? [{ title: "Fleet", items: fleet }] : []),
+    { title: "Admin", items: admin },
+  ];
+  const themeCookie = (await cookies()).get("cm_theme")?.value;
+  const theme: ThemeChoice = themeCookie === "light" || themeCookie === "dark" ? themeCookie : "system";
+
+  const header = (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2.5 px-1.5">
+        <Image src="/logo_controlmiles.png" alt="" width={26} height={26} className="rounded-md" />
+        <p className="text-sm font-semibold tracking-tight text-sidebar-strong">ControlMiles</p>
+      </div>
+      <div className="hidden lg:block">
         <OrgSwitcher currentOrgId={org.id} orgs={eligibleOrgs} />
         <BranchSelector
           branches={branchScope.branches.map((b) => ({ id: b.id, name: b.name }))}
           current={branchScope.current?.id ?? null}
         />
+      </div>
+    </div>
+  );
+  const footer = (
+    <div className="space-y-3 px-1.5">
+      <div className="lg:hidden">
+        <OrgSwitcher currentOrgId={org.id} orgs={eligibleOrgs} />
+        <BranchSelector
+          branches={branchScope.branches.map((b) => ({ id: b.id, name: b.name }))}
+          current={branchScope.current?.id ?? null}
+        />
+      </div>
+      <ThemeToggle initial={theme} />
+      <div className="flex items-center justify-between gap-2">
+        <p className="min-w-0 truncate text-xs text-sidebar-muted">{profile.first_name || user.email}</p>
+        <SignOutButton />
+      </div>
+      <div className="flex gap-3 text-xs text-sidebar-muted">
+        <Link href="/privacy" className="hover:text-sidebar-strong">
+          Privacy
+        </Link>
+        <Link href="/terms" className="hover:text-sidebar-strong">
+          Terms
+        </Link>
+      </div>
+    </div>
+  );
 
-        <nav className="mt-6 space-y-1">
-          <AdminNavLink href="/admin">Dashboard</AdminNavLink>
-          {/* Explicit user request, 2026-09-18: Team (formerly "Roster" --
-              renamed so it doesn't read as a near-match for "Routes" right
-              below it) moved directly under Dashboard, with Routes right
-              after it -- the two most-used day-to-day screens first.
-              2026-09-23: Vehicles folded into this same page/nav item
-              (who's driving what was always one question asked from two
-              directions) -- no separate "Vehicles" link anymore. */}
-          <AdminNavLink href="/admin/roster">Team</AdminNavLink>
-          {has("school_live") && <AdminNavLink href="/admin/school">School: live</AdminNavLink>}
-          {has("school") && (
-            <>
-              <AdminNavLink href="/admin/school/routes">School routes</AdminNavLink>
-              <AdminNavLink href="/admin/school/students">Schools &amp; students</AdminNavLink>
-              <AdminNavLink href="/admin/school/attendance">Attendance</AdminNavLink>
-            </>
-          )}
-          {has("routes") && <AdminNavLink href="/admin/routes">Routes</AdminNavLink>}
-          {showShifts && <AdminNavLink href="/admin/shifts">{has("classes") ? "Classes" : "Shifts"}</AdminNavLink>}
-          {has("students") && <AdminNavLink href="/admin/students">Students</AdminNavLink>}
-          {has("geofences") && <AdminNavLink href="/admin/geofences">Geofences</AdminNavLink>}
-          <AdminNavLink href="/admin/import">Import</AdminNavLink>
-          {/* Everything below here is outside an Operator's real RLS/RPC
-              scope (IFTA, Reviews, Safety, Activity, Maintenance, Export,
-              Settings all stayed admin+owner-only in the migration that
-              introduced this role) -- hidden rather than shown-but-broken,
-              so an operator never lands on a page that silently renders
-              empty because RLS filtered everything out from under it. */}
-          {!isOperatorOnly && (
-            <>
-              <AdminNavLink href="/admin/fuel">
-                <span className="flex items-center justify-between">
-                  Fuel
-                  {has("fuel_alerts") && (openFuelAlerts ?? 0) > 0 && (
-                    <span className="rounded-full bg-danger px-1.5 py-0.5 text-[10px] leading-none font-bold text-white">
-                      {openFuelAlerts}
-                    </span>
-                  )}
-                </span>
-              </AdminNavLink>
-              {has("ifta") && <AdminNavLink href="/admin/ifta">IFTA</AdminNavLink>}
-              <AdminNavLink href="/admin/reviews">Reviews</AdminNavLink>
-              {has("trip_approval") && <AdminNavLink href="/admin/approvals">Trip approval</AdminNavLink>}
-              {has("safety_scores") && <AdminNavLink href="/admin/safety">Safety</AdminNavLink>}
-              {has("activity_log") && <AdminNavLink href="/admin/activity">Activity</AdminNavLink>}
-              <AdminNavLink href="/admin/maintenance">Maintenance</AdminNavLink>
-              {has("fleet_export") && <AdminNavLink href="/admin/export">Export</AdminNavLink>}
-              <AdminNavLink href="/admin/settings">Settings</AdminNavLink>
-            </>
-          )}
-        </nav>
-
-        <div className="mt-8 border-t border-border pt-4">
-          <p className="px-2 text-xs text-muted">
-            Signed in as {profile.first_name || user.email}
-          </p>
-          <div className="mt-2 px-2">
-            <SignOutButton />
-          </div>
-          <div className="mt-3 flex gap-3 px-2 text-xs text-muted">
-            <Link href="/privacy" className="hover:text-accent">
-              Privacy
-            </Link>
-            <Link href="/terms" className="hover:text-accent">
-              Terms
-            </Link>
-          </div>
-        </div>
-      </aside>
-
+  return (
+    <div className="flex flex-1 flex-col lg:flex-row">
+      <AdminNav groups={groups} header={header} footer={footer} />
       {/* min-w-0: without it a wide table (IFTA, Fuel) stretches the whole
           page sideways instead of scrolling inside its own box. */}
       <div className="min-w-0 flex-1">{children}</div>
     </div>
-  );
-}
-
-function AdminNavLink({ href, children }: { href: string; children: React.ReactNode }) {
-  return (
-    <Link
-      href={href}
-      className="block rounded-lg px-2 py-1.5 text-sm text-foreground transition hover:bg-background"
-    >
-      {children}
-    </Link>
   );
 }

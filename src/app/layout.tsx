@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { getLocale } from "next-intl/server";
 import { PageviewBeacon } from "@/components/pageview-beacon";
 import "./globals.css";
@@ -38,10 +38,13 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   // getLocale() funciona en cualquier Server Component, incluidas las rutas
   // NO traducidas como /admin: ahí devuelve el idioma por defecto.
   const locale = await getLocale();
+  // Day / night picked in the panel (theme-toggle.tsx); none = follow the device.
+  const theme = (await cookies()).get("cm_theme")?.value;
 
   return (
     <html
       lang={locale}
+      data-theme={theme === "light" || theme === "dark" ? theme : undefined}
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">

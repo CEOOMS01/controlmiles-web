@@ -21,13 +21,13 @@ export function BranchSelector({ branches, current }: { branches: BranchOption[]
   const [pending, startTransition] = useTransition();
   if (branches.length === 0) return null;
   return (
-    <label className="mt-3 block px-2">
-      <span className="mb-1 block text-[11px] font-semibold tracking-wide text-muted uppercase">Branch</span>
+    <label className="mt-3 block">
+      <span className="mb-1 block px-1 text-[11px] font-medium tracking-wider text-sidebar-muted uppercase">Branch</span>
       <select
         value={current ?? ""}
         disabled={pending}
         onChange={(e) => startTransition(() => selectBranch(e.target.value))}
-        className="w-full rounded-lg border border-border bg-background px-2 py-1.5 text-sm outline-none focus:border-accent"
+        className="w-full rounded-lg border border-sidebar-border bg-surface px-2.5 py-1.5 text-sm text-foreground outline-none hover:border-border-strong focus:border-accent"
       >
         <option value="">All branches</option>
         {branches.map((b) => (
