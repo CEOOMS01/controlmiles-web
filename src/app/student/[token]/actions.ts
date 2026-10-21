@@ -8,7 +8,9 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
-export type Slot = { instructor_id: string; instructor: string | null; date: string; start: string; end: string };
+// A free time. The instructor isn't shown or chosen: the booking picks one
+// at random among those free who teach in the student's language (2026-10-20).
+export type Slot = { date: string; start: string; end: string };
 export type PortalResult = { error: string | null; late?: boolean };
 
 const MESSAGES: Record<string, string> = {
@@ -27,17 +29,16 @@ function message(e: { message?: string } | null): string {
   return key ? MESSAGES[key] : "Something went wrong. Please try again.";
 }
 
-export async function getSlots(token: string): Promise<{ minutes: number; slots: Slot[] } | null> {
+export async function getSlots(token: string): Promise<{ minutes: number; language: "en" | "es" | null; slots: Slot[] } | null> {
   const supabase = await createClient();
   const { data } = await supabase.rpc("ds_portal_slots", { p_token: token });
-  return (data as { minutes: number; slots: Slot[] } | null) ?? null;
+  return (data as { minutes: number; language: "en" | "es" | null; slots: Slot[] } | null) ?? null;
 }
 
 export async function bookSlot(token: string, slot: Slot): Promise<PortalResult> {
   const supabase = await createClient();
   const { error } = await supabase.rpc("ds_portal_book", {
     p_token: token,
-    p_instructor: slot.instructor_id,
     p_date: slot.date,
     p_start: slot.start,
   });

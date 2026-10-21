@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getAuthedProfile } from "@/lib/supabase/org-context";
 import { AddDriverForm } from "./add-driver-form";
+import { LanguagePicker } from "./language-picker";
 import { Page, PageHeader, PageTabs } from "@/components/page-ui";
 import { Sheet } from "@/components/sheet";
 import { RemoveButton } from "./remove-button";
@@ -49,7 +50,7 @@ export default async function RosterPage({ searchParams }: { searchParams: Promi
     supabase
       .from("organization_members")
       .select(
-        "id, user_id, member_role, is_active, invited_at, joined_at, branch_id, any_branch, profiles(first_name, last_name, email)",
+        "id, user_id, member_role, is_active, invited_at, joined_at, branch_id, any_branch, languages, profiles(first_name, last_name, email)",
       )
       .eq("organization_id", orgId)
       .order("is_active", { ascending: false })
@@ -142,7 +143,10 @@ export default async function RosterPage({ searchParams }: { searchParams: Promi
   // plain admin shouldn't even see the control that would try and fail.
   const isOwner = callerRole === "owner";
 
-  const schoolFleet = (await getOrgFeatures(orgId)).has("school");
+  const rosterFeatures = await getOrgFeatures(orgId);
+  const schoolFleet = rosterFeatures.has("school");
+  // Driving schools: which languages each instructor teaches in (2026-10-20).
+  const showLanguages = rosterFeatures.has("classes");
   const role = callerRole === "owner" || callerRole === "admin" || callerRole === "operator" ? callerRole : "operator";
 
   return (
@@ -192,6 +196,7 @@ export default async function RosterPage({ searchParams }: { searchParams: Promi
                 <th className="px-4 py-3 font-medium">Role</th>
                 <th className="px-4 py-3 font-medium">Vehicle</th>
                 {branchOptions.length > 0 && <th className="px-4 py-3 font-medium">Branch</th>}
+                {showLanguages && <th className="px-4 py-3 font-medium">Teaches in</th>}
                 <th className="px-4 py-3 font-medium">Status</th>
                 <th className="px-4 py-3" />
               </tr>
@@ -227,6 +232,15 @@ export default async function RosterPage({ searchParams }: { searchParams: Promi
                             current={m.any_branch ? "any" : (m.branch_id ?? "")}
                             branches={branchOptions}
                           />
+                        ) : (
+                          <span className="text-muted">—</span>
+                        )}
+                      </td>
+                    )}
+                    {showLanguages && (
+                      <td className="px-4 py-3">
+                        {m.is_active ? (
+                          <LanguagePicker userId={m.user_id} current={(m.languages as string[] | null) ?? ["en"]} />
                         ) : (
                           <span className="text-muted">—</span>
                         )}
@@ -268,6 +282,7 @@ export default async function RosterPage({ searchParams }: { searchParams: Promi
                     <td className="px-4 py-3 capitalize text-muted">{invite?.role ?? "driver"}</td>
                     <td className="px-4 py-3 text-muted">—</td>
                     {branchOptions.length > 0 && <td className="px-4 py-3 text-muted">—</td>}
+                    {showLanguages && <td className="px-4 py-3 text-muted">—</td>}
                     <td className="px-4 py-3">
                       <InviteStatusPill invite={invite} />
                     </td>
@@ -286,7 +301,7 @@ export default async function RosterPage({ searchParams }: { searchParams: Promi
               })}
               {shownMembers.length === 0 && slots.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-muted">
+                  <td colSpan={9} className="px-4 py-8 text-center text-muted">
                     No drivers yet.
                   </td>
                 </tr>

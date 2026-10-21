@@ -35,9 +35,10 @@ export type Student = {
   state_cert_number: string | null;
   sms_consent_at: string | null;
   sms_consent_phone: string | null;
+  preferred_language: "en" | "es" | null;
 };
 export const STUDENT_COLUMNS =
-  "id, first_name, last_name, phone, email, guardian_name, guardian_phone, guardian_email, status, notes, branch_id, program_id, state_cert_type, state_cert_number, sms_consent_at, sms_consent_phone";
+  "id, first_name, last_name, phone, email, guardian_name, guardian_phone, guardian_email, status, notes, branch_id, program_id, state_cert_type, state_cert_number, sms_consent_at, sms_consent_phone, preferred_language";
 
 /** "Angel" for "Angel " -- first name plus last initial, trimmed. */
 export function shortName(s: string | null | undefined): string {

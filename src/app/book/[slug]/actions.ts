@@ -44,6 +44,7 @@ export async function sendEnrollment(slug: string, _prev: EnrollState, fd: FormD
       program_id: field(fd, "program_id", 40),
       branch_id: field(fd, "branch_id", 40),
       message: field(fd, "message", 500),
+      preferred_language: field(fd, "preferred_language", 2),
       consent: fd.get("consent") === "on",
       consent_by: field(fd, "consent_by", 10),
       consent_name: field(fd, "consent_name", 120),

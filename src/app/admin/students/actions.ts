@@ -40,6 +40,8 @@ function studentFields(fd: FormData) {
     notes: text(fd, "notes", 1000),
     branch_id: text(fd, "branch_id", 40),
     program_id: text(fd, "program_id", 40),
+    // Lesson language preference (2026-10-20): English, Spanish or none.
+    preferred_language: ["en", "es"].includes(String(fd.get("preferred_language"))) ? String(fd.get("preferred_language")) : null,
     ...(fd.has("has_state_records")
       ? { state_cert_type: text(fd, "state_cert_type", 40), state_cert_number: text(fd, "state_cert_number", 40) }
       : {}),

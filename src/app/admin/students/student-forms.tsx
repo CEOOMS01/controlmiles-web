@@ -131,6 +131,18 @@ export function StudentForm({
         </div>
       )}
 
+      {/* Lesson language preference (2026-10-20). Online booking only offers
+          times with an instructor who teaches in it, picked at random. */}
+      <div>
+        <label className={label}>Lesson language</label>
+        <select name="preferred_language" defaultValue={student?.preferred_language ?? ""} className={field}>
+          <option value="">No preference</option>
+          <option value="en">English</option>
+          <option value="es">Spanish</option>
+        </select>
+        <p className="mt-1 text-xs text-muted">The instructor is assigned at random among those who teach in it.</p>
+      </div>
+
       {askGuardian && (
       <div>
         <p className="mb-2 text-sm font-semibold">Parent or guardian (optional)</p>

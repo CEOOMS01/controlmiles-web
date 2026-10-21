@@ -259,3 +259,20 @@ export async function generateReportForDriver(
 
   return { error: null, result: { code: row.code, expiresAt: row.expires_at } };
 }
+
+/** Driving schools (2026-10-20): the languages an instructor teaches in. */
+export async function setMemberLanguages(userId: string, languages: string[]): Promise<{ error: string | null }> {
+  const { getAuthedProfile } = await import("@/lib/supabase/org-context");
+  const { profile } = await getAuthedProfile();
+  const orgId = profile?.default_org_id;
+  if (!orgId) return { error: "Missing organization." };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_member_languages", {
+    p_organization_id: orgId,
+    p_user_id: userId,
+    p_languages: languages.filter((l) => l === "en" || l === "es"),
+  });
+  if (error) return { error: AppError.from(error).display() };
+  revalidatePath("/admin/roster");
+  return { error: null };
+}

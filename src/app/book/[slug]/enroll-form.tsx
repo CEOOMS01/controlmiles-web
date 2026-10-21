@@ -17,8 +17,7 @@ type Page = {
   branches: { id: string; name: string }[];
 };
 
-const input =
-  "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent";
+const input = "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent";
 const label = "mb-1 block text-sm font-medium";
 
 function ageOn(birth: string): number | null {
@@ -67,7 +66,10 @@ export function EnrollForm({ slug, page, embed }: { slug: string; page: Page; em
     <div ref={root}>
       <form action={formAction} className="mt-6 space-y-6">
         {/* Honeypot (hidden from people and screen readers). */}
-        <div aria-hidden="true" style={{ position: "absolute", left: "-10000px", width: 1, height: 1, overflow: "hidden" }}>
+        <div
+          aria-hidden="true"
+          style={{ position: "absolute", left: "-10000px", width: 1, height: 1, overflow: "hidden" }}
+        >
           <label>
             Company
             <input type="text" name="company" tabIndex={-1} autoComplete="off" />
@@ -119,7 +121,9 @@ export function EnrollForm({ slug, page, embed }: { slug: string; page: Page; em
         {minor && !tooYoung && (
           <fieldset className="space-y-4 rounded-xl border border-border bg-surface p-5">
             <legend className="px-1 text-sm font-semibold">Parent or guardian</legend>
-            <p className="text-xs text-muted">Required for students under 18. The parent or guardian sends this request.</p>
+            <p className="text-xs text-muted">
+              Required for students under 18. The parent or guardian sends this request.
+            </p>
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="sm:col-span-2">
                 <span className={label}>Full name</span>
@@ -138,7 +142,7 @@ export function EnrollForm({ slug, page, embed }: { slug: string; page: Page; em
           </fieldset>
         )}
 
-        {(page.programs.length > 0 || page.branches.length > 1) && (
+        {
           <fieldset className="grid gap-4 rounded-xl border border-border bg-surface p-5 sm:grid-cols-2">
             <legend className="px-1 text-sm font-semibold">Lessons</legend>
             {page.programs.length > 0 && (
@@ -167,21 +171,33 @@ export function EnrollForm({ slug, page, embed }: { slug: string; page: Page; em
                 </select>
               </label>
             )}
+            <label>
+              <span className={label}>Lesson language</span>
+              <select name="preferred_language" className={input} defaultValue="">
+                <option value="">No preference</option>
+                <option value="en">English</option>
+                <option value="es">Spanish</option>
+              </select>
+            </label>
             <label className="sm:col-span-2">
               <span className={label}>Anything the school should know (optional)</span>
               <textarea name="message" maxLength={500} rows={3} className={input} />
             </label>
           </fieldset>
-        )}
+        }
 
         <fieldset className="space-y-3 rounded-xl border border-border bg-surface p-5 text-sm">
           <legend className="px-1 text-sm font-semibold">Agreement</legend>
           <input type="hidden" name="consent_by" value={minor ? "guardian" : "student"} />
           <label className="flex items-start gap-2">
-            <input type="checkbox" name="sms_opt_in" checked={sms} onChange={(e) => setSms(e.target.checked)} className="mt-1" />
-            <span>
-              Text me lesson reminders (optional). Message and data rates may apply; reply STOP to opt out.
-            </span>
+            <input
+              type="checkbox"
+              name="sms_opt_in"
+              checked={sms}
+              onChange={(e) => setSms(e.target.checked)}
+              className="mt-1"
+            />
+            <span>Text me lesson reminders (optional). Message and data rates may apply; reply STOP to opt out.</span>
           </label>
           {sms && (
             <label className="block pl-6">
@@ -203,7 +219,9 @@ export function EnrollForm({ slug, page, embed }: { slug: string; page: Page; em
             </span>
           </label>
           <label className="block">
-            <span className={label}>{minor ? "Parent or guardian's full name" : "Your full name"}, as your signature</span>
+            <span className={label}>
+              {minor ? "Parent or guardian's full name" : "Your full name"}, as your signature
+            </span>
             <input name="consent_name" required minLength={2} maxLength={120} className={input} />
           </label>
         </fieldset>

@@ -19,6 +19,7 @@ export function BookLesson({ token, policy }: { token: string; policy: string | 
   const [open, setOpen] = useState(false);
   const [slots, setSlots] = useState<Slot[] | null>(null);
   const [minutes, setMinutes] = useState(60);
+  const [language, setLanguage] = useState<"en" | "es" | null>(null);
   const [chosen, setChosen] = useState<Slot | null>(null);
   const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -31,6 +32,7 @@ export function BookLesson({ token, policy }: { token: string; policy: string | 
       const r = await getSlots(token);
       if (!r) return setError("Online booking isn't available right now.");
       setMinutes(r.minutes);
+      setLanguage(r.language ?? null);
       setSlots(r.slots);
       setOpen(true);
     });
@@ -76,7 +78,11 @@ export function BookLesson({ token, policy }: { token: string; policy: string | 
 
       {open && slots && (
         <div className="mt-4 space-y-4">
-          <p className="text-sm text-muted">{minutes}-minute lessons. Pick a time:</p>
+          <p className="text-sm text-muted">
+            {minutes}-minute lessons
+            {language ? ` with an instructor who teaches in ${language === "es" ? "Spanish" : "English"}` : ""}. Pick a time;
+            the school assigns the instructor.
+          </p>
           {days.length === 0 && <p className="text-sm text-muted">No free times right now. Check back soon.</p>}
           {days.length > 0 && (
             <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1" role="tablist" aria-label="Days">
@@ -115,7 +121,7 @@ export function BookLesson({ token, policy }: { token: string; policy: string | 
                     const sel = chosen === s;
                     return (
                       <button
-                        key={`${s.instructor_id}-${s.start}`}
+                        key={`${s.date}-${s.start}`}
                         type="button"
                         onClick={() => {
                           setChosen(s);
@@ -124,7 +130,6 @@ export function BookLesson({ token, policy }: { token: string; policy: string | 
                         className={`${btn} ${sel ? "border-accent bg-accent/10" : ""}`}
                       >
                         {time12(s.start)}
-                        {s.instructor && <span className="text-muted"> · {s.instructor.trim()}</span>}
                       </button>
                     );
                   })}
@@ -136,7 +141,6 @@ export function BookLesson({ token, policy }: { token: string; policy: string | 
             <div className="rounded-lg border border-accent/40 bg-accent/5 p-4 text-sm">
               <p className="font-medium">
                 {day(chosen.date)} · {time12(chosen.start)}–{time12(chosen.end)}
-                {chosen.instructor && ` with ${chosen.instructor.trim()}`}
               </p>
               {policy && <p className="mt-2 text-muted">{policy}</p>}
               <label className="mt-3 flex items-start gap-2">
