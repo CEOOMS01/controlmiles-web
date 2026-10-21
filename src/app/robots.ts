@@ -5,7 +5,8 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: "*",
       allow: "/",
-      disallow: ["/admin", "/api", "/portal/generate", "/invite", "/onboarding"],
+      // /student and /book (2026-10-20): token pages and school enrollment pages.
+      disallow: ["/admin", "/api", "/portal/generate", "/invite", "/onboarding", "/student", "/book"],
     },
     sitemap: "https://controlmiles.com/sitemap.xml",
   };

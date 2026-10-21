@@ -20,6 +20,31 @@ import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 
 const CGC_CORE_URL = "https://cgc-cre.vercel.app";
+
+// Security review (2026-10-20): the raw path leaked secrets to analytics --
+// the student portal token (/student/<token>), driver invite tokens and
+// record ids. Pages behind a link token, and a school's public enrollment
+// pages (visitors are often minors; the page promises no analytics), send
+// nothing; every other path has its ids and long tokens masked, and the
+// referrer is reduced to its origin.
+const SKIP = /^\/(student|invite|book|portal|reset-password|auth)(\/|$)/;
+function safePath(path: string): string {
+  return path
+    .split("/")
+    .map((part) =>
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(part) || /^[A-Za-z0-9_-]{20,}$/.test(part)
+        ? ":id"
+        : part,
+    )
+    .join("/");
+}
+function safeReferrer(ref: string): string | undefined {
+  try {
+    return ref ? new URL(ref).origin : undefined;
+  } catch {
+    return undefined;
+  }
+}
 const SESSION_KEY = "cm_analytics_session_id";
 
 function getSessionId(): string {
@@ -42,15 +67,18 @@ export function PageviewBeacon() {
   const pathname = usePathname();
 
   useEffect(() => {
+    if (!pathname || SKIP.test(pathname)) return;
+    // A school's own address (custom domain) only ever shows its enrollment page.
+    if (!/(^|\.)controlmiles\.com$|^localhost$|\.vercel\.app$/.test(window.location.hostname)) return;
     const sessionId = getSessionId();
     fetch(`${CGC_CORE_URL}/analytics/pageview`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         site: "controlmiles.com",
-        path: pathname,
+        path: safePath(pathname),
         session_id: sessionId,
-        referrer: document.referrer || undefined,
+        referrer: safeReferrer(document.referrer),
       }),
       keepalive: true,
     }).catch(() => {
