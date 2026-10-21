@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
+import { useSheet } from "@/components/sheet";
 import { addClassBlock } from "./actions";
 import { TimeInput } from "@/components/time-input";
 
@@ -15,6 +16,7 @@ export function ClassBlockForm({
   students = [],
   timeFormat,
   defaultDate,
+  inSheet = false,
 }: {
   orgId: string;
   drivers: Option[];
@@ -23,8 +25,11 @@ export function ClassBlockForm({
   students?: Option[];
   timeFormat: "12h" | "24h";
   defaultDate: string;
+  // In the page header's slide-over panel (2026-10-20 redesign).
+  inSheet?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(inSheet);
+  const sheet = useSheet();
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const formRef = useRef<HTMLFormElement>(null);
@@ -40,6 +45,7 @@ export function ClassBlockForm({
       }
       setError(null);
       formRef.current?.reset();
+      if (inSheet) sheet.close();
       setOpen(false);
     });
   }
@@ -62,7 +68,7 @@ export function ClassBlockForm({
     <form
       ref={formRef}
       onSubmit={onSubmit}
-      className="flex flex-col gap-4 rounded-xl border border-border bg-surface p-5"
+      className={`flex flex-col gap-4 ${inSheet ? "" : "rounded-xl border border-border bg-surface p-5"}`}
     >
       <input type="hidden" name="org_id" value={orgId} />
 
@@ -145,7 +151,7 @@ export function ClassBlockForm({
         </button>
         <button
           type="button"
-          onClick={() => setOpen(false)}
+          onClick={() => (inSheet ? sheet.close() : setOpen(false))}
           className="rounded-lg px-4 py-2.5 text-sm text-muted transition hover:text-foreground"
         >
           Cancel

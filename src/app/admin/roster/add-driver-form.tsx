@@ -33,12 +33,15 @@ export function AddDriverForm({
   orgId,
   callerRole,
   schoolFleet = false,
+  inSheet = false,
 }: {
   orgId: string;
   callerRole: "owner" | "admin" | "operator";
   // School transportation fleets can also invite bus monitors (2026-10-09):
   // created only here, by email; they keep the student list in the app.
   schoolFleet?: boolean;
+  // Inside the page header's slide-over panel (2026-10-20): no card around it.
+  inSheet?: boolean;
 }) {
   const [state, formAction, pending] = useActionState(addDriver, initialState);
   const [byCode, setByCode] = useState(false);
@@ -60,7 +63,7 @@ export function AddDriverForm({
 
   if (shown?.kind === "code") {
     return (
-      <div className="rounded-xl border border-border bg-surface p-5">
+      <div className={inSheet ? "" : "rounded-xl border border-border bg-surface p-5"}>
         <p className="text-sm font-medium">Driver added: {shown.displayId}</p>
         <p className="mt-1 text-sm text-muted">
           Give them this one-time code to link their ControlMiles account. It
@@ -97,11 +100,11 @@ export function AddDriverForm({
     <form
       ref={formRef}
       action={formAction}
-      className="flex flex-col gap-3 rounded-xl border border-border bg-surface p-5"
+      className={`flex flex-col gap-3 ${inSheet ? "" : "rounded-xl border border-border bg-surface p-5"}`}
     >
       <input type="hidden" name="org_id" value={orgId} />
       <input type="hidden" name="delivery" value={byCode ? "code" : "email"} />
-      <p className="text-sm font-medium">Add a driver</p>
+      {!inSheet && <p className="text-sm font-medium">Add a driver</p>}
 
       {shown?.kind === "invited" && (
         <p

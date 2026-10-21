@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
+import { useSheet } from "@/components/sheet";
 import { addShift } from "./actions";
 import { TimeInput } from "@/components/time-input";
 
@@ -23,6 +24,7 @@ export function ShiftForm({
   vehicles,
   timeFormat,
   isClass = false,
+  inSheet = false,
 }: {
   orgId: string;
   drivers: Driver[];
@@ -30,9 +32,12 @@ export function ShiftForm({
   timeFormat: "12h" | "24h";
   // Driving schools: the weekly template holds classes, not shifts.
   isClass?: boolean;
+  // In the page header's slide-over panel (2026-10-20 redesign).
+  inSheet?: boolean;
 }) {
   const noun = isClass ? "weekly class" : "shift";
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(inSheet);
+  const sheet = useSheet();
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [selectedDays, setSelectedDays] = useState<number[]>([1, 2, 3, 4, 5]);
@@ -53,6 +58,7 @@ export function ShiftForm({
       }
       setError(null);
       formRef.current?.reset();
+      if (inSheet) sheet.close();
       setSelectedDays([1, 2, 3, 4, 5]);
       setOpen(false);
     });
@@ -73,7 +79,7 @@ export function ShiftForm({
     <form
       ref={formRef}
       onSubmit={onSubmit}
-      className="flex flex-col gap-4 rounded-xl border border-border bg-surface p-5"
+      className={`flex flex-col gap-4 ${inSheet ? "" : "rounded-xl border border-border bg-surface p-5"}`}
     >
       <input type="hidden" name="org_id" value={orgId} />
 
@@ -175,7 +181,7 @@ export function ShiftForm({
         </button>
         <button
           type="button"
-          onClick={() => setOpen(false)}
+          onClick={() => (inSheet ? sheet.close() : setOpen(false))}
           className="rounded-lg px-4 py-2.5 text-sm text-muted transition hover:text-foreground"
         >
           Cancel

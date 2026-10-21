@@ -2,9 +2,11 @@
 
 import { useRef, useState, useTransition } from "react";
 import { addVehicle } from "./actions";
+import { useSheet } from "@/components/sheet";
 
-export function AddVehicleForm({ orgId }: { orgId: string }) {
-  const [open, setOpen] = useState(false);
+export function AddVehicleForm({ orgId, inSheet = false }: { orgId: string; inSheet?: boolean }) {
+  const sheet = useSheet();
+  const [open, setOpen] = useState(inSheet);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const formRef = useRef<HTMLFormElement>(null);
@@ -20,7 +22,8 @@ export function AddVehicleForm({ orgId }: { orgId: string }) {
       }
       setError(null);
       formRef.current?.reset();
-      setOpen(false);
+      if (inSheet) sheet.close();
+      else setOpen(false);
     });
   }
 
@@ -39,7 +42,7 @@ export function AddVehicleForm({ orgId }: { orgId: string }) {
     <form
       ref={formRef}
       onSubmit={onSubmit}
-      className="grid content-start gap-3 rounded-xl border border-border bg-surface p-5 sm:grid-cols-2"
+      className={`grid content-start gap-3 sm:grid-cols-2 ${inSheet ? "" : "rounded-xl border border-border bg-surface p-5"}`}
     >
       <input type="hidden" name="org_id" value={orgId} />
       <Field name="nickname" label="Nickname" placeholder="Van 1" />
@@ -64,7 +67,7 @@ export function AddVehicleForm({ orgId }: { orgId: string }) {
         </button>
         <button
           type="button"
-          onClick={() => setOpen(false)}
+          onClick={() => (inSheet ? sheet.close() : setOpen(false))}
           className="rounded-lg px-4 py-2.5 text-sm text-muted transition hover:text-foreground"
         >
           Cancel

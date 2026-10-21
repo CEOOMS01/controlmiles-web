@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { getAuthedProfile } from "@/lib/supabase/org-context";
 import { AddDriverForm } from "./add-driver-form";
+import { Page, PageHeader, PageTabs } from "@/components/page-ui";
+import { Sheet } from "@/components/sheet";
 import { RemoveButton } from "./remove-button";
 import { ResendInviteButton } from "./resend-invite-button";
 import { describeInvite, latestInviteBySlot, type InviteRow } from "@/lib/invites";
@@ -35,7 +37,8 @@ const ROLE_LABEL: Record<string, string> = {
   monitor: "Bus aide",
 };
 
-export default async function RosterPage() {
+export default async function RosterPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
+  const tab = (await searchParams).tab === "vehicles" ? "vehicles" : "drivers";
   const supabase = await createClient();
   const { user, profile } = await getAuthedProfile();
   if (!user) return null;
@@ -97,9 +100,18 @@ export default async function RosterPage() {
   );
 
   // "· driver-owned" marks an owner-operator's own vehicle (2026-09-30).
-  const vehicleLabel = (v: { nickname: string | null; make: string | null; model: string | null; display_id: string | null; year?: number | null; ownership?: string | null }) => {
+  const vehicleLabel = (v: {
+    nickname: string | null;
+    make: string | null;
+    model: string | null;
+    display_id: string | null;
+    year?: number | null;
+    ownership?: string | null;
+  }) => {
     const name = [v.year && String(v.year), v.make, v.model].filter(Boolean).join(" ");
-    const base = v.display_id ? `${name || v.nickname || "Vehicle"} (${v.display_id})` : name || v.nickname || "Vehicle";
+    const base = v.display_id
+      ? `${name || v.nickname || "Vehicle"} (${v.display_id})`
+      : name || v.nickname || "Vehicle";
     return v.ownership === "driver_owned" ? `${base} · driver-owned` : base;
   };
   const vehicleOptions = (vehicles ?? []).map((v) => ({
@@ -130,210 +142,220 @@ export default async function RosterPage() {
   // plain admin shouldn't even see the control that would try and fail.
   const isOwner = callerRole === "owner";
 
+  const schoolFleet = (await getOrgFeatures(orgId)).has("school");
+  const role = callerRole === "owner" || callerRole === "admin" || callerRole === "operator" ? callerRole : "operator";
+
   return (
-    <main className="px-6 py-10 sm:px-10">
-      <div className="mb-8">
-        <p className="text-sm font-semibold tracking-wide text-accent uppercase">
-          Team
-        </p>
-        <h1 className="mt-1 text-2xl font-semibold">
-          Drivers &amp; vehicles{scope.current && <span className="text-muted"> · {scope.current.name}</span>}
-        </h1>
-      </div>
+    <Page>
+      {/* Redesign (2026-10-20): the add forms open from the header in a
+          slide-over panel, and drivers / vehicles are tabs. */}
+      <PageHeader
+        title="Team"
+        meta={scope.current ? `Branch: ${scope.current.name}` : undefined}
+        description="Drivers and instructors, their vehicles and their access."
+        actions={
+          <>
+            <Sheet label="Add vehicle" title="Add a vehicle" variant="secondary">
+              <AddVehicleForm orgId={orgId} inSheet />
+            </Sheet>
+            <Sheet
+              label="Add driver"
+              title="Add a driver"
+              description="We email them an invitation, or give you a one-time code."
+            >
+              <AddDriverForm orgId={orgId} schoolFleet={schoolFleet} callerRole={role} inSheet />
+            </Sheet>
+          </>
+        }
+      />
+      <PageTabs
+        base="/admin/roster"
+        current={tab}
+        tabs={[
+          { id: "drivers", label: "Drivers", count: shownMembers.length + slots.length },
+          { id: "vehicles", label: "Vehicles", count: shownVehicles.length },
+        ]}
+      />
 
-      <div className="mb-6 grid gap-4 sm:grid-cols-2">
-        <AddDriverForm
-          orgId={orgId}
-          schoolFleet={(await getOrgFeatures(orgId)).has("school")}
-          callerRole={callerRole === "owner" || callerRole === "admin" || callerRole === "operator" ? callerRole : "operator"}
-        />
-        <AddVehicleForm orgId={orgId} />
-      </div>
-
-      <div className="overflow-x-auto rounded-xl border border-border bg-surface">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-border text-left text-muted">
-              <th className="px-4 py-3 font-medium">Name</th>
-              {/* Explicit user request, 2026-09-18: User ID column,
+      {tab === "drivers" && (
+        <div className="overflow-x-auto rounded-xl border border-border bg-surface">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border text-left text-muted">
+                <th className="px-4 py-3 font-medium">Name</th>
+                {/* Explicit user request, 2026-09-18: User ID column,
                   between Name and Email -- the real CM-D#### id a driver
                   actually logs in with (see the query above for why this
                   ISN'T profiles.display_id, a different id entirely). */}
-              <th className="px-4 py-3 font-medium">User ID</th>
-              <th className="px-4 py-3 font-medium">Email</th>
-              <th className="px-4 py-3 font-medium">Role</th>
-              <th className="px-4 py-3 font-medium">Vehicle</th>
-              {branchOptions.length > 0 && <th className="px-4 py-3 font-medium">Branch</th>}
-              <th className="px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3" />
-            </tr>
-          </thead>
-          <tbody>
-            {shownMembers.map((m) => {
-              const p = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles;
-              const name = [p?.first_name, p?.last_name].filter(Boolean).join(" ") || "—";
-              return (
-                <tr key={m.id} className="border-b border-border last:border-0">
-                  <td className="px-4 py-3">{name}</td>
-                  <td className="px-4 py-3 font-mono text-xs text-muted">
-                    {displayIdByUserId.get(m.user_id) ?? "—"}
-                  </td>
-                  <td className="px-4 py-3 text-muted">{p?.email ?? "—"}</td>
-                  <td className="px-4 py-3 text-muted">{ROLE_LABEL[m.member_role] ?? "Member"}</td>
-                  <td className="px-4 py-3">
-                    {m.member_role === "driver" && m.is_active ? (
-                      <DriverVehicleSelect
-                        driverId={m.user_id}
-                        currentVehicleId={vehicleByDriverId.get(m.user_id)?.id ?? null}
-                        vehicles={vehicleOptions}
-                      />
-                    ) : (
-                      <span className="text-muted">—</span>
-                    )}
-                  </td>
-                  {branchOptions.length > 0 && (
+                <th className="px-4 py-3 font-medium">User ID</th>
+                <th className="px-4 py-3 font-medium">Email</th>
+                <th className="px-4 py-3 font-medium">Role</th>
+                <th className="px-4 py-3 font-medium">Vehicle</th>
+                {branchOptions.length > 0 && <th className="px-4 py-3 font-medium">Branch</th>}
+                <th className="px-4 py-3 font-medium">Status</th>
+                <th className="px-4 py-3" />
+              </tr>
+            </thead>
+            <tbody>
+              {shownMembers.map((m) => {
+                const p = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles;
+                const name = [p?.first_name, p?.last_name].filter(Boolean).join(" ") || "—";
+                return (
+                  <tr key={m.id} className="border-b border-border last:border-0">
+                    <td className="px-4 py-3">{name}</td>
+                    <td className="px-4 py-3 font-mono text-xs text-muted">
+                      {displayIdByUserId.get(m.user_id) ?? "—"}
+                    </td>
+                    <td className="px-4 py-3 text-muted">{p?.email ?? "—"}</td>
+                    <td className="px-4 py-3 text-muted">{ROLE_LABEL[m.member_role] ?? "Member"}</td>
                     <td className="px-4 py-3">
-                      {m.member_role === "driver" ? (
-                        <MemberBranchSelect
-                          userId={m.user_id}
-                          current={m.any_branch ? "any" : (m.branch_id ?? "")}
-                          branches={branchOptions}
+                      {m.member_role === "driver" && m.is_active ? (
+                        <DriverVehicleSelect
+                          driverId={m.user_id}
+                          currentVehicleId={vehicleByDriverId.get(m.user_id)?.id ?? null}
+                          vehicles={vehicleOptions}
                         />
                       ) : (
                         <span className="text-muted">—</span>
                       )}
                     </td>
-                  )}
-                  <td className="px-4 py-3">
-                    <StatusPill active={m.is_active} />
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <RowActionsMenu>
-                      {m.is_active && (
-                        <GenerateReportButton driverUserId={m.user_id} driverName={name} />
-                      )}
-                      {canManageOperators &&
-                        m.is_active &&
-                        (m.member_role === "driver" || m.member_role === "operator") && (
-                          <OperatorButton
-                            orgId={orgId}
+                    {branchOptions.length > 0 && (
+                      <td className="px-4 py-3">
+                        {m.member_role === "driver" ? (
+                          <MemberBranchSelect
                             userId={m.user_id}
-                            isOperator={m.member_role === "operator"}
+                            current={m.any_branch ? "any" : (m.branch_id ?? "")}
+                            branches={branchOptions}
                           />
+                        ) : (
+                          <span className="text-muted">—</span>
                         )}
-                      {isOwner &&
-                        m.is_active &&
-                        (m.member_role === "driver" ||
-                          m.member_role === "operator" ||
-                          m.member_role === "admin") && (
-                          <AdminButton
-                            orgId={orgId}
-                            userId={m.user_id}
-                            isAdmin={m.member_role === "admin"}
-                          />
-                        )}
-                      {m.member_role !== "owner" && <RemoveButton membershipId={m.id} />}
-                    </RowActionsMenu>
-                  </td>
-                </tr>
-              );
-            })}
-            {slots.map((s) => {
-              const invite = describeInvite(inviteBySlot.get(s.id), nowMs);
-              return (
-                <tr key={s.id} className="border-b border-border last:border-0">
-                  <td className="px-4 py-3">{[s.first_name, s.last_name].join(" ")}</td>
-                  <td className="px-4 py-3 font-mono text-xs text-muted">{s.display_id}</td>
-                  <td className="px-4 py-3 text-muted">{invite?.email ?? "—"}</td>
-                  <td className="px-4 py-3 capitalize text-muted">{invite?.role ?? "driver"}</td>
-                  <td className="px-4 py-3 text-muted">—</td>
-                  {branchOptions.length > 0 && <td className="px-4 py-3 text-muted">—</td>}
-                  <td className="px-4 py-3">
-                    <InviteStatusPill invite={invite} />
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <RowActionsMenu>
-                      {invite && <ResendInviteButton inviteId={invite.inviteId} />}
-                      <RemoveSlotButton
-                        slotId={s.id}
-                        label={invite ? "Cancel invitation" : "Remove"}
-                        busyLabel={invite ? "Cancelling…" : "Removing…"}
-                      />
-                    </RowActionsMenu>
-                  </td>
-                </tr>
-              );
-            })}
-            {shownMembers.length === 0 && slots.length === 0 && (
-              <tr>
-                <td colSpan={8} className="px-4 py-8 text-center text-muted">
-                  No drivers yet.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      <div className="mt-10">
-        <h2 className="mb-3 text-lg font-semibold">Vehicles</h2>
-        <div className="overflow-x-auto rounded-xl border border-border bg-surface">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border text-left text-muted">
-                <th className="px-4 py-3 font-medium">ID</th>
-                <th className="px-4 py-3 font-medium">Vehicle</th>
-                <th className="px-4 py-3 font-medium">Plate</th>
-                <th className="px-4 py-3 font-medium">Driver</th>
-                {branchOptions.length > 0 && <th className="px-4 py-3 font-medium">Branch</th>}
-                <th className="px-4 py-3" />
-              </tr>
-            </thead>
-            <tbody>
-              {shownVehicles.map((v) => (
-                <tr key={v.id} className="border-b border-border last:border-0">
-                  <td className="px-4 py-3 font-mono text-xs text-muted">{v.display_id}</td>
-                  <td className="px-4 py-3">
-                    {[v.year, v.make, v.model].filter(Boolean).join(" ") || "—"}
-                    {v.nickname ? ` "${v.nickname}"` : ""}
-                    {v.ownership === "driver_owned" && (
-                      <span className="ml-2 rounded-full bg-accent/15 px-2 py-0.5 text-[11px] font-medium text-accent">
-                        driver-owned
-                      </span>
+                      </td>
                     )}
-                  </td>
-                  <td className="px-4 py-3 text-muted">{v.plate ?? "—"}</td>
-                  <td className="px-4 py-3 text-muted">
-                    {v.assigned_driver_id ? driverNameById.get(v.assigned_driver_id) ?? "—" : "Unassigned"}
-                  </td>
-                  {branchOptions.length > 0 && (
                     <td className="px-4 py-3">
-                      <VehicleBranchSelect vehicleId={v.id} current={v.branch_id} branches={branchOptions} />
+                      <StatusPill active={m.is_active} />
                     </td>
-                  )}
-                  <td className="px-4 py-3 text-right">
-                    {!v.assigned_driver_id && <ArchiveButton vehicleId={v.id} />}
-                  </td>
-                </tr>
-              ))}
-              {shownVehicles.length === 0 && (
+                    <td className="px-4 py-3 text-right">
+                      <RowActionsMenu>
+                        {m.is_active && <GenerateReportButton driverUserId={m.user_id} driverName={name} />}
+                        {canManageOperators &&
+                          m.is_active &&
+                          (m.member_role === "driver" || m.member_role === "operator") && (
+                            <OperatorButton
+                              orgId={orgId}
+                              userId={m.user_id}
+                              isOperator={m.member_role === "operator"}
+                            />
+                          )}
+                        {isOwner &&
+                          m.is_active &&
+                          (m.member_role === "driver" || m.member_role === "operator" || m.member_role === "admin") && (
+                            <AdminButton orgId={orgId} userId={m.user_id} isAdmin={m.member_role === "admin"} />
+                          )}
+                        {m.member_role !== "owner" && <RemoveButton membershipId={m.id} />}
+                      </RowActionsMenu>
+                    </td>
+                  </tr>
+                );
+              })}
+              {slots.map((s) => {
+                const invite = describeInvite(inviteBySlot.get(s.id), nowMs);
+                return (
+                  <tr key={s.id} className="border-b border-border last:border-0">
+                    <td className="px-4 py-3">{[s.first_name, s.last_name].join(" ")}</td>
+                    <td className="px-4 py-3 font-mono text-xs text-muted">{s.display_id}</td>
+                    <td className="px-4 py-3 text-muted">{invite?.email ?? "—"}</td>
+                    <td className="px-4 py-3 capitalize text-muted">{invite?.role ?? "driver"}</td>
+                    <td className="px-4 py-3 text-muted">—</td>
+                    {branchOptions.length > 0 && <td className="px-4 py-3 text-muted">—</td>}
+                    <td className="px-4 py-3">
+                      <InviteStatusPill invite={invite} />
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <RowActionsMenu>
+                        {invite && <ResendInviteButton inviteId={invite.inviteId} />}
+                        <RemoveSlotButton
+                          slotId={s.id}
+                          label={invite ? "Cancel invitation" : "Remove"}
+                          busyLabel={invite ? "Cancelling…" : "Removing…"}
+                        />
+                      </RowActionsMenu>
+                    </td>
+                  </tr>
+                );
+              })}
+              {shownMembers.length === 0 && slots.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-muted">
-                    {scope.current ? `No vehicles in ${scope.current.name} yet.` : "No vehicles yet."}
+                  <td colSpan={8} className="px-4 py-8 text-center text-muted">
+                    No drivers yet.
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
-        {branchOptions.length > 0 && scope.current === null && (
-          <p className="mt-2 text-xs text-muted">
-            {branchName.size} branch{branchName.size === 1 ? "" : "es"}. Pick one in the sidebar to see only its
-            drivers and vehicles.
-          </p>
-        )}
-      </div>
-    </main>
+      )}
+
+      {tab === "vehicles" && (
+        <div>
+          <div className="overflow-x-auto rounded-xl border border-border bg-surface">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border text-left text-muted">
+                  <th className="px-4 py-3 font-medium">ID</th>
+                  <th className="px-4 py-3 font-medium">Vehicle</th>
+                  <th className="px-4 py-3 font-medium">Plate</th>
+                  <th className="px-4 py-3 font-medium">Driver</th>
+                  {branchOptions.length > 0 && <th className="px-4 py-3 font-medium">Branch</th>}
+                  <th className="px-4 py-3" />
+                </tr>
+              </thead>
+              <tbody>
+                {shownVehicles.map((v) => (
+                  <tr key={v.id} className="border-b border-border last:border-0">
+                    <td className="px-4 py-3 font-mono text-xs text-muted">{v.display_id}</td>
+                    <td className="px-4 py-3">
+                      {[v.year, v.make, v.model].filter(Boolean).join(" ") || "—"}
+                      {v.nickname ? ` "${v.nickname}"` : ""}
+                      {v.ownership === "driver_owned" && (
+                        <span className="ml-2 rounded-full bg-accent/15 px-2 py-0.5 text-[11px] font-medium text-accent">
+                          driver-owned
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-muted">{v.plate ?? "—"}</td>
+                    <td className="px-4 py-3 text-muted">
+                      {v.assigned_driver_id ? (driverNameById.get(v.assigned_driver_id) ?? "—") : "Unassigned"}
+                    </td>
+                    {branchOptions.length > 0 && (
+                      <td className="px-4 py-3">
+                        <VehicleBranchSelect vehicleId={v.id} current={v.branch_id} branches={branchOptions} />
+                      </td>
+                    )}
+                    <td className="px-4 py-3 text-right">
+                      {!v.assigned_driver_id && <ArchiveButton vehicleId={v.id} />}
+                    </td>
+                  </tr>
+                ))}
+                {shownVehicles.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-8 text-center text-muted">
+                      {scope.current ? `No vehicles in ${scope.current.name} yet.` : "No vehicles yet."}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+          {branchOptions.length > 0 && scope.current === null && (
+            <p className="mt-2 text-xs text-muted">
+              {branchName.size} branch{branchName.size === 1 ? "" : "es"}. Pick one in the sidebar to see only its
+              drivers and vehicles.
+            </p>
+          )}
+        </div>
+      )}
+    </Page>
   );
 }
 
@@ -341,9 +363,7 @@ function StatusPill({ active }: { active: boolean }) {
   return (
     <span
       className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-        active
-          ? "bg-success/15 text-success"
-          : "bg-accent/15 text-accent"
+        active ? "bg-success/15 text-success" : "bg-accent/15 text-accent"
       }`}
     >
       {active ? "Active" : "Pending"}

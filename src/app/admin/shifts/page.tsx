@@ -1,3 +1,5 @@
+import { Page, PageHeader, PageTabs } from "@/components/page-ui";
+import { Sheet } from "@/components/sheet";
 import { createClient } from "@/lib/supabase/server";
 import { getBranchScope } from "@/lib/branch-scope";
 import { getAuthedProfile } from "@/lib/supabase/org-context";
@@ -187,7 +189,7 @@ function classBlockBadge(
 export default async function ShiftsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ date?: string | string[] }>;
+  searchParams: Promise<{ date?: string | string[]; tab?: string | string[] }>;
 }) {
   const features = await requireFeature("shift_schedules", "classes");
   const supabase = await createClient();
@@ -217,43 +219,50 @@ export default async function ShiftsPage({
   const todayDateKey = local.date;
 
   const requested = (await searchParams).date;
-  const selectedDate =
-    typeof requested === "string" && /^\d{4}-\d{2}-\d{2}$/.test(requested) ? requested : local.date;
+  const selectedDate = typeof requested === "string" && /^\d{4}-\d{2}-\d{2}$/.test(requested) ? requested : local.date;
   const { data: dayBlocks } = hasClasses
     ? await supabase.rpc("get_org_shift_day", { p_org: orgId, p_date: selectedDate })
     : { data: [] as ClassBlock[] };
 
-  const [{ data: shifts }, { data: driverMembers }, { data: todaysSessions }, { data: vehicles }, { data: myProfile }, fleetIds] =
-    await Promise.all([
-      supabase
-        .from("shifts")
-        .select(
-          "id, driver_id, vehicle_id, day_of_week, start_time, end_time, is_active, notes, profiles!shifts_driver_id_fkey(first_name, last_name), vehicles(nickname, make, model, display_id)",
-        )
-        .eq("organization_id", orgId)
-        .order("driver_id")
-        .order("day_of_week"),
-      supabase
-        .from("organization_members")
-        .select("user_id, profiles(first_name, last_name, email)")
-        .eq("organization_id", orgId)
-        .eq("member_role", "driver")
-        .eq("is_active", true),
-      hasWeekly
-        ? supabase
-            .from("sessions")
-            .select("user_id, start_time, end_time")
-            .eq("organization_id", orgId)
-            .eq("date_key", todayDateKey)
-        : Promise.resolve({ data: [] as { user_id: string; start_time: string | null; end_time: string | null }[] }),
-      supabase
-        .from("vehicles")
-        .select("id, nickname, make, model, display_id")
-        .eq("organization_id", orgId)
-        .eq("is_archived", false),
-      supabase.from("profiles").select("time_format").eq("id", user.id).maybeSingle(),
-      fleetDriverIds(supabase, orgId),
-    ]);
+  const [
+    { data: shifts },
+    { data: driverMembers },
+    { data: todaysSessions },
+    { data: vehicles },
+    { data: myProfile },
+    fleetIds,
+  ] = await Promise.all([
+    supabase
+      .from("shifts")
+      .select(
+        "id, driver_id, vehicle_id, day_of_week, start_time, end_time, is_active, notes, profiles!shifts_driver_id_fkey(first_name, last_name), vehicles(nickname, make, model, display_id)",
+      )
+      .eq("organization_id", orgId)
+      .order("driver_id")
+      .order("day_of_week"),
+    supabase
+      .from("organization_members")
+      .select("user_id, profiles(first_name, last_name, email)")
+      .eq("organization_id", orgId)
+      // Driving schools: owners and admins often teach too (bug found
+      // 2026-10-20: their classes and hours showed "Instructor").
+      .in("member_role", hasClasses ? ["driver", "operator", "admin", "owner"] : ["driver"])
+      .eq("is_active", true),
+    hasWeekly
+      ? supabase
+          .from("sessions")
+          .select("user_id, start_time, end_time")
+          .eq("organization_id", orgId)
+          .eq("date_key", todayDateKey)
+      : Promise.resolve({ data: [] as { user_id: string; start_time: string | null; end_time: string | null }[] }),
+    supabase
+      .from("vehicles")
+      .select("id, nickname, make, model, display_id")
+      .eq("organization_id", orgId)
+      .eq("is_archived", false),
+    supabase.from("profiles").select("time_format").eq("id", user.id).maybeSingle(),
+    fleetDriverIds(supabase, orgId),
+  ]);
 
   const timeFormat: "12h" | "24h" = myProfile?.time_format === "24h" ? "24h" : "12h";
 
@@ -262,7 +271,9 @@ export default async function ShiftsPage({
     return { id: m.user_id, label: driverLabel(p, fleetIds.get(m.user_id), p?.email || m.user_id) };
   });
 
-  const vehicleLabel = (v: { nickname: string | null; make: string | null; model: string | null; display_id: string | null } | null) => {
+  const vehicleLabel = (
+    v: { nickname: string | null; make: string | null; model: string | null; display_id: string | null } | null,
+  ) => {
     if (!v) return null;
     const name = [v.make, v.model].filter(Boolean).join(" ");
     return v.display_id ? `${name || v.nickname || "Vehicle"} (${v.display_id})` : name || v.nickname || null;
@@ -306,10 +317,7 @@ export default async function ShiftsPage({
 
   // Grouped by driver -- one card per driver, days listed inside, instead
   // of a flat table where the same driver's name repeats on every row.
-  const byDriver = new Map<
-    string,
-    { driverName: string; rows: NonNullable<typeof shifts>[number][] }
-  >();
+  const byDriver = new Map<string, { driverName: string; rows: NonNullable<typeof shifts>[number][] }>();
   // Branch filter (sidebar, 2026-09-30): this branch's drivers.
   const scope = await getBranchScope(orgId);
   for (const s of shifts ?? []) {
@@ -320,259 +328,297 @@ export default async function ShiftsPage({
     byDriver.get(s.driver_id)!.rows.push(s);
   }
 
+  // Redesign (2026-10-20): one header with the add actions, the sections
+  // as tabs (day / weekly / availability) instead of one long page.
+  const tabParam = (await searchParams).tab;
+  const tabs = [
+    ...(hasClasses ? [{ id: "day", label: "Day" }] : []),
+    ...(hasWeekly ? [{ id: "weekly", label: hasClasses ? "Weekly template" : "Weekly schedule" }] : []),
+    ...(hasClasses && hasBooking ? [{ id: "availability", label: "Availability" }] : []),
+  ];
+  const tab = tabs.some((t) => t.id === tabParam) ? String(tabParam) : (tabs[0]?.id ?? "weekly");
+  const dayQuery = selectedDate !== local.date ? selectedDate : undefined;
+
   return (
-    <main className="px-6 py-10 sm:px-10">
-      <div className="mb-8">
-        <p className="text-sm font-semibold tracking-wide text-accent uppercase">{hasClasses ? "Classes" : "Shifts"}</p>
-        <h1 className="mt-1 text-2xl font-semibold">{hasClasses ? "Class schedule" : "Work schedule"}</h1>
-        <p className="mt-2 max-w-2xl text-sm text-muted">
-          {hasClasses
-            ? hasWeekly
-              ? "When each instructor teaches: hourly classes on specific dates plus a weekly template."
-              : "When each instructor teaches: hourly classes on specific dates."
-            : "A recurring weekly schedule per driver."}
-        </p>
-      </div>
+    <Page>
+      <PageHeader
+        title={hasClasses ? "Classes" : "Shifts"}
+        description={
+          hasClasses
+            ? "When each instructor teaches, day by day and week by week."
+            : "A recurring weekly schedule per driver."
+        }
+        actions={
+          <>
+            {hasWeekly && (tab === "weekly" || !hasClasses) && (
+              <Sheet
+                label={hasClasses ? "Add weekly class" : "Add shift"}
+                title={hasClasses ? "Add a weekly class" : "Add a shift"}
+              >
+                <ShiftForm
+                  orgId={orgId}
+                  drivers={drivers}
+                  vehicles={vehicleOptions}
+                  timeFormat={timeFormat}
+                  isClass={hasClasses}
+                  inSheet
+                />
+              </Sheet>
+            )}
+            {hasClasses && tab === "day" && (
+              <Sheet
+                label="Add class"
+                title="Add a class"
+                description={`For ${selectedDate}. You can change the date in the form.`}
+              >
+                <ClassBlockForm
+                  orgId={orgId}
+                  drivers={drivers}
+                  vehicles={vehicleOptions}
+                  students={studentOptions}
+                  timeFormat={timeFormat}
+                  defaultDate={selectedDate}
+                  inSheet
+                />
+              </Sheet>
+            )}
+          </>
+        }
+      />
+      {tabs.length > 1 && <PageTabs base="/admin/shifts" current={tab} tabs={tabs} keep={{ date: dayQuery }} />}
 
       <>
-          {hasClasses && (<>
-          {/* Day schedule: hourly classes for one date (driving-school
-              style) -- the weekly template below materialized for that
-              date plus one-off classes. See migration
-              20260929170000_hourly_shift_blocks.sql. */}
-          <section className="mb-10">
-            <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
-              <div>
-                <h2 className="text-lg font-semibold">Day schedule</h2>
-                <p className="text-sm text-muted">
-                  Hourly classes for one day. Instructors can start a class from {windowMin} min before
-                  to {windowMin} min after its start; between classes nothing is tracked and their
-                  day stays open until they end it.
+        {hasClasses && tab === "day" && (
+          <>
+            <section className="mb-10">
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2 text-sm">
+                  <a
+                    href={`?tab=day&date=${shiftDate(selectedDate, -1)}`}
+                    className="rounded-lg border border-border px-3 py-1.5 hover:border-accent"
+                    aria-label="Previous day"
+                  >
+                    ←
+                  </a>
+                  <form method="get" className="flex items-center gap-2">
+                    <input type="hidden" name="tab" value="day" />
+                    <input
+                      type="date"
+                      name="date"
+                      defaultValue={selectedDate}
+                      className="rounded-lg border border-border bg-background px-3 py-1.5"
+                    />
+                    <button type="submit" className="rounded-lg border border-border px-3 py-1.5 hover:border-accent">
+                      Go
+                    </button>
+                  </form>
+                  <a
+                    href={`?tab=day&date=${shiftDate(selectedDate, 1)}`}
+                    className="rounded-lg border border-border px-3 py-1.5 hover:border-accent"
+                    aria-label="Next day"
+                  >
+                    →
+                  </a>
+                  {selectedDate !== local.date && (
+                    <a href="?" className="text-accent hover:underline">
+                      Today
+                    </a>
+                  )}
+                </div>
+                <p className="text-xs text-muted">
+                  Instructors can start a class {windowMin} min before to {windowMin} min after its start.
                 </p>
               </div>
-              <div className="flex items-center gap-2 text-sm">
-                <a
-                  href={`?date=${shiftDate(selectedDate, -1)}`}
-                  className="rounded-lg border border-border px-3 py-1.5 hover:border-accent"
-                  aria-label="Previous day"
-                >
-                  ←
-                </a>
-                <form method="get" className="flex items-center gap-2">
-                  <input
-                    type="date"
-                    name="date"
-                    defaultValue={selectedDate}
-                    className="rounded-lg border border-border bg-background px-3 py-1.5"
-                  />
-                  <button type="submit" className="rounded-lg border border-border px-3 py-1.5 hover:border-accent">
-                    Go
-                  </button>
-                </form>
-                <a
-                  href={`?date=${shiftDate(selectedDate, 1)}`}
-                  className="rounded-lg border border-border px-3 py-1.5 hover:border-accent"
-                  aria-label="Next day"
-                >
-                  →
-                </a>
-                {selectedDate !== local.date && (
-                  <a href="?" className="text-accent hover:underline">
-                    Today
-                  </a>
-                )}
-              </div>
-            </div>
 
-            <div className="mb-4">
-              <ClassBlockForm
-                orgId={orgId}
-                drivers={drivers}
-                vehicles={vehicleOptions}
-                students={studentOptions}
-                timeFormat={timeFormat}
-                defaultDate={selectedDate}
-              />
-            </div>
-
-            {(() => {
-              const blocks = (dayBlocks ?? []) as ClassBlock[];
-              if (blocks.length === 0) {
-                return (
-                  <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted">
-                    No classes on this day.
-                  </div>
-                );
-              }
-              const driverNames = new Map(drivers.map((d) => [d.id, d.label]));
-              const vehicleNames = new Map(vehicleOptions.map((v) => [v.id, v.label]));
-              const byClassDriver = new Map<string, ClassBlock[]>();
-              for (const b of blocks) {
-                if (!scope.driverIn(b.driver_id)) continue;
-                if (!byClassDriver.has(b.driver_id)) byClassDriver.set(b.driver_id, []);
-                byClassDriver.get(b.driver_id)!.push(b);
-              }
-              return (
-                <div className="space-y-4">
-                  {Array.from(byClassDriver.entries()).map(([driverId, rows]) => (
-                    <div key={driverId} className="overflow-hidden rounded-xl border border-border bg-surface">
-                      <div className="border-b border-border px-4 py-3">
-                        <p className="font-medium">{driverNames.get(driverId) ?? "Driver"}</p>
-                      </div>
-                      <table className="w-full text-sm">
-                        <tbody>
-                          {rows.map((b) => {
-                            const badge = classBlockBadge(b, local, windowMin);
-                            return (
-                              <tr key={b.id} className="border-b border-border last:border-0">
-                                <td className="px-4 py-2.5 font-medium whitespace-nowrap">
-                                  {formatTimeOfDay(b.start_time, timeFormat)}–{formatTimeOfDay(b.end_time, timeFormat)}
-                                </td>
-                                <td className="px-4 py-2.5 text-muted">
-                                  {b.vehicle_id ? vehicleNames.get(b.vehicle_id) ?? "Vehicle" : "—"}
-                                </td>
-                                <td className="px-4 py-2.5">
-                                  {b.student_id && studentNames.get(b.student_id) ? (
-                                    <a href={`/admin/students/${b.student_id}`} className="font-medium hover:text-accent">
-                                      {studentNames.get(b.student_id)}
-                                    </a>
-                                  ) : null}
-                                  {b.note && <span className="block text-xs text-muted">{b.note}</span>}
-                                </td>
-                                <td className="px-4 py-2.5 text-xs text-muted">
-                                  {b.source === "template" ? "Weekly" : "One-off"}
-                                </td>
-                                <td className="px-4 py-2.5">
-                                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${badge.className}`}>
-                                    {badge.label}
-                                  </span>
-                                </td>
-                                <td className="px-4 py-2.5">
-                                  <ClassBlockActions blockId={b.id} status={b.status} isOneOff={b.source === "one_off"} />
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
+              {(() => {
+                const blocks = (dayBlocks ?? []) as ClassBlock[];
+                if (blocks.length === 0) {
+                  return (
+                    <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted">
+                      No classes on this day.
                     </div>
-                  ))}
-                </div>
-              );
-            })()}
-          </section>
-
-          {hasBooking && (
-            <section className="mb-10">
-              <h2 className="mb-1 text-lg font-semibold">Instructor availability</h2>
-              <p className="mb-3 text-sm text-muted">
-                Students book online only inside these hours, and never over a class already scheduled.
-              </p>
-              <AvailabilityForm instructors={drivers} vehicles={vehicleOptions} />
-              {(availRows ?? []).length > 0 && (
-                <ul className="mt-3 divide-y divide-border rounded-xl border border-border bg-surface text-sm">
-                  {(availRows ?? []).map((a) => (
-                    <li key={a.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5">
-                      <span>
-                        <span className="font-medium">{driverName.get(a.instructor_id) ?? "Instructor"}</span> ·{" "}
-                        {WEEKDAYS[a.weekday]} {t5(a.start_time)}–{t5(a.end_time)}
-                        {a.vehicle_id && <span className="text-muted"> · {vehicleName.get(a.vehicle_id) ?? "Vehicle"}</span>}
-                      </span>
-                      <RemoveButton id={a.id} kind="availability" />
-                    </li>
-                  ))}
-                </ul>
-              )}
-
-              <h3 className="mt-6 mb-2 font-semibold">Time off</h3>
-              <TimeOffForm instructors={drivers} />
-              {(offRows ?? []).length > 0 && (
-                <ul className="mt-3 divide-y divide-border rounded-xl border border-border bg-surface text-sm">
-                  {(offRows ?? []).map((o) => (
-                    <li key={o.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5">
-                      <span>
-                        <span className="font-medium">{driverName.get(o.instructor_id) ?? "Instructor"}</span> ·{" "}
-                        {o.date_from === o.date_to ? o.date_from : `${o.date_from} to ${o.date_to}`}
-                        {o.note && <span className="text-muted"> · {o.note}</span>}
-                      </span>
-                      <RemoveButton id={o.id} kind="time_off" />
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
-          )}
-
-          </>)}
-          {hasWeekly && (<>
-          {hasClasses && <h2 className="mb-3 text-lg font-semibold">Weekly template</h2>}
-          <div className="mb-8">
-            <ShiftForm orgId={orgId} drivers={drivers} vehicles={vehicleOptions} timeFormat={timeFormat} isClass={hasClasses} />
-          </div>
-
-          {byDriver.size === 0 ? (
-            <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted">
-              {hasClasses ? "No weekly classes yet." : "No shifts scheduled yet."}
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {Array.from(byDriver.entries()).map(([driverId, { driverName, rows }]) => (
-                <div key={driverId} className="overflow-hidden rounded-xl border border-border bg-surface">
-                  <div className="border-b border-border px-4 py-3">
-                    <p className="font-medium">{driverName}</p>
-                  </div>
-                  <table className="w-full text-sm">
-                    <tbody>
-                      {rows.map((s) => {
-                        const v = Array.isArray(s.vehicles) ? s.vehicles[0] : s.vehicles;
-                        return (
-                          <tr key={s.id} className="border-b border-border last:border-0">
-                            <td className="px-4 py-2.5 font-medium">{DAY_LABELS[s.day_of_week]}</td>
-                            <td className="px-4 py-2.5 text-muted">
-                              <span aria-hidden="true">{PERIOD_ICON[shiftPeriod(s.start_time)]}</span>{" "}
-                              {formatTimeOfDay(s.start_time, timeFormat)}–{formatTimeOfDay(s.end_time, timeFormat)}
-                            </td>
-                            <td className="px-4 py-2.5 text-muted">{vehicleLabel(v) ?? "—"}</td>
-                            <td className="px-4 py-2.5 text-muted">{s.notes ?? ""}</td>
-                            <td className="px-4 py-2.5">
-                              {!s.is_active ? (
-                                <span className="rounded-full bg-border px-2 py-0.5 text-xs text-muted">
-                                  Paused
-                                </span>
-                              ) : (
-                                s.day_of_week === todayDow &&
-                                (() => {
-                                  const status = attendanceStatus(
-                                    s,
-                                    (todaysSessions ?? []).filter((sess) => sess.user_id === s.driver_id),
-                                    now,
-                                  );
-                                  if (!status) return null;
-                                  const badge = ATTENDANCE_BADGE[status];
-                                  return (
-                                    <span
-                                      className={`rounded-full px-2 py-0.5 text-xs font-medium ${badge.className}`}
-                                    >
+                  );
+                }
+                const driverNames = new Map(drivers.map((d) => [d.id, d.label]));
+                const vehicleNames = new Map(vehicleOptions.map((v) => [v.id, v.label]));
+                const byClassDriver = new Map<string, ClassBlock[]>();
+                for (const b of blocks) {
+                  if (!scope.driverIn(b.driver_id)) continue;
+                  if (!byClassDriver.has(b.driver_id)) byClassDriver.set(b.driver_id, []);
+                  byClassDriver.get(b.driver_id)!.push(b);
+                }
+                return (
+                  <div className="space-y-4">
+                    {Array.from(byClassDriver.entries()).map(([driverId, rows]) => (
+                      <div key={driverId} className="overflow-hidden rounded-xl border border-border bg-surface">
+                        <div className="border-b border-border px-4 py-3">
+                          <p className="font-medium">{driverNames.get(driverId) ?? "Driver"}</p>
+                        </div>
+                        <table className="w-full text-sm">
+                          <tbody>
+                            {rows.map((b) => {
+                              const badge = classBlockBadge(b, local, windowMin);
+                              return (
+                                <tr key={b.id} className="border-b border-border last:border-0">
+                                  <td className="px-4 py-2.5 font-medium whitespace-nowrap">
+                                    {formatTimeOfDay(b.start_time, timeFormat)}–
+                                    {formatTimeOfDay(b.end_time, timeFormat)}
+                                  </td>
+                                  <td className="px-4 py-2.5 text-muted">
+                                    {b.vehicle_id ? (vehicleNames.get(b.vehicle_id) ?? "Vehicle") : "—"}
+                                  </td>
+                                  <td className="px-4 py-2.5">
+                                    {b.student_id && studentNames.get(b.student_id) ? (
+                                      <a
+                                        href={`/admin/students/${b.student_id}`}
+                                        className="font-medium hover:text-accent"
+                                      >
+                                        {studentNames.get(b.student_id)}
+                                      </a>
+                                    ) : null}
+                                    {b.note && <span className="block text-xs text-muted">{b.note}</span>}
+                                  </td>
+                                  <td className="px-4 py-2.5 text-xs text-muted">
+                                    {b.source === "template" ? "Weekly" : "One-off"}
+                                  </td>
+                                  <td className="px-4 py-2.5">
+                                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${badge.className}`}>
                                       {badge.label}
                                     </span>
-                                  );
-                                })()
-                              )}
-                            </td>
-                            <td className="px-4 py-2.5">
-                              <ShiftRowActions shiftId={s.id} isActive={s.is_active} />
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              ))}
-            </div>
-          )}
-          </>)}
+                                  </td>
+                                  <td className="px-4 py-2.5">
+                                    <ClassBlockActions
+                                      blockId={b.id}
+                                      status={b.status}
+                                      isOneOff={b.source === "one_off"}
+                                    />
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+            </section>
+          </>
+        )}
+        {hasClasses && hasBooking && tab === "availability" && (
+          <>
+            <section className="mb-10 grid gap-8 xl:grid-cols-2">
+              <div>
+                <h2 className="mb-1 text-base font-semibold">Instructor availability</h2>
+                <p className="mb-3 text-sm text-muted">
+                  Students book online only inside these hours, and never over a class already scheduled.
+                </p>
+                <AvailabilityForm instructors={drivers} vehicles={vehicleOptions} />
+                {(availRows ?? []).length > 0 && (
+                  <ul className="mt-3 divide-y divide-border rounded-xl border border-border bg-surface text-sm">
+                    {(availRows ?? []).map((a) => (
+                      <li key={a.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5">
+                        <span>
+                          <span className="font-medium">{driverName.get(a.instructor_id) ?? "Instructor"}</span> ·{" "}
+                          {WEEKDAYS[a.weekday]} {t5(a.start_time)}–{t5(a.end_time)}
+                          {a.vehicle_id && (
+                            <span className="text-muted"> · {vehicleName.get(a.vehicle_id) ?? "Vehicle"}</span>
+                          )}
+                        </span>
+                        <RemoveButton id={a.id} kind="availability" />
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+              <div>
+                <h2 className="mb-1 text-base font-semibold">Time off</h2>
+                <p className="mb-3 text-sm text-muted">Days an instructor can&apos;t be booked.</p>
+                <TimeOffForm instructors={drivers} />
+                {(offRows ?? []).length > 0 && (
+                  <ul className="mt-3 divide-y divide-border rounded-xl border border-border bg-surface text-sm">
+                    {(offRows ?? []).map((o) => (
+                      <li key={o.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5">
+                        <span>
+                          <span className="font-medium">{driverName.get(o.instructor_id) ?? "Instructor"}</span> ·{" "}
+                          {o.date_from === o.date_to ? o.date_from : `${o.date_from} to ${o.date_to}`}
+                          {o.note && <span className="text-muted"> · {o.note}</span>}
+                        </span>
+                        <RemoveButton id={o.id} kind="time_off" />
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </section>
+          </>
+        )}
+
+        {hasWeekly && tab === "weekly" && (
+          <>
+            {byDriver.size === 0 ? (
+              <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted">
+                {hasClasses ? "No weekly classes yet." : "No shifts scheduled yet."}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {Array.from(byDriver.entries()).map(([driverId, { driverName, rows }]) => (
+                  <div key={driverId} className="overflow-hidden rounded-xl border border-border bg-surface">
+                    <div className="border-b border-border px-4 py-3">
+                      <p className="font-medium">{driverName}</p>
+                    </div>
+                    <table className="w-full text-sm">
+                      <tbody>
+                        {rows.map((s) => {
+                          const v = Array.isArray(s.vehicles) ? s.vehicles[0] : s.vehicles;
+                          return (
+                            <tr key={s.id} className="border-b border-border last:border-0">
+                              <td className="px-4 py-2.5 font-medium">{DAY_LABELS[s.day_of_week]}</td>
+                              <td className="px-4 py-2.5 text-muted">
+                                <span aria-hidden="true">{PERIOD_ICON[shiftPeriod(s.start_time)]}</span>{" "}
+                                {formatTimeOfDay(s.start_time, timeFormat)}–{formatTimeOfDay(s.end_time, timeFormat)}
+                              </td>
+                              <td className="px-4 py-2.5 text-muted">{vehicleLabel(v) ?? "—"}</td>
+                              <td className="px-4 py-2.5 text-muted">{s.notes ?? ""}</td>
+                              <td className="px-4 py-2.5">
+                                {!s.is_active ? (
+                                  <span className="rounded-full bg-border px-2 py-0.5 text-xs text-muted">Paused</span>
+                                ) : (
+                                  s.day_of_week === todayDow &&
+                                  (() => {
+                                    const status = attendanceStatus(
+                                      s,
+                                      (todaysSessions ?? []).filter((sess) => sess.user_id === s.driver_id),
+                                      now,
+                                    );
+                                    if (!status) return null;
+                                    const badge = ATTENDANCE_BADGE[status];
+                                    return (
+                                      <span
+                                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${badge.className}`}
+                                      >
+                                        {badge.label}
+                                      </span>
+                                    );
+                                  })()
+                                )}
+                              </td>
+                              <td className="px-4 py-2.5">
+                                <ShiftRowActions shiftId={s.id} isActive={s.is_active} />
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
       </>
-    </main>
+    </Page>
   );
 }
