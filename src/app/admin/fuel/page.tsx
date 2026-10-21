@@ -294,12 +294,11 @@ export default async function FuelPage({
   }
 
   return (
-    <main className="px-6 py-10 sm:px-10">
+    <main className="mx-auto w-full max-w-[1400px] px-5 py-7 sm:px-8 lg:py-8">
       {alerts && <FuelAlertsLive orgId={orgId} />}
-      <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-sm font-semibold tracking-wide text-accent uppercase">Fuel</p>
-          <h1 className="mt-1 text-2xl font-semibold">
+          <h1 className="text-xl font-semibold tracking-tight">
             {alerts ? "Consumption, idling & alerts" : "Consumption & idling"}{scope.current && <span className="text-muted"> · {scope.current.name}</span>}
           </h1>
           <p className="mt-2 max-w-2xl text-sm text-muted">
@@ -325,7 +324,7 @@ export default async function FuelPage({
 
       {alerts && (
       <section className="mb-10">
-        <h2 className="mb-3 text-lg font-semibold">Alerts to review</h2>
+        <h2 className="mb-3 text-base font-semibold">Alerts to review</h2>
         {open.length === 0 ? (
           <p className="rounded-xl border border-border bg-surface p-6 text-center text-sm text-muted">
             Nothing to review. New receipts are checked as soon as drivers log them.
@@ -353,7 +352,7 @@ export default async function FuelPage({
       )}
 
       <section className="mb-10">
-        <h2 className="mb-1 text-lg font-semibold">Idling</h2>
+        <h2 className="mb-1 text-base font-semibold">Idling</h2>
         <p className="mb-3 max-w-3xl text-sm text-muted">
           Time stopped 3+ minutes while a trip was running (traffic, waiting, loading), read from the
           trip&apos;s GPS. Fuel and cost are estimates: about 0.4 gal/h for gasoline and 0.8 gal/h for
@@ -431,7 +430,7 @@ export default async function FuelPage({
       </section>
 
       <section className="mb-10">
-        <h2 className="mb-1 text-lg font-semibold">By vehicle</h2>
+        <h2 className="mb-1 text-base font-semibold">By vehicle</h2>
         <p className="mb-3 text-sm text-muted">
           Miles from GPS trips, fuel from receipts. Add a tank size to catch fill-ups bigger than the tank.
         </p>
@@ -495,7 +494,7 @@ export default async function FuelPage({
       </section>
 
       <section>
-        <h2 className="mb-3 text-lg font-semibold">Receipts</h2>
+        <h2 className="mb-3 text-base font-semibold">Receipts</h2>
         {purchases.length === 0 ? (
           <p className="rounded-xl border border-border bg-surface p-6 text-center text-sm text-muted">
             No fuel receipts in this period. Drivers log them in the app with a photo of the receipt.

@@ -60,7 +60,7 @@ export default async function AttendancePage({
   const exportHref = `/admin/school/attendance/export?from=${from}&to=${to}${routeId ? `&route=${routeId}` : ""}`;
 
   return (
-    <main className="space-y-6 px-6 py-10 sm:px-10">
+    <main className="space-y-6 mx-auto w-full max-w-6xl px-5 py-7 sm:px-8 lg:py-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="flex items-center gap-4">
           {branding.logoUrl && (
@@ -70,7 +70,7 @@ export default async function AttendancePage({
           )}
           <div>
             <p className="text-lg font-semibold">{branding.name}</p>
-            <h1 className="text-2xl font-semibold">Student transportation attendance</h1>
+            <h1 className="text-xl font-semibold tracking-tight">Student transportation attendance</h1>
             <p className="mt-1 text-sm text-muted">
               {from} to {to}. A pick-up counts as attendance, and so does a release to a parent or the school
               with a reason. Days a route didn&apos;t run aren&apos;t counted.
@@ -131,14 +131,14 @@ export default async function AttendancePage({
         </div>
         <div className="rounded-xl border border-border bg-surface p-4">
           <p className="text-xs text-muted">Attendance rate</p>
-          <p className="text-2xl font-semibold">{totals.rate == null ? "—" : `${totals.rate}%`}</p>
+          <p className="text-xl font-semibold tracking-tight">{totals.rate == null ? "—" : `${totals.rate}%`}</p>
           {totals.unresolved > 0 && <p className="mt-1 text-xs font-semibold text-red-600">{totals.unresolved} unresolved</p>}
         </div>
       </div>
 
       {alerts.length > 0 && (
         <section className="space-y-2">
-          <h2 className="text-lg font-semibold">Alerts and how they were resolved</h2>
+          <h2 className="text-base font-semibold">Alerts and how they were resolved</h2>
           <p className="text-sm text-muted">
             Students who rode to school in the morning but didn&apos;t take the afternoon bus.
           </p>

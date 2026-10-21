@@ -23,12 +23,9 @@ export default async function ExportPage() {
   const scope = await getBranchScope(orgId);
 
   return (
-    <main className="px-6 py-10 sm:px-10">
-      <div className="mb-8">
-        <p className="text-sm font-semibold tracking-wide text-accent uppercase">
-          Export
-        </p>
-        <h1 className="mt-1 text-2xl font-semibold">
+    <main className="mx-auto w-full max-w-6xl px-5 py-7 sm:px-8 lg:py-8">
+      <div className="mb-6">
+        <h1 className="text-xl font-semibold tracking-tight">
           {scope.current ? (
             <>
               Mileage <span className="text-muted">· {scope.current.name}</span>

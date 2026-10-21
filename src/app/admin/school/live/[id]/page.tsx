@@ -201,14 +201,14 @@ export default async function SchoolLiveRoutePage({ params }: { params: Promise<
       : `Running since ${hm(run.started_at)}`;
 
   return (
-    <main className="space-y-6 px-6 py-10 sm:px-10">
+    <main className="space-y-6 mx-auto w-full max-w-6xl px-5 py-7 sm:px-8 lg:py-8">
       {run?.status === "in_progress" && <AutoRefresh seconds={15} />}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <Link href="/admin/school" className="text-sm text-muted hover:text-accent">
             ← School: live
           </Link>
-          <h1 className="mt-2 text-2xl font-semibold">{route.name}</h1>
+          <h1 className="mt-1 text-xl font-semibold tracking-tight">{route.name}</h1>
           <p className="mt-1 text-sm text-muted">
             {ROUTE_TYPE_LABEL[route.route_type]}
             {school?.name ? ` · ${school.name}` : ""} · {today} · {runState}

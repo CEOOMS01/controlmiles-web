@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { getAuthedProfile } from "@/lib/supabase/org-context";
 import { CreateRouteForm } from "./create-route-form";
+import { PageHeader } from "@/components/page-ui";
+import { Sheet } from "@/components/sheet";
 import { RouteRowActions } from "./route-row-actions";
 import { driverLabel, fleetDriverIds } from "@/lib/driver-label";
 import { requireFeature } from "@/lib/fleet-features";
@@ -120,17 +122,16 @@ export default async function RoutesPage() {
   const timeFormat: "12h" | "24h" = myProfile?.time_format === "24h" ? "24h" : "12h";
 
   return (
-    <main className="px-6 py-10 sm:px-10">
-      <div className="mb-8">
-        <p className="text-sm font-semibold tracking-wide text-accent uppercase">
-          Routes
-        </p>
-        <h1 className="mt-1 text-2xl font-semibold">Dispatch</h1>
-      </div>
-
-      <div className="mb-6">
-        <CreateRouteForm orgId={orgId} drivers={drivers} vehicles={vehicleOptions} timeFormat={timeFormat} />
-      </div>
+    <main className="mx-auto w-full max-w-6xl px-5 py-7 sm:px-8 lg:py-8">
+      <PageHeader
+        title="Dispatch"
+        description="Routes for your drivers: where they go, when, and with which vehicle."
+        actions={
+          <Sheet label="New route" title="New route">
+            <CreateRouteForm orgId={orgId} drivers={drivers} vehicles={vehicleOptions} timeFormat={timeFormat} inSheet />
+          </Sheet>
+        }
+      />
 
       <div className="overflow-x-auto rounded-xl border border-border bg-surface">
         <table className="w-full text-sm">

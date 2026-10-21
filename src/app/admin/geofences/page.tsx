@@ -59,10 +59,9 @@ export default async function GeofencesPage() {
   }));
 
   return (
-    <main className="px-6 py-10 sm:px-10">
-      <div className="mb-8">
-        <p className="text-sm font-semibold tracking-wide text-accent uppercase">Geofences</p>
-        <h1 className="mt-1 text-2xl font-semibold">Vehicle zones</h1>
+    <main className="mx-auto w-full max-w-6xl px-5 py-7 sm:px-8 lg:py-8">
+      <div className="mb-6">
+        <h1 className="text-xl font-semibold tracking-tight">Vehicle zones</h1>
         <p className="mt-2 max-w-2xl text-sm text-muted">
           Draw a circle around a vehicle&apos;s expected area — an alert is logged the moment its GPS
           crosses it. Circle-based zones, checked server-side on every location update.
@@ -79,13 +78,13 @@ export default async function GeofencesPage() {
       </div>
 
       <div className="mb-10">
-        <h2 className="mb-3 text-lg font-semibold">Zones</h2>
+        <h2 className="mb-3 text-base font-semibold">Zones</h2>
         <GeofenceList rows={listRows} />
       </div>
 
       <div>
         <div className="mb-3 flex items-center gap-2">
-          <h2 className="text-lg font-semibold">Recent crossings</h2>
+          <h2 className="text-base font-semibold">Recent crossings</h2>
           <span className="flex items-center gap-1.5 text-xs text-muted">
             <span className="h-1.5 w-1.5 rounded-full bg-success" />
             Live

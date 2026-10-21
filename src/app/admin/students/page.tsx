@@ -23,6 +23,8 @@ import {
   type StudentProgress,
 } from "@/lib/driving-school";
 import { StudentForm } from "./student-forms";
+import { Page, PageHeader } from "@/components/page-ui";
+import { Sheet } from "@/components/sheet";
 import { EnrollmentRequests, type EnrollmentRequest } from "./website-forms";
 
 export default async function StudentsPage({
@@ -97,36 +99,44 @@ export default async function StudentsPage({
     </Link>
   );
 
+  const studentForm = (
+    <StudentForm
+      isAdmin={isAdmin}
+      branches={scope.branches.map((b) => ({ id: b.id, name: b.name }))}
+      programs={programs.filter((p) => p.is_active)}
+      stateRecords={features.has("state_records")}
+      sms={features.has("sms_reminders")}
+      portal={features.has("student_portal")}
+      inSheet
+    />
+  );
+
   return (
-    <main className="px-6 py-10 sm:px-10">
-      <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="text-sm font-semibold tracking-wide text-accent uppercase">Students</p>
-          <h1 className="mt-1 text-2xl font-semibold">Students and their hours</h1>
-          <p className="mt-2 max-w-2xl text-sm text-muted">
-            Hours come from each finished class&apos;s GPS trip, split into day and night. What each student needs
-            comes from their program (teen, adult or your own).
-          </p>
-        </div>
-        {isAdmin && (
-          <Link href="/admin/students/settings" className="rounded-lg border border-border px-3 py-2 text-sm hover:border-accent">
-            Settings
-          </Link>
-        )}
-      </div>
+    <Page>
+      {/* Redesign (2026-10-20): register from the header panel; status tabs
+          and search share one toolbar. */}
+      <PageHeader
+        title="Students"
+        meta={scope.current ? `Branch: ${scope.current.name}` : undefined}
+        description="Hours come from each finished class's GPS trip, split into day and night, against what the student's program requires."
+        actions={
+          <>
+            {isAdmin && (
+              <Link
+                href="/admin/students/settings"
+                className="rounded-lg border border-border bg-surface px-3.5 py-2 text-sm font-medium transition hover:border-border-strong"
+              >
+                Settings
+              </Link>
+            )}
+            <Sheet label="Register student" title="Register a student">
+              {studentForm}
+            </Sheet>
+          </>
+        }
+      />
 
       <EnrollmentRequests requests={requests} />
-
-      <div className="mb-6">
-        <StudentForm
-          isAdmin={isAdmin}
-          branches={scope.branches.map((b) => ({ id: b.id, name: b.name }))}
-          programs={programs.filter((p) => p.is_active)}
-          stateRecords={features.has("state_records")}
-          sms={features.has("sms_reminders")}
-          portal={features.has("student_portal")}
-        />
-      </div>
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
         {tab("current", "Current")}
@@ -139,7 +149,7 @@ export default async function StudentsPage({
             name="q"
             defaultValue={q}
             placeholder="Search name or guardian"
-            className="rounded-lg border border-border bg-background px-3 py-1.5 text-sm"
+            className="w-56 rounded-lg border border-border bg-surface px-3 py-1.5 text-sm outline-none focus:border-accent"
           />
         </form>
       </div>
@@ -208,6 +218,6 @@ export default async function StudentsPage({
           </table>
         </div>
       )}
-    </main>
+    </Page>
   );
 }

@@ -43,12 +43,9 @@ export default async function ReviewsPage() {
   ]);
 
   return (
-    <main className="px-6 py-10 sm:px-10">
-      <div className="mb-8">
-        <p className="text-sm font-semibold tracking-wide text-accent uppercase">
-          Reviews
-        </p>
-        <h1 className="mt-1 text-2xl font-semibold">Inspections & incidents</h1>
+    <main className="mx-auto w-full max-w-6xl px-5 py-7 sm:px-8 lg:py-8">
+      <div className="mb-6">
+        <h1 className="text-xl font-semibold tracking-tight">Inspections & incidents</h1>
         <p className="mt-2 max-w-2xl text-sm text-muted">
           Driver-submitted pre/post-trip checklists and mid-trip incident
           reports. Read-only — drivers submit these from the mobile app.
@@ -56,7 +53,7 @@ export default async function ReviewsPage() {
       </div>
 
       <section className="mb-12">
-        <h2 className="mb-4 text-lg font-semibold">Vehicle inspections</h2>
+        <h2 className="mb-4 text-base font-semibold">Vehicle inspections</h2>
         <div className="space-y-3">
           {(inspections ?? []).map((i) => {
             const p = Array.isArray(i.profiles) ? i.profiles[0] : i.profiles;
@@ -108,7 +105,7 @@ export default async function ReviewsPage() {
       </section>
 
       <section>
-        <h2 className="mb-4 text-lg font-semibold">Trip incidents</h2>
+        <h2 className="mb-4 text-base font-semibold">Trip incidents</h2>
         <div className="space-y-3">
           {(incidents ?? []).map((inc) => {
             const p = Array.isArray(inc.profiles) ? inc.profiles[0] : inc.profiles;

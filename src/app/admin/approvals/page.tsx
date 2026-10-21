@@ -69,10 +69,9 @@ export default async function ApprovalsPage({
     `rounded-lg px-3 py-1.5 text-sm ${active ? "bg-accent text-accent-foreground" : "border border-border hover:border-accent"}`;
 
   return (
-    <main className="px-6 py-10 sm:px-10">
-      <div className="mb-8">
-        <p className="text-sm font-semibold tracking-wide text-accent uppercase">Trip approval</p>
-        <h1 className="mt-1 text-2xl font-semibold">Approve driven miles</h1>
+    <main className="mx-auto w-full max-w-[1400px] px-5 py-7 sm:px-8 lg:py-8">
+      <div className="mb-6">
+        <h1 className="text-xl font-semibold tracking-tight">Approve driven miles</h1>
         <p className="mt-2 max-w-2xl text-sm text-muted">
           Finished trips from the last {DAYS} days. Approve the business miles you reimburse and reject the rest.
           The trip record itself never changes.

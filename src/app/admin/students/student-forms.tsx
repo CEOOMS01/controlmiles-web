@@ -4,6 +4,7 @@
 
 import { useActionState, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useSheet } from "@/components/sheet";
 import { GroupTitle, SettingRow, Switch, UnitInput } from "@/components/settings-ui";
 import {
   addAvailability,
@@ -58,6 +59,7 @@ export function StudentForm({
   stateRecords = false,
   sms = false,
   portal = false,
+  inSheet = false,
 }: {
   student?: Student;
   privateData?: { date_of_birth: string | null; permit_number: string | null } | null;
@@ -68,9 +70,12 @@ export function StudentForm({
   sms?: boolean;
   // The student and parent link only exists on plans with student_portal.
   portal?: boolean;
+  // In the page header's slide-over panel (2026-10-20 redesign).
+  inSheet?: boolean;
 }) {
   const router = useRouter();
-  const [open, setOpen] = useState(!!student);
+  const sheet = useSheet();
+  const [open, setOpen] = useState(!!student || inSheet);
   // Parent or guardian only for programs that have one (teens); an adult
   // program doesn't ask for it (user rule, 2026-10-20).
   const [programId, setProgramId] = useState(student?.program_id ?? programs[0]?.id ?? "");
@@ -91,7 +96,7 @@ export function StudentForm({
   }
 
   return (
-    <form action={action} className="space-y-4 rounded-xl border border-border bg-surface p-5">
+    <form action={action} className={`space-y-4 ${inSheet ? "" : "rounded-xl border border-border bg-surface p-5"}`}>
       {student && <input type="hidden" name="id" value={student.id} />}
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
@@ -232,7 +237,7 @@ export function StudentForm({
           {pending ? "Saving…" : student ? "Save" : "Register student"}
         </button>
         {!student && (
-          <button type="button" onClick={() => setOpen(false)} className="px-4 py-2.5 text-sm text-muted">
+          <button type="button" onClick={() => (inSheet ? sheet.close() : setOpen(false))} className="px-4 py-2.5 text-sm text-muted">
             Cancel
           </button>
         )}

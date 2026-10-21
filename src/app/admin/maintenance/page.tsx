@@ -38,12 +38,9 @@ export default async function MaintenancePage() {
   const shown = (records ?? []).filter((r) => scope.vehicleIn(r.vehicle_id));
 
   return (
-    <main className="px-6 py-10 sm:px-10">
-      <div className="mb-8">
-        <p className="text-sm font-semibold tracking-wide text-accent uppercase">
-          Maintenance
-        </p>
-        <h1 className="mt-1 text-2xl font-semibold">Vehicle maintenance log</h1>
+    <main className="mx-auto w-full max-w-6xl px-5 py-7 sm:px-8 lg:py-8">
+      <div className="mb-6">
+        <h1 className="text-xl font-semibold tracking-tight">Vehicle maintenance log</h1>
         <p className="mt-2 text-sm text-muted">
           Read-only — drivers log service records from the mobile app.
         </p>

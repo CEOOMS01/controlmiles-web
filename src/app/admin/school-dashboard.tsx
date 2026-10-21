@@ -352,11 +352,11 @@ export async function SchoolDashboard({
   });
 
   return (
-    <main className="px-6 py-10 sm:px-10">
-      <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+    <main className="mx-auto w-full max-w-6xl px-5 py-7 sm:px-8 lg:py-8">
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-sm font-semibold tracking-wide text-accent uppercase">{orgName}</p>
-          <h1 className="mt-1 text-2xl font-semibold">
+          <p className="text-xs font-medium text-muted">{orgName}</p>
+          <h1 className="text-xl font-semibold tracking-tight">
             School dashboard{scope.current && <span className="text-muted"> · {scope.current.name}</span>}
           </h1>
           <p className="mt-1 text-sm text-muted">{longToday}</p>

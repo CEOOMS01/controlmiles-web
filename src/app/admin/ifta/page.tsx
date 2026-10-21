@@ -137,11 +137,10 @@ export default async function IftaPage({
   const due = quarterDueDate(quarter);
 
   return (
-    <main className="px-6 py-10 sm:px-10">
-      <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+    <main className="mx-auto w-full max-w-[1400px] px-5 py-7 sm:px-8 lg:py-8">
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-sm font-semibold tracking-wide text-accent uppercase">IFTA</p>
-          <h1 className="mt-1 text-2xl font-semibold">Quarterly fuel tax return</h1>
+          <h1 className="text-xl font-semibold tracking-tight">Quarterly fuel tax return</h1>
           <p className="mt-2 text-sm text-muted">
             {quarter.replace("-", " ")} · {start} to {end} · due{" "}
             {new Date(`${due}T12:00:00Z`).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
@@ -160,7 +159,7 @@ export default async function IftaPage({
 
       {qualifiedCount === 0 ? (
         <section className="mb-8 rounded-xl border border-accent/40 bg-accent/5 p-6">
-          <h2 className="text-lg font-semibold">Choose your IFTA vehicles</h2>
+          <h2 className="text-base font-semibold">Choose your IFTA vehicles</h2>
           <p className="mt-1 max-w-2xl text-sm text-muted">
             IFTA covers qualified motor vehicles: two axles and over 26,000 lb, or three or more axles,
             used across state lines. Mark them below with the fuel they use. Cars and light vans stay
@@ -206,7 +205,7 @@ export default async function IftaPage({
           {ret.sections.map((s) => (
             <section key={s.fuel} className="mb-8">
               <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-                <h2 className="text-lg font-semibold">{FUEL_LABEL[s.fuel]} — jurisdiction summary</h2>
+                <h2 className="text-base font-semibold">{FUEL_LABEL[s.fuel]} — jurisdiction summary</h2>
                 <p className="text-sm text-muted">
                   {int(s.totalMiles)} mi ÷ {int(s.totalGallons)} gal ={" "}
                   <span className="font-semibold text-foreground">{s.mpg != null ? `${s.mpg.toFixed(2)} MPG` : "MPG n/a"}</span>
@@ -272,7 +271,7 @@ export default async function IftaPage({
           ))}
 
           <section className="mb-8">
-            <h2 className="mb-3 text-lg font-semibold">By vehicle</h2>
+            <h2 className="mb-3 text-base font-semibold">By vehicle</h2>
             <div className="overflow-x-auto rounded-xl border border-border bg-surface">
               <table className="w-full text-sm">
                 <thead>
@@ -300,7 +299,7 @@ export default async function IftaPage({
           </section>
 
           <section className="mb-8">
-            <h2 className="mb-1 text-lg font-semibold">Fuel receipts</h2>
+            <h2 className="mb-1 text-base font-semibold">Fuel receipts</h2>
             <p className="mb-3 text-sm text-muted">
               Logged by drivers in the app with a photo of the receipt. Only gallons with the state&apos;s
               tax paid at the pump earn a credit.

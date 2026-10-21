@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
+import { useSheet } from "@/components/sheet";
 import { addRoute } from "./actions";
 import { AddressAutocompleteInput } from "./address-autocomplete-input";
 import { TimeInput } from "@/components/time-input";
@@ -13,13 +14,17 @@ export function CreateRouteForm({
   drivers,
   vehicles,
   timeFormat,
+  inSheet = false,
 }: {
   orgId: string;
   drivers: Driver[];
   vehicles: Vehicle[];
   timeFormat: "12h" | "24h";
+  // In the page header's slide-over panel (2026-10-20 redesign).
+  inSheet?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(inSheet);
+  const sheet = useSheet();
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const formRef = useRef<HTMLFormElement>(null);
@@ -35,7 +40,8 @@ export function CreateRouteForm({
       }
       setError(null);
       formRef.current?.reset();
-      setOpen(false);
+      if (inSheet) sheet.close();
+      else setOpen(false);
     });
   }
 
@@ -54,7 +60,7 @@ export function CreateRouteForm({
     <form
       ref={formRef}
       onSubmit={onSubmit}
-      className="grid gap-3 rounded-xl border border-border bg-surface p-5 sm:grid-cols-3"
+      className={`grid gap-3 ${inSheet ? "sm:grid-cols-2" : "rounded-xl border border-border bg-surface p-5 sm:grid-cols-3"}`}
     >
       <input type="hidden" name="org_id" value={orgId} />
       <div className="sm:col-span-3">
@@ -136,7 +142,7 @@ export function CreateRouteForm({
         </button>
         <button
           type="button"
-          onClick={() => setOpen(false)}
+          onClick={() => (inSheet ? sheet.close() : setOpen(false))}
           className="rounded-lg px-4 py-2.5 text-sm text-muted transition hover:text-foreground"
         >
           Cancel

@@ -203,12 +203,11 @@ export default async function SchoolLivePage() {
   };
 
   return (
-    <main className="space-y-6 px-6 py-10 sm:px-10">
+    <main className="space-y-6 mx-auto w-full max-w-6xl px-5 py-7 sm:px-8 lg:py-8">
       <AutoRefresh seconds={15} />
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-sm font-semibold tracking-wide text-accent uppercase">School transportation</p>
-          <h1 className="mt-1 text-2xl font-semibold">Today&apos;s routes</h1>
+          <h1 className="text-xl font-semibold tracking-tight">Today&apos;s routes</h1>
           <p className="mt-1 text-sm text-muted">
             {cards.length} scheduled · {counts.running} running · {counts.done} completed
             {counts.attention > 0 && <span className="text-danger"> · {counts.attention} need attention</span>}

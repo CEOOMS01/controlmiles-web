@@ -9,6 +9,8 @@ import { driverLabel, fleetDriverIds } from "@/lib/driver-label";
 import { busLabel, effectiveMonitor, loadCrewOptions } from "@/lib/school-crew";
 import { ROUTE_TYPE_LABEL, clock, daysLabel } from "@/lib/school";
 import { CreateSchoolRouteForm } from "./create-school-route-form";
+import { PageHeader } from "@/components/page-ui";
+import { Sheet } from "@/components/sheet";
 import { requireFeature } from "@/lib/fleet-features";
 
 export default async function SchoolRoutesPage() {
@@ -52,22 +54,21 @@ export default async function SchoolRoutesPage() {
   for (const r of riders ?? []) if (r.action === "board") riderCount.set(r.route_id, (riderCount.get(r.route_id) ?? 0) + 1);
 
   return (
-    <main className="space-y-6 px-6 py-10 sm:px-10">
-      <div>
-        <p className="text-sm font-semibold tracking-wide text-accent uppercase">School transportation</p>
-        <h1 className="mt-1 text-2xl font-semibold">School routes</h1>
-        <p className="mt-1 max-w-2xl text-sm text-muted">
-          Create the route, then open it to add its stops in order and the students who get on or off at
-          each one. The driver sees it in the app on its service days.
-        </p>
-      </div>
-
-      <CreateSchoolRouteForm
-        schools={(schools ?? []).map((s) => ({ id: s.id, label: s.name }))}
-        drivers={crew.drivers}
-        monitors={crew.monitors}
-        vehicles={crew.vehicles}
-        timeFormat={timeFormat}
+    <main className="space-y-6 mx-auto w-full max-w-6xl px-5 py-7 sm:px-8 lg:py-8">
+      <PageHeader
+        title="School routes"
+        description="Create the route, then open it to add its stops in order and the students who get on or off at each one. The driver sees it in the app on its service days."
+        actions={
+          <Sheet label="New route" title="New school route">
+            <CreateSchoolRouteForm
+              schools={(schools ?? []).map((s) => ({ id: s.id, label: s.name }))}
+              drivers={crew.drivers}
+              monitors={crew.monitors}
+              vehicles={crew.vehicles}
+              timeFormat={timeFormat}
+            />
+          </Sheet>
+        }
       />
 
       <div className="overflow-x-auto rounded-xl border border-border bg-surface">

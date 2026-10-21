@@ -12,10 +12,7 @@ export function CreateOrgForm() {
     <main className="flex flex-1 items-center justify-center px-4 py-16">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <p className="text-sm font-semibold tracking-wide text-accent uppercase">
-            ControlMiles
-          </p>
-          <h1 className="mt-1 text-2xl font-semibold">Create your fleet</h1>
+          <h1 className="text-xl font-semibold tracking-tight">Create your fleet</h1>
           <p className="mt-2 text-sm text-muted">
             You don&apos;t have a fleet organization yet. Name it to get
             started — you&apos;ll be able to invite drivers and add

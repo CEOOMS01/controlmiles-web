@@ -170,12 +170,12 @@ export default async function AdminDashboardPage() {
   }
 
   return (
-    <main className="px-6 py-10 sm:px-10">
-      <div className="mb-8">
-        <p className="text-sm font-semibold tracking-wide text-accent uppercase">
+    <main className="mx-auto w-full max-w-6xl px-5 py-7 sm:px-8 lg:py-8">
+      <div className="mb-6">
+        <p className="text-xs font-medium text-muted">
           {org?.name}
         </p>
-        <h1 className="mt-1 text-2xl font-semibold">
+        <h1 className="text-xl font-semibold tracking-tight">
           Fleet dashboard{scope.current && <span className="text-muted"> · {scope.current.name}</span>}
         </h1>
       </div>

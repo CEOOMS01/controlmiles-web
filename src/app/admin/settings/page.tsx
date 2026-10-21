@@ -80,9 +80,8 @@ export default async function SettingsPage({
   // page, open sections (heading, help, rows divided by thin lines) instead
   // of boxed cards; the danger zone sits apart at the end of General.
   return (
-    <main className="px-6 py-10 sm:px-10">
-      <p className="text-sm font-semibold tracking-wide text-accent uppercase">Settings</p>
-      <h1 className="mt-1 text-2xl font-semibold">{org.name}</h1>
+    <main className="mx-auto w-full max-w-6xl px-5 py-7 sm:px-8 lg:py-8">
+      <h1 className="text-xl font-semibold tracking-tight">{org.name}</h1>
 
       <div className="mt-8 flex max-w-5xl flex-col gap-8 lg:flex-row lg:gap-12">
         <SettingsTabs base="/admin/settings" current={tab} tabs={TABS} />

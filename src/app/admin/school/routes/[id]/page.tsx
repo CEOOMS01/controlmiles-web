@@ -120,12 +120,12 @@ export default async function SchoolRoutePage({
   const isPm = route.route_type === "school_pm";
 
   return (
-    <main className="space-y-8 px-6 py-10 sm:px-10">
+    <main className="space-y-8 mx-auto w-full max-w-6xl px-5 py-7 sm:px-8 lg:py-8">
       <div>
         <Link href="/admin/school/routes" className="text-sm text-muted hover:text-accent">
           ← School routes
         </Link>
-        <h1 className="mt-2 text-2xl font-semibold">{route.name}</h1>
+        <h1 className="mt-1 text-xl font-semibold tracking-tight">{route.name}</h1>
         <p className="mt-1 text-sm text-muted">
           {ROUTE_TYPE_LABEL[route.route_type]}
           {school?.name ? ` · ${school.name}` : ""} · starts {clock(route.scheduled_start_time, timeFormat)} ·{" "}
@@ -134,7 +134,7 @@ export default async function SchoolRoutePage({
       </div>
 
       <section className="space-y-3">
-        <h2 className="text-lg font-semibold">Crew</h2>
+        <h2 className="text-base font-semibold">Crew</h2>
         <ActionForm action={saveSchoolRouteCrew} submitLabel="Save crew">
           <input type="hidden" name="route_id" value={id} />
           <div>
@@ -167,7 +167,7 @@ export default async function SchoolRoutePage({
         {viewRun?.status === "in_progress" && <AutoRefresh seconds={15} />}
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h2 className="text-lg font-semibold">Pick-ups · {viewDate}</h2>
+            <h2 className="text-base font-semibold">Pick-ups · {viewDate}</h2>
             <p className="text-sm text-muted">
               {!viewRun
                 ? "This route hasn't run on this day."
@@ -241,7 +241,7 @@ export default async function SchoolRoutePage({
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-lg font-semibold">Stops ({stops?.length ?? 0})</h2>
+        <h2 className="text-base font-semibold">Stops ({stops?.length ?? 0})</h2>
         <p className="max-w-2xl text-sm text-muted">
           The app marks the bus as arrived when it gets within the stop&apos;s radius, even with the phone
           locked. Drivers can also mark it by hand.
@@ -359,7 +359,7 @@ export default async function SchoolRoutePage({
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-lg font-semibold">Recent runs</h2>
+        <h2 className="text-base font-semibold">Recent runs</h2>
         <div className="overflow-x-auto rounded-xl border border-border bg-surface">
           <table className="w-full text-sm">
             <tbody>

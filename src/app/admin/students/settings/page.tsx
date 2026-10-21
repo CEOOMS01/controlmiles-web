@@ -106,11 +106,11 @@ export default async function StudentSettingsPage({ searchParams }: { searchPara
   const tab = tabs.some((t) => t.id === sp.tab) ? sp.tab! : "programs";
 
   return (
-    <main className="px-6 py-10 sm:px-10">
+    <main className="mx-auto w-full max-w-6xl px-5 py-7 sm:px-8 lg:py-8">
       <Link href="/admin/students" className="text-sm text-muted hover:text-accent">
         ← Students
       </Link>
-      <h1 className="mt-2 text-2xl font-semibold">Student settings</h1>
+      <h1 className="mt-1 text-xl font-semibold tracking-tight">Student settings</h1>
       <p className="mt-1 text-sm text-muted">How your school runs lessons. Changes apply to new bookings and classes.</p>
 
       <div className="mt-8 flex max-w-5xl flex-col gap-8 lg:flex-row lg:gap-12">

@@ -122,10 +122,9 @@ export default async function SafetyPage({
   const feed = (events ?? []).filter((e) => scope.driverIn(e.user_id));
 
   return (
-    <main className="px-6 py-10 sm:px-10">
-      <div className="mb-8">
-        <p className="text-sm font-semibold tracking-wide text-accent uppercase">Safety</p>
-        <h1 className="mt-1 text-2xl font-semibold">
+    <main className="mx-auto w-full max-w-[1400px] px-5 py-7 sm:px-8 lg:py-8">
+      <div className="mb-6">
+        <h1 className="text-xl font-semibold tracking-tight">
           Driver scorecard{scope.current && <span className="text-muted"> · {scope.current.name}</span>}
         </h1>
         <p className="mt-2 max-w-2xl text-sm text-muted">
@@ -231,7 +230,7 @@ export default async function SafetyPage({
 
       <section id="events">
         <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="text-lg font-semibold">
+          <h2 className="text-base font-semibold">
             Events{driverFilter && ` — ${nameByUser.get(driverFilter) ?? "driver"}`}
           </h2>
           {driverFilter && (
