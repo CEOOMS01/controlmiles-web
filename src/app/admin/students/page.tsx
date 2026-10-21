@@ -182,8 +182,8 @@ export default async function StudentsPage({
                 const met = requirementMet({ minutes, night_minutes: night }, prog);
                 return (
                   <tr key={s.id} className="border-b border-border last:border-0">
-                    <td className="px-4 py-3">
-                      <Link href={`/admin/students/${s.id}`} className="font-medium hover:text-accent">
+                    <td className="min-w-44 px-4 py-3">
+                      <Link href={`/admin/students/${s.id}`} className="font-medium whitespace-nowrap hover:text-accent">
                         {studentName(s)}
                       </Link>
                       <p className="text-xs text-muted">

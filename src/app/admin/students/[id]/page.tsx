@@ -523,6 +523,7 @@ export default async function StudentPage({
               stateRecords={hasStateRecords}
               portal={hasPortal}
               sms={features.has("sms_reminders")}
+              inSheet
             />
           </Section>
         </div>
