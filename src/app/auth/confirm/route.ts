@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
         .from("organization_members")
         .select("organization_id")
         .eq("user_id", data.user.id)
-        .in("member_role", ["owner", "admin"])
+        .in("member_role", ["owner", "admin", "operator"])
         .eq("is_active", true)
         .limit(1);
       redirect((adminMemberships?.length ?? 0) > 0 ? "/admin" : "/onboarding/organization");

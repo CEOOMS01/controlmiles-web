@@ -56,6 +56,13 @@ export async function signUp(
     options: { data: { pending_org_name: orgName } },
   });
 
+  // An email that already has an account gets the same "check your email"
+  // as a new one: a public page must never reveal which emails exist
+  // (owner's rule, 2026-10-22).
+  if (error && AppError.from(error).code === AppError.emailAlreadyExists.code) {
+    redirect("/signup/check-email");
+  }
+
   if (error) {
     // BUG FIX (pedido explícito, 2026-09-09): mostraba error.message
     // crudo de Supabase Auth directamente al usuario. Ahora usa el

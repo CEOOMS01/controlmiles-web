@@ -41,12 +41,13 @@ export async function signIn(
     .from("organization_members")
     .select("organization_id")
     .eq("user_id", data.user.id)
-    .in("member_role", ["owner", "admin"])
+    .in("member_role", ["owner", "admin", "operator"])
     .eq("is_active", true)
     .limit(1);
 
-  // Explicit user requirement (2026-09-09): controlmiles.com is
-  // fleet-admin only going forward. Used to send everyone else to
+  // Explicit user requirement (2026-09-09, 2026-10-22): controlmiles.com is
+  // for fleet owners, admins and operators only; drivers, monitors and
+  // parents use the ControlMiles Fleet app. Used to send everyone else to
   // /portal/generate (the driver report-code flow) -- that moved to the
   // mobile app's Settings screen, so this now sends a non-admin
   // somewhere that actually tells them what to do instead of a stale
