@@ -67,6 +67,8 @@ export type DsSettings = {
   booking_max_upcoming: number;
   cancel_free_hours: number;
   cancellation_policy: string | null;
+  /** Parents see a student until this age (2026-10-22): 18, or 19-21 where state law says so. */
+  age_of_majority: number;
 };
 export const DEFAULT_SETTINGS: DsSettings = {
   reminder_hours: 24,
@@ -76,9 +78,10 @@ export const DEFAULT_SETTINGS: DsSettings = {
   booking_max_upcoming: 2,
   cancel_free_hours: 24,
   cancellation_policy: null,
+  age_of_majority: 18,
 };
 export const DS_SETTINGS_COLUMNS =
-  "reminder_hours, booking_enabled, booking_lead_hours, booking_horizon_days, booking_max_upcoming, cancel_free_hours, cancellation_policy";
+  "reminder_hours, booking_enabled, booking_lead_hours, booking_horizon_days, booking_max_upcoming, cancel_free_hours, cancellation_policy, age_of_majority";
 
 // Programs (phase 2): Teen, Adult or the school's own. Classes are for
 // adults too: an Adult program has no required hours and no guardian.

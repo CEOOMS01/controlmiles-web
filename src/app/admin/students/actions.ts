@@ -197,6 +197,84 @@ export async function revokePortalLink(studentId: string): Promise<ActionState> 
   return { error: null, success: true };
 }
 
+// ---------------- client portal (2026-10-22) ----------------
+// Adult students and parents of minors sign in at /lessons with an email
+// link. The database decides who may be linked (ds_client_link: a parent
+// only for a minor, an own profile only for an adult or emancipated
+// student); ds-portal-access sends the welcome email for the token
+// ds_client_welcome_link issues, and re-checks that the caller is staff.
+
+const CLIENT_MESSAGES: Record<string, string> = {
+  NOT_A_MINOR: "A parent can only be added for a student under the age of majority, with a date of birth on file and not emancipated.",
+  STUDENT_IS_MINOR: "This student is a minor: add the parent instead. A minor gets their own access only once emancipated.",
+  NAME_REQUIRED: "Enter the first and last name.",
+  EMAIL: "Check the email address.",
+  CLIENT_REVOKED: "This person's access was turned off. Add them again to turn it back on.",
+  NOTE_REQUIRED: "Write what you saw (for example, the court order and its date).",
+};
+
+function clientError(e: { message?: string } | null): string {
+  const t = String(e?.message ?? "");
+  const k = Object.keys(CLIENT_MESSAGES).find((c) => t.includes(c));
+  return k ? CLIENT_MESSAGES[k] : AppError.from(e).display();
+}
+
+async function sendWelcome(supabase: Awaited<ReturnType<typeof createClient>>, clientId: string): Promise<string | null> {
+  const { data: token, error } = await supabase.rpc("ds_client_welcome_link", { p_client: clientId });
+  if (error || !token) return clientError(error);
+  const { error: sendError } = await supabase.functions.invoke("ds-portal-access", { body: { token } });
+  return sendError ? "Access was given, but the email didn't go out. Use “Send sign-in email” to try again." : null;
+}
+
+export async function addClientAccess(studentId: string, _p: ActionState, fd: FormData): Promise<ActionState> {
+  const relation = text(fd, "relation", 10);
+  const email = text(fd, "email", 120)?.toLowerCase() ?? "";
+  if (relation !== "guardian" && relation !== "self") return { error: "Choose who gets access.", success: false };
+  if (!EMAIL.test(email)) return { error: CLIENT_MESSAGES.EMAIL, success: false };
+  const supabase = await createClient();
+  const { data: clientId, error } = await supabase.rpc("ds_client_link", {
+    p_student: studentId,
+    p_email: email,
+    p_first_name: text(fd, "first_name", 60) ?? "",
+    p_last_name: text(fd, "last_name", 60) ?? "",
+    p_relation: relation,
+  });
+  if (error || !clientId) return { error: clientError(error), success: false };
+  revalidatePath(`/admin/students/${studentId}`);
+  const sendError = await sendWelcome(supabase, String(clientId));
+  return sendError ? { error: sendError, success: false } : { error: null, success: true };
+}
+
+export async function resendClientAccess(studentId: string, clientId: string): Promise<ActionState> {
+  const supabase = await createClient();
+  const sendError = await sendWelcome(supabase, clientId);
+  revalidatePath(`/admin/students/${studentId}`);
+  return sendError ? { error: sendError, success: false } : { error: null, success: true };
+}
+
+export async function removeClientAccess(studentId: string, clientId: string): Promise<ActionState> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("ds_client_unlink", { p_client: clientId, p_student: studentId });
+  if (error) return { error: clientError(error), success: false };
+  revalidatePath(`/admin/students/${studentId}`);
+  return { error: null, success: true };
+}
+
+// Owner or admin only (checked in ds_set_emancipation): after seeing the
+// document. Ends every parent link of the student at once.
+export async function setEmancipation(studentId: string, _p: ActionState, fd: FormData): Promise<ActionState> {
+  const on = fd.get("emancipated") === "on";
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("ds_set_emancipation", {
+    p_student: studentId,
+    p_emancipated: on,
+    p_note: text(fd, "note", 300) ?? "",
+  });
+  if (error) return { error: clientError(error), success: false };
+  revalidatePath(`/admin/students/${studentId}`);
+  return { error: null, success: true };
+}
+
 // ---------------- certificate ----------------
 export async function issueCertificate(studentId: string): Promise<ActionState> {
   const supabase = await createClient();
@@ -229,6 +307,7 @@ export async function saveDsSettings(_p: ActionState, fd: FormData): Promise<Act
     booking_max_upcoming: num("booking_max_upcoming", 2),
     cancel_free_hours: num("cancel_free_hours", 24),
     cancellation_policy: text(fd, "cancellation_policy", 1000),
+    age_of_majority: num("age_of_majority", 18),
     updated_at: new Date().toISOString(),
   };
   if (row.reminder_hours < 1 || row.reminder_hours > 168) return { error: "Reminder: 1 to 168 hours before.", success: false };
@@ -236,6 +315,7 @@ export async function saveDsSettings(_p: ActionState, fd: FormData): Promise<Act
   if (row.booking_horizon_days < 1 || row.booking_horizon_days > 90) return { error: "Booking window: 1 to 90 days.", success: false };
   if (row.booking_max_upcoming < 1 || row.booking_max_upcoming > 20) return { error: "Upcoming classes: 1 to 20.", success: false };
   if (row.cancel_free_hours < 0 || row.cancel_free_hours > 336) return { error: "Free cancellation: 0 to 336 hours.", success: false };
+  if (row.age_of_majority < 18 || row.age_of_majority > 21) return { error: "Age of majority: 18 to 21.", success: false };
   const supabase = await createClient();
   const { error } = await supabase.from("ds_settings").upsert(row, { onConflict: "organization_id" });
   if (error) return { error: AppError.from(error).display(), success: false };

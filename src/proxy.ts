@@ -74,6 +74,9 @@ function isNonLocalizedRoute(pathname: string) {
     pathname.startsWith("/invite") ||
     // Driving-school student/parent portal (link with a token, no account).
     pathname.startsWith("/student/") ||
+    // Driving-school client portal (2026-10-22): adult students and parents
+    // of minors, signed in by an email link; not fleet staff, no /login.
+    pathname.startsWith("/lessons") ||
     // Driving school public booking page (2026-10-20).
     pathname.startsWith("/book/")
   );

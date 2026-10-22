@@ -37,6 +37,7 @@ import {
   RecordPaymentForm,
   StudentForm,
 } from "../student-forms";
+import { ClientAccessBox, EmancipationForm, type ClientLink } from "../client-access";
 
 type ClassRow = {
   block_id: string;
@@ -203,7 +204,7 @@ export default async function StudentPage({
       ])
     : [{ data: [] }, { data: [] }];
 
-  const [{ data: links }, { data: certs }] = await Promise.all([
+  const [{ data: links }, { data: certs }, { data: clientRows }, { data: eman }] = await Promise.all([
     hasPortal
       ? supabase.from("ds_portal_links").select("id").eq("student_id", id).is("revoked_at", null)
       : Promise.resolve({ data: [] as { id: string }[] }),
@@ -214,6 +215,15 @@ export default async function StudentPage({
           .eq("student_id", id)
           .order("issued_at", { ascending: false })
       : Promise.resolve({ data: [] as { id: string; number: string; issued_at: string; sha256: string }[] }),
+    // Client portal (2026-10-22): who signs in at /lessons for this student.
+    hasPortal
+      ? supabase
+          .from("ds_client_students")
+          .select("client_id, relation, is_active, ended_reason, ended_at, client:ds_clients(first_name, last_name, email, last_seen_at)")
+          .eq("student_id", id)
+          .order("created_at")
+      : Promise.resolve({ data: [] }),
+    supabase.from("ds_students").select("emancipated_at, emancipation_note").eq("id", id).maybeSingle(),
   ]);
 
   const minutes = Number(progress?.minutes ?? 0);
@@ -516,6 +526,23 @@ export default async function StudentPage({
           )}
 
           {hasPortal && (
+            <Section title="Portal access">
+              <ClientAccessBox
+                studentId={id}
+                links={(clientRows ?? []) as unknown as ClientLink[]}
+                defaults={{
+                  guardian: { name: (student as Student).guardian_name ?? "", email: (student as Student).guardian_email ?? "" },
+                  self: {
+                    first: (student as Student).first_name,
+                    last: (student as Student).last_name,
+                    email: (student as Student).email ?? "",
+                  },
+                }}
+              />
+            </Section>
+          )}
+
+          {hasPortal && (
             <Section title="Student and parent link">
               <PortalLinkBox studentId={id} hasLink={(links ?? []).length > 0} />
             </Section>
@@ -524,7 +551,7 @@ export default async function StudentPage({
       )}
 
       {tab === "details" && (
-        <div className="max-w-3xl">
+        <div className="max-w-3xl space-y-6">
           <Section title="Details">
             <StudentForm
               student={student as Student}
@@ -538,6 +565,11 @@ export default async function StudentPage({
               inSheet
             />
           </Section>
+          {isAdmin && (
+            <Section title="Emancipation">
+              <EmancipationForm studentId={id} emancipatedAt={eman?.emancipated_at ?? null} note={eman?.emancipation_note ?? null} />
+            </Section>
+          )}
         </div>
       )}
     </main>

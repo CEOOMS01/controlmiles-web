@@ -470,6 +470,15 @@ export function DsSettingsForm({
             {settings.cancellation_policy && hidden("cancellation_policy", settings.cancellation_policy)}
           </>
         )}
+        <div>
+          <GroupTitle>Parents</GroupTitle>
+          <SettingRow
+            title="Age of majority"
+            help="A parent sees a student on the portal until this age, or until you record an emancipation. 18 in most states; use your state's age if it's higher."
+          >
+            <UnitInput name="age_of_majority" defaultValue={settings.age_of_majority} unit="years" min={18} max={21} />
+          </SettingRow>
+        </div>
         {showReminder ? (
           <div>
             <GroupTitle>Reminders</GroupTitle>

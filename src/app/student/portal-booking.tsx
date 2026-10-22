@@ -1,10 +1,11 @@
 "use client";
 
 // Driving school portal: book a lesson, cancel one, text reminders
-// (2026-10-19, phase 2).
+// (2026-10-19, phase 2). Used by both the student link and the client
+// portal; `access` says which one (portal-actions.ts).
 
 import { useState, useTransition } from "react";
-import { bookSlot, cancelLesson, getSlots, setSms, type Slot } from "./actions";
+import { bookSlot, cancelLesson, getSlots, setSms, type PortalAccess, type Slot } from "./portal-actions";
 
 const time12 = (t: string) => {
   const [h, m] = t.split(":").map(Number);
@@ -15,7 +16,7 @@ const day = (d: string) =>
 const btn = "rounded-lg border border-border px-3 py-1.5 text-sm transition hover:border-accent disabled:opacity-50";
 const primary = "rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground hover:opacity-90 disabled:opacity-50";
 
-export function BookLesson({ token, policy }: { token: string; policy: string | null }) {
+export function BookLesson({ access, policy }: { access: PortalAccess; policy: string | null }) {
   const [open, setOpen] = useState(false);
   const [slots, setSlots] = useState<Slot[] | null>(null);
   const [minutes, setMinutes] = useState(60);
@@ -29,7 +30,7 @@ export function BookLesson({ token, policy }: { token: string; policy: string | 
   const load = () =>
     start(async () => {
       setError(null);
-      const r = await getSlots(token);
+      const r = await getSlots(access);
       if (!r) return setError("Online booking isn't available right now.");
       setMinutes(r.minutes);
       setLanguage(r.language ?? null);
@@ -40,11 +41,11 @@ export function BookLesson({ token, policy }: { token: string; policy: string | 
   const confirm = () =>
     chosen &&
     start(async () => {
-      const r = await bookSlot(token, chosen);
+      const r = await bookSlot(access, chosen);
       if (r.error) {
         setError(r.error);
         setChosen(null);
-        const again = await getSlots(token);
+        const again = await getSlots(access);
         if (again) setSlots(again.slots);
         return;
       }
@@ -166,7 +167,7 @@ export function BookLesson({ token, policy }: { token: string; policy: string | 
   );
 }
 
-export function CancelLesson({ token, blockId, late }: { token: string; blockId: string; late: boolean }) {
+export function CancelLesson({ access, blockId, late }: { access: PortalAccess; blockId: string; late: boolean }) {
   const [ask, setAsk] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
@@ -187,7 +188,7 @@ export function CancelLesson({ token, blockId, late }: { token: string; blockId:
         disabled={pending}
         onClick={() =>
           start(async () => {
-            const r = await cancelLesson(token, blockId);
+            const r = await cancelLesson(access, blockId);
             if (r.error) setError(r.error);
           })
         }
@@ -203,7 +204,7 @@ export function CancelLesson({ token, blockId, late }: { token: string; blockId:
   );
 }
 
-export function SmsOptIn({ token, consent, phone }: { token: string; consent: boolean; phone: string | null }) {
+export function SmsOptIn({ access, consent, phone }: { access: PortalAccess; consent: boolean; phone: string | null }) {
   const [value, setValue] = useState(phone ?? "");
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
@@ -216,7 +217,7 @@ export function SmsOptIn({ token, consent, phone }: { token: string; consent: bo
           <button
             type="button"
             disabled={pending}
-            onClick={() => start(async () => setError((await setSms(token, false, "")).error))}
+            onClick={() => start(async () => setError((await setSms(access, false, "")).error))}
             className="text-accent hover:underline"
           >
             turn them off
@@ -235,7 +236,7 @@ export function SmsOptIn({ token, consent, phone }: { token: string; consent: bo
           <button
             type="button"
             disabled={pending}
-            onClick={() => start(async () => setError((await setSms(token, true, value)).error))}
+            onClick={() => start(async () => setError((await setSms(access, true, value)).error))}
             className={btn}
           >
             Text me reminders
