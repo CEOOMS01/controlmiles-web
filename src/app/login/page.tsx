@@ -2,7 +2,7 @@
 
 import { AuthShell } from "@/components/auth-shell";
 import { STAY_SIGNED_IN_COOKIE } from "@/lib/auth/session-persistence";
-import { Suspense, useActionState, useEffect, useState } from "react";
+import { Suspense, useActionState, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { signIn } from "./actions";
@@ -36,33 +36,45 @@ function PasswordResetNotice() {
 
 const REMEMBERED_EMAIL_KEY = "cm_remembered_login_email";
 
+// Read once; nothing outside this page changes these while it is open.
+function subscribeNothing() {
+  return () => {};
+}
+
+// Per-viewer convenience only, same class of thing as a remembered tab
+// or a collapsed section -- never a credential, just the email string,
+// so the read is wrapped rather than trusted (a private window or
+// blocked site data throws here, and the form must still work either
+// way).
+function readRememberedEmail() {
+  try {
+    return localStorage.getItem(REMEMBERED_EMAIL_KEY) ?? "";
+  } catch {
+    // Storage unavailable -- form just starts blank, same as before this existed.
+    return "";
+  }
+}
+
+function readStaySignedIn() {
+  return document.cookie.split("; ").includes(`${STAY_SIGNED_IN_COOKIE}=1`);
+}
+
 export default function LoginPage() {
   const [state, formAction, pending] = useActionState(signIn, { error: null });
-  const [email, setEmail] = useState("");
-  const [rememberEmail, setRememberEmail] = useState(false);
+  // Saved values are read on the client only (server snapshot is blank, so
+  // hydration matches); null state means "not touched yet, use the saved one".
+  const savedEmail = useSyncExternalStore(subscribeNothing, readRememberedEmail, () => "");
+  const savedStaySignedIn = useSyncExternalStore(subscribeNothing, readStaySignedIn, () => false);
+  const [typedEmail, setEmail] = useState<string | null>(null);
+  const [rememberChoice, setRememberEmail] = useState<boolean | null>(null);
   // "Keep me signed in" -- off by default (shared office computers). The
   // choice is a small non-secret preference cookie the server reads when it
   // sets the auth cookies, for email and Google sign-in alike. See
   // src/lib/auth/session-persistence.ts.
-  const [staySignedIn, setStaySignedIn] = useState(false);
-
-  // Per-viewer convenience only, same class of thing as a remembered tab
-  // or a collapsed section -- never a credential, just the email string,
-  // so read/write is wrapped rather than trusted (a private window or
-  // blocked site data throws here, and the form must still work either
-  // way).
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(REMEMBERED_EMAIL_KEY);
-      if (saved) {
-        setEmail(saved);
-        setRememberEmail(true);
-      }
-    } catch {
-      // Storage unavailable -- form just starts blank, same as before this existed.
-    }
-    setStaySignedIn(document.cookie.split("; ").includes(`${STAY_SIGNED_IN_COOKIE}=1`));
-  }, []);
+  const [stayChoice, setStaySignedIn] = useState<boolean | null>(null);
+  const email = typedEmail ?? savedEmail;
+  const rememberEmail = rememberChoice ?? savedEmail !== "";
+  const staySignedIn = stayChoice ?? savedStaySignedIn;
 
   function onStaySignedInChange(checked: boolean) {
     setStaySignedIn(checked);
