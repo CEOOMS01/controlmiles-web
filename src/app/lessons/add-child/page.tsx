@@ -1,7 +1,7 @@
 // Olympus Mont Systems LLC - ControlMiles Web
 // src/app/lessons/add-child/page.tsx
 //
-// A signed-in parent enrolls another child under 18 (2026-10-22). It is an
+// A signed-in parent enrolls another minor child (2026-10-22). It is an
 // enrollment request on the parent's profile: the school approves it, and
 // only then does the child appear on the portal (ds_client_add_child,
 // ds_enrollment_approve).
@@ -39,7 +39,7 @@ export default async function AddChildPage() {
       ) : (
         <>
           <p className="mt-2 text-sm text-muted">
-            For a child under 18. {p.school} confirms the enrollment; then your child appears on your portal.
+            For a child under {p.age_of_majority}. {p.school} confirms the enrollment; then your child appears on your portal.
           </p>
           <AddChildForm page={p} parentName={`${h.client.first_name} ${h.client.last_name}`} />
         </>

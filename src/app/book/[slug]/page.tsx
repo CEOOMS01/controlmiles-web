@@ -15,6 +15,7 @@ type PublicPage = {
   school: string;
   intro: string | null;
   min_age: number;
+  age_of_majority: number;
   terms_url: string | null;
   programs: { id: string; name: string }[];
   branches: { id: string; name: string }[];

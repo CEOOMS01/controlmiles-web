@@ -11,6 +11,7 @@ import { addChild, type AddChildState } from "../actions";
 export type ChildFormPage = {
   school: string;
   min_age: number;
+  age_of_majority: number;
   terms_url: string | null;
   programs: { id: string; name: string }[];
   branches: { id: string; name: string }[];

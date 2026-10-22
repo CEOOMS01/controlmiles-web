@@ -104,7 +104,7 @@ export default async function LessonsPage() {
       {home.enroll_slug && (
         <p className="mt-6 text-sm">
           <Link href="/lessons/add-child" className="font-medium text-accent hover:underline">
-            Enroll another child under 18
+            Enroll another child
           </Link>
           <span className="text-muted"> · the school confirms before the child appears here.</span>
         </p>

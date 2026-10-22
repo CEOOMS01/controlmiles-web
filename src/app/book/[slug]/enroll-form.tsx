@@ -2,7 +2,8 @@
 
 // Enrollment request form (2026-10-20). Asks only what the school needs to
 // call back: no permit number, address or ID (the office takes those at
-// intake). Under 18, a parent or guardian fills in their contact and gives
+// intake). Under the school's age of majority (18 unless the school set
+// 19-21 for its state), a parent or guardian fills in their contact and gives
 // the consent. Inside an iframe it tells the host page its height
 // (public/cm-book.js resizes the frame).
 
@@ -12,6 +13,7 @@ import { sendEnrollment, type EnrollState } from "./actions";
 type Page = {
   school: string;
   min_age: number;
+  age_of_majority: number;
   terms_url: string | null;
   programs: { id: string; name: string }[];
   branches: { id: string; name: string }[];
@@ -36,7 +38,7 @@ export function EnrollForm({ slug, page, embed }: { slug: string; page: Page; em
   const [birth, setBirth] = useState("");
   const [sms, setSms] = useState(false);
   const age = useMemo(() => ageOn(birth), [birth]);
-  const minor = age != null && age < 18;
+  const minor = age != null && age < page.age_of_majority;
   const tooYoung = age != null && age < Math.max(page.min_age, 13);
   const root = useRef<HTMLDivElement>(null);
 
@@ -122,7 +124,7 @@ export function EnrollForm({ slug, page, embed }: { slug: string; page: Page; em
           <fieldset className="space-y-4 rounded-xl border border-border bg-surface p-5">
             <legend className="px-1 text-sm font-semibold">Parent or guardian</legend>
             <p className="text-xs text-muted">
-              Required for students under 18. The parent or guardian sends this request.
+              Required for students under {page.age_of_majority}. The parent or guardian sends this request.
             </p>
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="sm:col-span-2">
