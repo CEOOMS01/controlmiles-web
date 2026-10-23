@@ -315,7 +315,7 @@ export function RecordPaymentForm({ id, studentId }: { id: string; studentId: st
 }
 
 // ---------------- portal link ----------------
-export function PortalLinkBox({ studentId, hasLink }: { studentId: string; hasLink: boolean }) {
+export function PortalLinkBox({ studentId, hasLink, host }: { studentId: string; hasLink: boolean; host?: string | null }) {
   const [url, setUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -326,7 +326,8 @@ export function PortalLinkBox({ studentId, hasLink }: { studentId: string; hasLi
       const r = await createPortalLink(studentId);
       if (r.error || !r.value) return setError(r.error);
       setError(null);
-      setUrl(`${window.location.origin}/student/${r.value}`);
+      // The school's own verified address when it has one, else ControlMiles.
+      setUrl(`${host ? `https://${host}` : window.location.origin}/student/${r.value}`);
     });
   const revoke = () =>
     start(async () => {

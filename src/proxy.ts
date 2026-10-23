@@ -111,7 +111,7 @@ async function bookFrameAncestors(pathname: string): Promise<string | undefined>
 }
 
 // A driving school's own address (level 3, 2026-10-20): any host that isn't
-// ControlMiles's shows only that school's enrollment page. The host -> page
+// ControlMiles's shows only that school's enrollment page and the student portal. The host -> page
 // map comes from ds_public_slug_for_host (verified addresses only), cached a
 // minute.
 const MAIN_HOSTS = new Set(
@@ -119,6 +119,7 @@ const MAIN_HOSTS = new Set(
     .map((h) => h.trim().toLowerCase())
     .filter(Boolean),
 );
+const PORTAL_PATH = /^\/student\/[0-9a-f]{48}(?:\/certificate\/[A-Za-z0-9._%-]{1,64})?\/?$/;
 const hostCache = new Map<string, { at: number; slug: string | null }>();
 async function schoolSlugForHost(host: string): Promise<string | null> {
   const hit = hostCache.get(host);
@@ -151,6 +152,9 @@ export async function proxy(request: NextRequest) {
     if (!slug) return new NextResponse("Not found", { status: 404 });
     const path = request.nextUrl.pathname;
     const page = `/book/${slug}`;
+    // The student/parent portal and its certificate also open on the school's
+    // own address (the link is a 48-hex secret; the page checks it itself).
+    if (PORTAL_PATH.test(path)) return updateSession(request);
     if (path !== "/" && path !== page) return NextResponse.redirect(new URL("/", request.url));
     const target = new URL(`${page}${request.nextUrl.search}`, request.url);
     return updateSession(request, await bookFrameAncestors(page), target);

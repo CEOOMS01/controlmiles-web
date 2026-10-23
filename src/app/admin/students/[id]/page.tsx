@@ -203,6 +203,12 @@ export default async function StudentPage({
       ])
     : [{ data: [] }, { data: [] }];
 
+  // The school's own verified address, so the portal link shows on its website.
+  const { data: ownPage } = hasPortal
+    ? await supabase.from("ds_public_pages").select("custom_domain, domain_status").eq("organization_id", orgId).maybeSingle()
+    : { data: null };
+  const portalHost = ownPage?.domain_status === "verified" ? ownPage.custom_domain : null;
+
   const [{ data: links }, { data: certs }] = await Promise.all([
     hasPortal
       ? supabase.from("ds_portal_links").select("id").eq("student_id", id).is("revoked_at", null)
@@ -517,7 +523,7 @@ export default async function StudentPage({
 
           {hasPortal && (
             <Section title="Student and parent link">
-              <PortalLinkBox studentId={id} hasLink={(links ?? []).length > 0} />
+              <PortalLinkBox studentId={id} hasLink={(links ?? []).length > 0} host={portalHost} />
             </Section>
           )}
         </div>
