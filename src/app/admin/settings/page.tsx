@@ -62,12 +62,6 @@ export default async function SettingsPage({
     .eq("user_id", user.id)
     .maybeSingle();
   const myRole = me?.member_role as string | undefined;
-  // Enterprise add-on: the enrollment page on the school's own address (+$29).
-  const { data: domainRow } =
-    tab === "billing"
-      ? await supabase.from("ds_public_pages").select("domain_status").eq("organization_id", orgId).maybeSingle()
-      : { data: null };
-  const domainLive = domainRow?.domain_status === "verified";
   // Driving schools: branches per plan (fn_org_branch_allowance, 2026-10-20).
   const { data: allowanceRows } =
     tab === "branches" ? await supabase.rpc("fn_org_branch_allowance", { p_org: orgId }) : { data: null };
@@ -162,11 +156,7 @@ export default async function SettingsPage({
           {tab === "billing" && (
             <SettingsSection
               title="Billing"
-              help={
-                org.industry_template === "driving_school"
-                  ? "A monthly base with 3 cars, then per extra car, billed monthly through Stripe."
-                  : "Plans are per vehicle, billed monthly through Stripe."
-              }
+              help="Your plan and invoices, billed monthly through Stripe."
             >
               <BillingSection
                 orgId={orgId}
@@ -176,9 +166,6 @@ export default async function SettingsPage({
                     ? org.subscription_tier
                     : null
                 }
-                showEnterprise={org.industry_template === "driving_school"}
-                schoolBranches={org.industry_template === "driving_school" ? branchScope.branches.length : null}
-                schoolDomainLive={domainLive}
                 currentStatus={org.subscription_status}
                 billedVehicles={org.subscription_vehicle_count ?? null}
               />

@@ -3,63 +3,26 @@
 import { useState, useTransition } from "react";
 import { useSearchParams } from "next/navigation";
 import { startFleetCheckout, openFleetBillingPortal } from "./billing-actions";
-import {
-  SCHOOL_BRANCHES,
-  SCHOOL_RATES,
-  schoolBranchExtras,
-  schoolBranchLine,
-  schoolCarsLine,
-  SCHOOL_DOMAIN_CENTS,
-  schoolMonthlyCents,
-  usd,
-  type Tier,
-} from "@/lib/school-pricing";
+import type { Tier } from "@/lib/school-pricing";
 
 const TIER_LABEL: Record<Tier, string> = { starter: "Starter", growth: "Growth", enterprise: "Enterprise" };
-const FLEET_TIER_PRICE: Record<Tier, string> = { starter: "$12.99", growth: "$19.99", enterprise: "$27.99" };
 
+// Billing shows status and the Stripe portal only. Plans and prices live on
+// the public CMFleet page (/fleet#pricing, read from the database); none are
+// repeated here, so there is a single place to change them.
 export function BillingSection({
   orgId,
   vehicleCount,
   currentTier,
   currentStatus,
   billedVehicles,
-  showEnterprise = false,
-  schoolBranches = null,
-  schoolDomainLive = false,
 }: {
   orgId: string;
   vehicleCount: number;
   currentTier: Tier | null;
-  // Enterprise is self-serve where it has features of its own (driving
-  // schools: students' report cards, portal, reminders, packages,
-  // certificates); elsewhere it stays "Contact us".
-  showEnterprise?: boolean;
   currentStatus: string | null;
   billedVehicles: number | null;
-  // Driving schools (2026-10-20): a monthly base with 3 cars, then per car,
-  // Starter up to 10 cars, and branches beyond the plan's included ones are
-  // billed (src/lib/school-pricing.ts). The active branch count; null for
-  // other services.
-  schoolBranches?: number | null;
-  // The enrollment page on the school's own address is live (+$29, Enterprise).
-  schoolDomainLive?: boolean;
 }) {
-  const isSchool = schoolBranches != null;
-  const extrasOn = (tier: Tier) => (isSchool ? schoolBranchExtras(tier, schoolBranches) : 0);
-  const tooMany = (tier: Tier) => {
-    const b = SCHOOL_BRANCHES[tier];
-    return !!b && isSchool && schoolBranches > b.max;
-  };
-  const tooManyCars = (tier: Tier) => {
-    const max = SCHOOL_RATES[tier].maxCars;
-    return isSchool && max != null && vehicleCount > max;
-  };
-  // A school's monthly total today: plan for its cars plus extra branches.
-  const schoolTotal = (tier: Tier) =>
-    schoolMonthlyCents(tier, Math.max(vehicleCount, 1)) +
-    extrasOn(tier) * (SCHOOL_BRANCHES[tier]?.extraCents ?? 0) +
-    (tier === "enterprise" && schoolDomainLive ? SCHOOL_DOMAIN_CENTS : 0);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   // Stripe returns here with ?billing=success|canceled. The plan itself is
@@ -111,31 +74,13 @@ export function BillingSection({
         )}
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-semibold">
-              {TIER_LABEL[currentTier]} —{" "}
-              {isSchool ? `${usd(schoolTotal(currentTier))}/mo` : `${FLEET_TIER_PRICE[currentTier]}/vehicle`}
-            </p>
-            {isSchool && <p className="mt-1 text-xs text-muted">{schoolCarsLine(currentTier)}</p>}
-            {isSchool && currentTier === "enterprise" && schoolDomainLive && (
-              <p className="mt-1 text-xs text-muted">Own web address for enrollment · {usd(SCHOOL_DOMAIN_CENTS)}/mo</p>
-            )}
+            <p className="text-sm font-semibold">{TIER_LABEL[currentTier]}</p>
             <p className="mt-1 text-xs text-muted">
               {vehicleCount} vehicle{vehicleCount === 1 ? "" : "s"} on file · billed via Stripe
               {billedVehicles != null && billedVehicles !== Math.max(vehicleCount, 1) && (
                 <> · currently billed for {billedVehicles}; your next invoice uses your vehicle count</>
               )}
             </p>
-            {isSchool && (
-              <p className="mt-1 text-xs text-muted">
-                {SCHOOL_BRANCHES[currentTier]
-                  ? `${schoolBranches} ${schoolBranches === 1 ? "branch" : "branches"} · ${schoolBranchLine(currentTier)}${
-                      extrasOn(currentTier) > 0
-                        ? ` · ${extrasOn(currentTier)} extra billed at ${SCHOOL_BRANCHES[currentTier]!.extra}/mo`
-                        : ""
-                    }`
-                  : "Unlimited branches included"}
-              </p>
-            )}
           </div>
           <button
             onClick={manage}
@@ -152,58 +97,28 @@ export function BillingSection({
 
   return (
     <div>
-    {returnNotice}
-    <div className={`grid gap-3 ${showEnterprise ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
-      {((showEnterprise ? ["starter", "growth", "enterprise"] : ["starter", "growth"]) as Tier[]).map((tier) => (
-        <div key={tier} className="rounded-xl border border-border bg-surface p-5">
-          <p className="text-sm font-semibold">{TIER_LABEL[tier]}</p>
-          <p className="mt-1 text-2xl font-semibold tabular-nums">
-            {isSchool ? usd(SCHOOL_RATES[tier].base) : FLEET_TIER_PRICE[tier]}
-            <span className="text-sm font-normal text-muted">{isSchool ? " / mo" : " / vehicle / mo"}</span>
-          </p>
-          {isSchool && <p className="mt-1 text-xs text-muted">{schoolCarsLine(tier)}</p>}
-          <p className="mt-1 text-xs text-muted">
-            {vehicleCount} vehicle{vehicleCount === 1 ? "" : "s"} on file today
-          </p>
-          {isSchool && (
-            <p className="mt-2 text-xs text-muted">
-              {schoolBranchLine(tier)}
-              {!tooManyCars(tier) && !tooMany(tier) && (
-                <span className="mt-1 block font-medium text-foreground">
-                  Your total today: {usd(schoolTotal(tier))}/mo
-                </span>
-              )}
-              {tooManyCars(tier) && (
-                <span className="block text-danger">
-                  You have {vehicleCount} cars; this plan allows {SCHOOL_RATES[tier].maxCars}.
-                </span>
-              )}
-              {extrasOn(tier) > 0 && !tooMany(tier) && (
-                <span className="block text-foreground">
-                  You have {schoolBranches} branches: +{extrasOn(tier)} × {SCHOOL_BRANCHES[tier]!.extra}/mo
-                </span>
-              )}
-              {tooMany(tier) && (
-                <span className="block text-danger">
-                  You have {schoolBranches} branches; this plan allows {SCHOOL_BRANCHES[tier]!.max}.
-                </span>
-              )}
-            </p>
-          )}
+      {returnNotice}
+      <p className="mb-3 text-sm text-muted">
+        See what each plan includes and what it costs at{" "}
+        <a href="/fleet#pricing" target="_blank" rel="noreferrer" className="text-accent hover:underline">
+          controlmiles.com/fleet
+        </a>
+        . The amount is confirmed on the secure Stripe page before you pay.
+      </p>
+      <div className="grid gap-3 sm:grid-cols-3">
+        {(["starter", "growth", "enterprise"] as Tier[]).map((tier) => (
           <button
+            key={tier}
             onClick={() => subscribe(tier)}
-            disabled={pending || vehicleCount === 0 || tooMany(tier) || tooManyCars(tier)}
-            className="mt-4 w-full rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={pending || vehicleCount === 0}
+            className="rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {pending ? "Starting…" : `Subscribe to ${TIER_LABEL[tier]}`}
           </button>
-        </div>
-      ))}
-      {vehicleCount === 0 && (
-        <p className="sm:col-span-2 text-xs text-muted">Add a vehicle first — billing scales with your fleet.</p>
-      )}
-      {error && <p className="sm:col-span-2 text-xs text-danger">{error}</p>}
-    </div>
+        ))}
+      </div>
+      {vehicleCount === 0 && <p className="mt-3 text-xs text-muted">Add a vehicle first — billing follows your fleet.</p>}
+      {error && <p className="mt-3 text-xs text-danger">{error}</p>}
     </div>
   );
 }
