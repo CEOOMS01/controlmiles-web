@@ -101,7 +101,7 @@ async function Hero() {
         </p>
         <div className="rise mt-10 flex flex-wrap gap-3" style={{ animationDelay: "0.42s" }}>
           <Link
-            href="/login"
+            href="/app-required"
             className="rounded-full px-6 py-3 text-sm font-semibold text-white shadow-[0_8px_20px_-8px_rgba(44,108,153,0.55)] transition hover:opacity-90"
             style={{ background: "var(--lg-blue-deep)" }}
           >
@@ -270,7 +270,6 @@ async function Features() {
     { title: t("detectionTitle"), body: t("detectionBody") },
     { title: t("odometerTitle"), body: t("odometerBody") },
     { title: t("recordTitle"), body: t("recordBody") },
-    { title: t("fleetTitle"), body: t("fleetBody") },
   ];
   return (
     <section className="mx-auto max-w-6xl px-6 py-20 sm:px-10">
@@ -281,7 +280,7 @@ async function Features() {
         {t("title")}
       </h2>
 
-      <div className="mt-12 grid gap-5 sm:grid-cols-2">
+      <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {FEATURES.map((f, i) => (
           <Reveal
             key={f.title}

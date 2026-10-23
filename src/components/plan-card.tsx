@@ -40,6 +40,7 @@ export function PlanCard({ plan, index = 0, mostPopular }: { plan: Plan; index?:
         <span className="display text-4xl font-semibold">{plan.price}</span>
         {plan.unit && <span className="text-sm text-[var(--lg-ink-dim)]">{plan.unit}</span>}
       </div>
+      {plan.acquisition && <p className="mt-1 text-sm font-medium text-[var(--lg-ink)]">{plan.acquisition}</p>}
       <ul className="mt-6 flex-1 space-y-2.5 text-sm text-[var(--lg-ink-dim)]">
         {plan.features.map((f) => (
           <li key={f} className="flex gap-2.5">
@@ -50,17 +51,22 @@ export function PlanCard({ plan, index = 0, mostPopular }: { plan: Plan; index?:
           </li>
         ))}
       </ul>
-      <Link
-        href={plan.cta.href}
-        className="mt-7 rounded-full px-5 py-2.5 text-center text-sm font-semibold transition"
-        style={
-          plan.highlight
-            ? { background: "var(--lg-blue-deep)", color: "white" }
-            : { border: "1px solid var(--lg-line)", color: "var(--lg-ink)" }
-        }
-      >
-        {plan.cta.label}
-      </Link>
+      {(() => {
+        const cls = "mt-7 rounded-full px-5 py-2.5 text-center text-sm font-semibold transition";
+        const style = plan.highlight
+          ? { background: "var(--lg-blue-deep)", color: "white" }
+          : { border: "1px solid var(--lg-line)", color: "var(--lg-ink)" };
+        // mailto: links are plain anchors; the locale-aware Link is for pages.
+        return plan.cta.href.startsWith("mailto:") ? (
+          <a href={plan.cta.href} className={cls} style={style}>
+            {plan.cta.label}
+          </a>
+        ) : (
+          <Link href={plan.cta.href} className={cls} style={style}>
+            {plan.cta.label}
+          </Link>
+        );
+      })()}
     </Reveal>
   );
 }

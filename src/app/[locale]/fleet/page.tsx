@@ -5,13 +5,12 @@
 // Fleet, pricing included. Same look as the rest of controlmiles.com
 // (landing.css, LandingNav/Footer, PlanCard) so it reads as part of the same
 // site, with Fleet's black as the accent (user: "it shouldn't look like a
-// different page"). Built after a pricing pass on the market (driving school
-// software: Software for Driving School $49 / $79 / $399 a month, DriveScout
-// $50 per user with a 5-user minimum, Teachworks base + per lesson,
-// ZoomScheduler from $49; fleet GPS: Samsara, Motive, Verizon Connect about
-// $20-45 per vehicle with 12-36 month contracts and hardware). The
-// comparison table only uses those ranges. Plans come from
-// src/lib/fleet-plans.ts, the same list /pricing shows.
+// different page"). Built after a pricing pass on the market (fleet GPS: Samsara, Motive,
+// Verizon Connect about $20-45 per vehicle with 12-36 month contracts and
+// hardware); the comparison table only uses those ranges. ONE generic price
+// list for every service (src/lib/fleet-pricing.ts, read from the database):
+// the plans name no service, and the service is chosen below the plans, where
+// the one-time acquisition of the service is shown.
 
 import Image from "next/image";
 import { getTranslations, setRequestLocale } from "next-intl/server";
@@ -21,8 +20,8 @@ import { Link } from "@/i18n/routing";
 import { LandingNav, LandingFooter } from "@/components/landing-chrome";
 import { PlanCard } from "@/components/plan-card";
 import { Reveal } from "@/components/reveal";
-import { schoolPlans } from "@/lib/fleet-plans";
-import { schoolMonthlyCents, usd } from "@/lib/school-pricing";
+import { genericFleetPlans, getFleetCatalog } from "@/lib/fleet-pricing";
+import { usd } from "@/lib/school-pricing";
 import "../landing.css";
 import "./fleet-metal.css";
 
@@ -77,7 +76,8 @@ export default async function CMFleetPage({ params }: { params: Promise<{ locale
   setRequestLocale(locale);
   const t = await getTranslations("cmfleet");
   const tp = await getTranslations("pricing");
-  const SCHOOL = schoolPlans(tp);
+  const cat = await getFleetCatalog();
+  const PLANS = genericFleetPlans(t, tp, cat);
 
   const services = [
     { key: "school", icon: ICONS.school },
@@ -187,8 +187,39 @@ export default async function CMFleetPage({ params }: { params: Promise<{ locale
         </dl>
       </section>
 
+      {/* How it works */}
+      <section className="border-y border-[var(--lg-line)] bg-[var(--lg-bg-raised)]">
+        <div className="mx-auto max-w-6xl px-6 py-20 sm:px-10">
+          <p className="mono text-xs font-medium tracking-[0.2em] text-[var(--lg-amber)]">{t("how.eyebrow")}</p>
+          <h2 className="display mt-4 text-3xl font-semibold sm:text-4xl">{t("how.title")}</h2>
+          <ol className="mt-10 grid gap-8 sm:grid-cols-3">
+            {[1, 2, 3].map((n) => (
+              <li key={n} className="border-t-2 border-[var(--lg-steel)] pt-5">
+                <span className="mono text-sm text-[var(--lg-ink-dim)]">0{n}</span>
+                <h3 className="display mt-2 text-xl font-semibold">{t(`how.step${n}Title`)}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-[var(--lg-ink-dim)]">{t(`how.step${n}Body`)}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+
+      {/* Pricing: one generic list, then the service (and its acquisition) */}
+      <section id="pricing" className="mx-auto max-w-6xl scroll-mt-24 px-6 py-16 sm:px-10">
+        <p className="mono text-xs font-medium tracking-[0.2em] text-[var(--lg-amber)]">{t("pricing.eyebrow")}</p>
+        <h2 className="display mt-4 text-3xl font-semibold sm:text-4xl">{t("pricing.title")}</h2>
+        <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[var(--lg-ink-dim)]">{t("pricing.subtitle")}</p>
+        <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          {PLANS.map((p, i) => (
+            <PlanCard key={p.name} plan={p} index={i} mostPopular={tp("mostPopular")} />
+          ))}
+        </div>
+        <p className="mt-6 max-w-2xl text-xs leading-relaxed text-[var(--lg-ink-dim)]">{t("pricing.trialNote")}</p>
+        <p className="mt-2 text-xs text-[var(--lg-ink-dim)]">{t("pricing.taxNote")}</p>
+      </section>
+
       {/* Services */}
-      <section className="mx-auto max-w-6xl px-6 py-20 sm:px-10">
+      <section id="services" className="mx-auto max-w-6xl scroll-mt-24 px-6 py-20 sm:px-10">
         <p className="mono text-xs font-medium tracking-[0.2em] text-[var(--lg-amber)]">{t("services.eyebrow")}</p>
         <h2 className="display mt-4 max-w-2xl text-3xl font-semibold sm:text-4xl">{t("services.title")}</h2>
         <p className="mt-3 max-w-xl text-sm leading-relaxed text-[var(--lg-ink-dim)]">{t("services.subtitle")}</p>
@@ -209,86 +240,27 @@ export default async function CMFleetPage({ params }: { params: Promise<{ locale
             </Reveal>
           ))}
         </div>
-      </section>
-
-      {/* How it works */}
-      <section className="border-y border-[var(--lg-line)] bg-[var(--lg-bg-raised)]">
-        <div className="mx-auto max-w-6xl px-6 py-20 sm:px-10">
-          <p className="mono text-xs font-medium tracking-[0.2em] text-[var(--lg-amber)]">{t("how.eyebrow")}</p>
-          <h2 className="display mt-4 text-3xl font-semibold sm:text-4xl">{t("how.title")}</h2>
-          <ol className="mt-10 grid gap-8 sm:grid-cols-3">
-            {[1, 2, 3].map((n) => (
-              <li key={n} className="border-t-2 border-[var(--lg-steel)] pt-5">
-                <span className="mono text-sm text-[var(--lg-ink-dim)]">0{n}</span>
-                <h3 className="display mt-2 text-xl font-semibold">{t(`how.step${n}Title`)}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-[var(--lg-ink-dim)]">{t(`how.step${n}Body`)}</p>
-              </li>
-            ))}
-          </ol>
-        </div>
-      </section>
-
-      {/* Driving schools */}
-      <section id="driving-schools" className="mx-auto max-w-6xl scroll-mt-24 px-6 py-20 sm:px-10">
-        <div className="grid gap-12 lg:grid-cols-2">
-          <div>
-            <p className="mono text-xs font-medium tracking-[0.2em] text-[var(--lg-amber)]">{t("school.eyebrow")}</p>
-            <h2 className="display mt-4 text-3xl font-semibold sm:text-4xl">{t("school.title")}</h2>
-            <p className="mt-4 text-sm leading-relaxed text-[var(--lg-ink-dim)]">{t("school.body")}</p>
-          </div>
-          <ul className="divide-y divide-[var(--lg-line)] rounded-2xl border border-[var(--lg-line)] bg-[var(--lg-bg-raised)]">
-            {[1, 2, 3, 4, 5, 6, 7].map((n) => (
-              <li key={n} className="flex gap-3 px-5 py-3.5 text-sm">
-                <Check />
-                <span>{t(`school.b${n}`)}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </section>
-
-      {/* Pricing */}
-      <section id="pricing" className="mx-auto max-w-6xl scroll-mt-24 px-6 py-16 sm:px-10">
-        <p className="mono text-xs font-medium tracking-[0.2em] text-[var(--lg-amber)]">{t("pricing.eyebrow")}</p>
-        <h2 className="display mt-4 text-3xl font-semibold sm:text-4xl">{t("pricing.title")}</h2>
-        <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[var(--lg-ink-dim)]">{t("pricing.subtitle")}</p>
-
-        <h3 className="display mt-12 text-2xl font-semibold">{t("pricing.schoolsTitle")}</h3>
-        <div className="mt-6 grid gap-5 sm:grid-cols-3">
-          {SCHOOL.map((p, i) => (
-            <PlanCard key={p.name} plan={{ ...p, cta: { label: t("hero.ctaPrimary"), href: "/signup" } }} index={i} mostPopular={tp("mostPopular")} />
-          ))}
-        </div>
-
-        {/* Examples straight from the pricing function, so they always match billing. */}
+        {/* Same acquisition for every service, from the same catalog billing uses. */}
         <div className="mt-8 overflow-x-auto rounded-2xl border border-[var(--lg-line)] bg-[var(--lg-bg-raised)]">
-          <table className="w-full min-w-[480px] text-left text-sm">
-            <caption className="px-5 pt-4 text-left font-semibold">{t("pricing.examplesTitle")}</caption>
+          <table className="w-full min-w-[420px] text-left text-sm">
+            <caption className="px-5 pt-4 text-left font-semibold">{t("services.acquisitionTitle")}</caption>
             <thead className="text-[var(--lg-ink-dim)]">
               <tr className="border-b border-[var(--lg-line)]">
-                <th scope="col" className="px-5 py-3 font-medium">{t("pricing.examplesCars")}</th>
-                {SCHOOL.map((p) => (
+                {PLANS.slice(0, 3).map((p) => (
                   <th key={p.name} scope="col" className="px-5 py-3 font-medium">{p.name}</th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-[var(--lg-line)]">
-              {[3, 5, 10, 20].map((cars) => (
-                <tr key={cars}>
-                  <th scope="row" className="mono px-5 py-3 font-medium">{cars}</th>
-                  {(["starter", "growth", "enterprise"] as const).map((tier) => (
-                    <td key={tier} className="mono px-5 py-3">
-                      {tier === "starter" && cars > 10 ? "—" : usd(schoolMonthlyCents(tier, cars))}
-                    </td>
-                  ))}
-                </tr>
-              ))}
+            <tbody>
+              <tr>
+                {cat.plans.map((p) => (
+                  <td key={p.tier} className="mono px-5 py-3">{usd(cat.acquisition[p.tier])}</td>
+                ))}
+              </tr>
             </tbody>
           </table>
-          <p className="px-5 pb-4 text-xs text-[var(--lg-ink-dim)]">{t("pricing.examplesNote")}</p>
+          <p className="px-5 pb-4 text-xs text-[var(--lg-ink-dim)]">{t("services.acquisitionNote")}</p>
         </div>
-
-        <p className="mt-6 text-xs text-[var(--lg-ink-dim)]">{t("pricing.taxNote")}</p>
       </section>
 
       {/* Comparison: the one dark band, in Fleet black. */}
@@ -306,7 +278,7 @@ export default async function CMFleetPage({ params }: { params: Promise<{ locale
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/10">
-                {[1, 2, 3, 4].map((n) => (
+                {[1, 2, 3].map((n) => (
                   <tr key={n}>
                     <th scope="row" className="px-5 py-4 font-medium">{t(`compare.r${n}`)}</th>
                     <td className="px-5 py-4 text-white/60">{t(`compare.r${n}Typical`)}</td>
@@ -329,7 +301,7 @@ export default async function CMFleetPage({ params }: { params: Promise<{ locale
       <section className="mx-auto max-w-3xl px-6 py-20 sm:px-10">
         <h2 className="display text-3xl font-semibold">{t("faq.title")}</h2>
         <div className="mt-8 divide-y divide-[var(--lg-line)] border-y border-[var(--lg-line)]">
-          {[1, 2, 3, 4, 5].map((n) => (
+          {[1, 2, 3, 4, 5, 6].map((n) => (
             <details key={n} className="group">
               <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-4 font-medium [&::-webkit-details-marker]:hidden">
                 {t(`faq.q${n}`)}

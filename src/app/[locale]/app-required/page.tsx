@@ -91,7 +91,7 @@ export default async function AppRequiredPage({ params }: { params: Promise<{ lo
 
         <p className="mt-10 text-xs leading-relaxed text-[var(--lg-ink-dim)]">
           {t("fleetNote")}{" "}
-          <Link href="/pricing#driving-schools" className="font-semibold text-[var(--lg-blue-deep)] underline">
+          <Link href="/fleet#pricing" className="font-semibold text-[var(--lg-blue-deep)] underline">
             {t("fleetLink")}
           </Link>
         </p>
