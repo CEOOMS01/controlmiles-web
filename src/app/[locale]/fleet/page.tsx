@@ -21,7 +21,7 @@ import { Link } from "@/i18n/routing";
 import { LandingNav, LandingFooter } from "@/components/landing-chrome";
 import { PlanCard } from "@/components/plan-card";
 import { Reveal } from "@/components/reveal";
-import { fleetPlans, schoolPlans } from "@/lib/fleet-plans";
+import { schoolPlans } from "@/lib/fleet-plans";
 import { schoolMonthlyCents, usd } from "@/lib/school-pricing";
 import "../landing.css";
 import "./fleet-metal.css";
@@ -78,7 +78,6 @@ export default async function CMFleetPage({ params }: { params: Promise<{ locale
   const t = await getTranslations("cmfleet");
   const tp = await getTranslations("pricing");
   const SCHOOL = schoolPlans(tp);
-  const FLEET = fleetPlans(tp);
 
   const services = [
     { key: "school", icon: ICONS.school },
@@ -289,13 +288,6 @@ export default async function CMFleetPage({ params }: { params: Promise<{ locale
           <p className="px-5 pb-4 text-xs text-[var(--lg-ink-dim)]">{t("pricing.examplesNote")}</p>
         </div>
 
-        <h3 className="display mt-16 text-2xl font-semibold">{t("pricing.fleetsTitle")}</h3>
-        <p className="mt-1 text-sm text-[var(--lg-ink-dim)]">{t("pricing.fleetsNote")}</p>
-        <div className="mt-6 grid gap-5 sm:grid-cols-3">
-          {FLEET.map((p, i) => (
-            <PlanCard key={p.name} plan={{ ...p, cta: { label: t("hero.ctaPrimary"), href: "/signup" } }} index={i} mostPopular={tp("mostPopular")} />
-          ))}
-        </div>
         <p className="mt-6 text-xs text-[var(--lg-ink-dim)]">{t("pricing.taxNote")}</p>
       </section>
 

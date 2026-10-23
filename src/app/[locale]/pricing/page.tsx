@@ -50,7 +50,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { alternatesFor } from "@/i18n/metadata";
 import { LandingNav, LandingFooter } from "@/components/landing-chrome";
 import { Fraunces, Public_Sans, IBM_Plex_Mono } from "next/font/google";
-import { fleetPlans, schoolPlans, type Plan } from "@/lib/fleet-plans";
+import { schoolPlans, type Plan } from "@/lib/fleet-plans";
 import { PlanCard } from "@/components/plan-card";
 import "../landing.css";
 
@@ -112,7 +112,6 @@ export default async function PricingPage({
   setRequestLocale(locale);
   const t = await getTranslations("pricing");
   const GIG_PLANS = gigPlans(t);
-  const FLEET_PLANS = fleetPlans(t);
   const SCHOOL_PLANS = schoolPlans(t);
 
   return (
@@ -147,18 +146,6 @@ export default async function PricingPage({
         </p>
         <div className="mt-6 grid gap-5 sm:grid-cols-2">
           {GIG_PLANS.map((p, i) => (
-            <PlanCard key={p.name} plan={p} index={i} mostPopular={t("mostPopular")} />
-          ))}
-        </div>
-      </section>
-
-      <section id="fleets" className="mx-auto max-w-6xl scroll-mt-24 px-6 py-12 sm:px-10">
-        <h2 className="display text-2xl font-semibold">{t("forFleets")}</h2>
-        <p className="mt-1 text-sm text-[var(--lg-ink-dim)]">
-          {t("forFleetsNote")}
-        </p>
-        <div className="mt-6 grid gap-5 sm:grid-cols-3">
-          {FLEET_PLANS.map((p, i) => (
             <PlanCard key={p.name} plan={p} index={i} mostPopular={t("mostPopular")} />
           ))}
         </div>

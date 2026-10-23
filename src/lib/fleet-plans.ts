@@ -21,59 +21,6 @@ export type Plan = {
   highlight?: boolean;
 };
 
-export const fleetPlans = (t: T): Plan[] => [
-  {
-    name: t("plans.starterName"),
-    price: "$12.99",
-    unit: t("perVehicle"),
-    tagline: t("plans.starterTagline"),
-    features: [
-      t("features.rosters"),
-      t("features.gpsPerDriver"),
-      t("features.odometerVerification"),
-      t("features.portalAnyDriver"),
-      t("features.revocation"),
-      t("features.dvir"),
-      t("features.fuelMaintenance"),
-      t("features.serviceStarter"),
-    ],
-    cta: { label: t("signInFleet"), href: "/login" },
-  },
-  {
-    name: t("plans.growthName"),
-    price: "$19.99",
-    unit: t("perVehicle"),
-    tagline: t("plans.growthTagline"),
-    features: [
-      t("features.everythingStarter"),
-      t("features.liveMap"),
-      t("features.routesGeofences"),
-      t("features.assignmentModes"),
-      t("features.fleetExport"),
-      t("features.activityLog"),
-      t("features.safetyScores"),
-      t("features.fuelAlerts"),
-      t("features.shiftScheduling"),
-      t("features.serviceGrowth"),
-    ],
-    cta: { label: t("signInFleet"), href: "/login" },
-    highlight: true,
-  },
-  {
-    name: t("plans.enterpriseName"),
-    price: t("plans.enterprisePrice"),
-    unit: t("perVehicle"),
-    tagline: t("plans.enterpriseTagline"),
-    features: [
-      t("features.everythingGrowth"),
-      t("features.onboarding"),
-      t("features.customReporting"),
-      t("features.prioritySupport"),
-    ],
-    cta: { label: t("signInFleet"), href: "/login" },
-  },
-];
-
 // Driving schools (2026-10-20): a base with 3 cars, then per car, and a branch allowance
 // (src/lib/school-pricing.ts); every line maps to a feature of that plan.
 export const schoolPlans = (t: T): Plan[] => [
