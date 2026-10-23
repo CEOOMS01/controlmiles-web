@@ -13,6 +13,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { selectAll, selectAllIn } from "@/lib/supabase/fetch-all";
+import { csvCell } from "@/lib/csv";
 import { RELEASE_REASON_LABEL, dueStopIds, loadRodeAm, runStatuses, type RiderStatus } from "./school-status";
 
 export type AttendanceStatus = "Present" | "Released" | "Absent" | "Unresolved" | "Pending";
@@ -166,10 +167,7 @@ export function attendanceTotals(rows: AttendanceRow[]) {
 }
 
 export function attendanceCsv(rows: AttendanceRow[], timezone: string): string {
-  const esc = (v: string | null) => {
-    const s = v ?? "";
-    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-  };
+  const esc = (v: string | null) => csvCell(v);
   const time = (iso: string | null) =>
     iso ? new Date(iso).toLocaleTimeString("en-US", { timeZone: timezone, hour: "numeric", minute: "2-digit" }) : "";
   const header = ["Date", "Student", "District student ID", "Grade", "School", "Route", "Run", "Status", "Time", "Stop", "Note"];

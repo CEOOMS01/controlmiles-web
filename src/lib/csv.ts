@@ -66,17 +66,32 @@ export function parseCsvToObjects(text: string): Record<string, string>[] {
   });
 }
 
-function csvEscape(value: string): string {
-  if (/[",\n]/.test(value)) {
-    return `"${value.replace(/"/g, '""')}"`;
+// CSV formula injection: a text cell that starts with = + - @ (or a tab or
+// carriage return) is run as a formula when the file is opened in Excel or
+// Sheets. Names reach our exports from public forms (driving school
+// enrollment, parents), so every text cell is neutralized with a leading
+// apostrophe. A plain number ("-12.5", "3") is left alone so negative
+// figures stay numbers. Every CSV the app writes goes through csvCell.
+const FORMULA_START = /^[=+\-@\t\r]/;
+const PLAIN_NUMBER = /^[+-]?\d+(\.\d+)?$/;
+
+export function neutralizeFormula(text: string): string {
+  return FORMULA_START.test(text) && !PLAIN_NUMBER.test(text) ? `'${text}` : text;
+}
+
+/** One CSV cell: formula-safe, quoted when it needs it (or always, with `alwaysQuote`). */
+export function csvCell(value: string | number | null | undefined, alwaysQuote = false): string {
+  const text = typeof value === "number" ? String(value) : neutralizeFormula(String(value ?? ""));
+  if (alwaysQuote || /[",\r\n]/.test(text)) {
+    return `"${text.replace(/"/g, '""')}"`;
   }
-  return value;
+  return text;
 }
 
 export function toCsv(header: string[], rows: (string | number)[][]): string {
-  const lines = [header.map((h) => csvEscape(h)).join(",")];
+  const lines = [header.map((h) => csvCell(h)).join(",")];
   for (const row of rows) {
-    lines.push(row.map((v) => csvEscape(String(v))).join(","));
+    lines.push(row.map((v) => csvCell(v)).join(","));
   }
   return lines.join("\n");
 }

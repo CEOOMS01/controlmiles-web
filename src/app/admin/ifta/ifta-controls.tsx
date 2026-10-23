@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { csvCell } from "@/lib/csv";
 import { FUEL_LABEL, type IftaFuel, type IftaPurchase, type IftaReturn, type IftaVehicle } from "@/lib/ifta";
 import { correctFuelPurchase, setVehicleIfta } from "./actions";
 
@@ -179,7 +180,7 @@ export function PurchaseIftaRow({
  *  the figures a base jurisdiction's return asks for, line by line. */
 export function ExportIftaCsv({ ret, labels }: { ret: IftaReturn; labels: Record<string, string> }) {
   function download() {
-    const esc = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`;
+    const esc = (v: string | number) => csvCell(v, true);
     const row = (cells: (string | number)[]) => cells.map(esc).join(",");
     const lines: string[] = [row([`IFTA return ${ret.quarter}`])];
     for (const s of ret.sections) {

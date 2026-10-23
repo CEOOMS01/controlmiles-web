@@ -7,7 +7,11 @@
 // (public/cm-book.js resizes the frame).
 
 import { useActionState, useEffect, useMemo, useRef, useState } from "react";
-import { sendEnrollment, type EnrollState } from "./actions";
+import { sendEnrollment, type EnrollState } from "./send-enrollment";
+
+// Cloudflare Turnstile (optional): on when the site key is set in Vercel;
+// the secret key lives in the Supabase function ds-public-enroll.
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";
 
 type Page = {
   school: string;
@@ -39,6 +43,22 @@ export function EnrollForm({ slug, page, embed }: { slug: string; page: Page; em
   const minor = age != null && age < 18;
   const tooYoung = age != null && age < Math.max(page.min_age, 13);
   const root = useRef<HTMLDivElement>(null);
+
+  // Load the Turnstile script once (added after mount, by our own script, so
+  // the page's script nonce policy allows it).
+  useEffect(() => {
+    if (!TURNSTILE_SITE_KEY || document.querySelector("script[data-turnstile]")) return;
+    const s = document.createElement("script");
+    s.src = "https://challenges.cloudflare.com/turnstile/v0/api.js";
+    s.async = true;
+    s.defer = true;
+    s.dataset.turnstile = "1";
+    document.head.appendChild(s);
+  }, []);
+  // A token works once: after a refused request ask for a new one.
+  useEffect(() => {
+    if (state.error) (window as unknown as { turnstile?: { reset: () => void } }).turnstile?.reset();
+  }, [state]);
 
   // Embedded: report the height so the school's page can size the frame.
   useEffect(() => {
@@ -226,6 +246,8 @@ export function EnrollForm({ slug, page, embed }: { slug: string; page: Page; em
           </label>
         </fieldset>
 
+        {/* Captcha: only when NEXT_PUBLIC_TURNSTILE_SITE_KEY is set; the widget adds its token to the form. */}
+        {TURNSTILE_SITE_KEY && <div className="cf-turnstile" data-sitekey={TURNSTILE_SITE_KEY} />}
         {state.error && (
           <p role="alert" className="text-sm text-danger">
             {state.error}

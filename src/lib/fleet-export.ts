@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { AppError } from "@/lib/errors";
 import { getBranchScope } from "@/lib/branch-scope";
+import { csvCell } from "@/lib/csv";
 
 export type FleetExportRow = {
   user_id: string;
@@ -108,7 +109,7 @@ function vehiclesLabel(vehicles: FleetExportRow["vehicles"]): string {
 }
 
 export function toCsv(result: FleetExportResult): string {
-  const escape = (v: string) => `"${v.replace(/"/g, '""')}"`;
+  const escape = (v: string) => csvCell(v, true);
   const header = ["Driver", "Driver ID", "Total Miles", "Sessions", "Vehicles"];
   const lines = [header.map(escape).join(",")];
 

@@ -13,7 +13,10 @@ function buildCsp(nonce: string, frameAncestors = "'none'") {
 
   return [
     "default-src 'self'",
-    `script-src ${scriptSrc}`,
+    // challenges.cloudflare.com: Cloudflare Turnstile captcha on the driving
+    // school public enrollment page (script, its iframe and its requests).
+    `script-src ${scriptSrc} https://challenges.cloudflare.com`,
+    "frame-src https://challenges.cloudflare.com",
     "style-src 'self' 'unsafe-inline'",
     // *.tile.openstreetmap.org: still used by admin/geofences and
     // portal/verify's Leaflet maps (not touched in the 2026-09-21 swap
@@ -49,7 +52,7 @@ function buildCsp(nonce: string, frameAncestors = "'none'") {
     // itself (NEXT_PUBLIC_FLEET_MAP_PMTILES_URL) -- *.r2.dev covers
     // Cloudflare's default public bucket subdomain; replace/extend with
     // your own custom domain once the bucket uses one instead.
-    "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://photon.komoot.io https://cgc-cre.vercel.app https://protomaps.github.io https://*.r2.dev",
+    "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://photon.komoot.io https://cgc-cre.vercel.app https://protomaps.github.io https://*.r2.dev https://challenges.cloudflare.com",
     // 'none' everywhere except a driving school's public booking page
     // (/book/<slug>), which the school may embed on its own site
     // (ds_public_origins; see proxy.ts).
