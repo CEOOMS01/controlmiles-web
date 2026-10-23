@@ -12,6 +12,7 @@
 // arrived (or the run is completed); boarding before that just turns blue.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { selectAll, selectAllIn } from "@/lib/supabase/fetch-all";
 
 export type RiderStatus = "blue" | "red" | "yellow" | "gray" | "expected" | "pending" | "on_board";
 
@@ -101,19 +102,28 @@ export async function loadRodeAm(
   from: string,
   to: string,
 ): Promise<Set<string>> {
-  const { data: amRuns } = await supabase
-    .from("route_runs")
-    .select("id, run_date, routes!inner(route_type)")
-    .eq("organization_id", orgId)
-    .eq("routes.route_type", "school_am")
-    .gte("run_date", from)
-    .lte("run_date", to);
-  if (!amRuns?.length) return new Set();
+  const amRuns = await selectAll<{ id: string; run_date: string }>((a, b) =>
+    supabase
+      .from("route_runs")
+      .select("id, run_date, routes!inner(route_type)")
+      .eq("organization_id", orgId)
+      .eq("routes.route_type", "school_am")
+      .gte("run_date", from)
+      .lte("run_date", to)
+      .order("run_date")
+      .order("id")
+      .range(a, b),
+  );
+  if (!amRuns.length) return new Set();
   const dateOf = new Map(amRuns.map((r) => [r.id, r.run_date as string]));
-  const { data: boards } = await supabase
-    .from("ridership_events")
-    .select("run_id, student_id")
-    .in("run_id", [...dateOf.keys()])
-    .eq("action", "board");
-  return new Set((boards ?? []).map((b) => `${dateOf.get(b.run_id)}:${b.student_id}`));
+  const boards = await selectAllIn<{ run_id: string; student_id: string }>([...dateOf.keys()], (chunk, a, b) =>
+    supabase
+      .from("ridership_events")
+      .select("run_id, student_id")
+      .in("run_id", chunk)
+      .eq("action", "board")
+      .order("id")
+      .range(a, b),
+  );
+  return new Set(boards.map((b) => `${dateOf.get(b.run_id)}:${b.student_id}`));
 }

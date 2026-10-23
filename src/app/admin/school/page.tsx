@@ -119,7 +119,10 @@ export default async function SchoolLivePage() {
     const visited = new Set((events ?? []).filter((e) => run && e.run_id === run.id).map((e) => e.stop_id));
     const riders = (assignments ?? []).filter((a) => a.route_id === r.id && a.action === "board").length;
     const rides = (ridership ?? []).filter((e) => run && e.run_id === run.id);
-    const onBoard = rides.filter((e) => e.action === "board").length - rides.filter((e) => e.action === "alight").length;
+    // Per student: a drop-off recorded for a child never marked on must not
+    // hide another child who is still on the bus.
+    const alighted = new Set(rides.filter((e) => e.action === "alight").map((e) => e.student_id));
+    const onBoard = new Set(rides.filter((e) => e.action === "board" && !alighted.has(e.student_id)).map((e) => e.student_id)).size;
     const alerts = run
       ? [
           ...runStatuses({
@@ -179,7 +182,7 @@ export default async function SchoolLivePage() {
       state,
       detail,
       progress: `${routeStops.filter((s) => visited.has(s.id)).length}/${routeStops.length} stops`,
-      onBoard: Math.max(0, onBoard),
+      onBoard,
       riders,
       alerts,
     };

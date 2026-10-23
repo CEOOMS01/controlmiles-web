@@ -12,6 +12,7 @@
 // page and the CSV the contractor sends to the county school district.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { selectAll, selectAllIn } from "@/lib/supabase/fetch-all";
 import { RELEASE_REASON_LABEL, dueStopIds, loadRodeAm, runStatuses, type RiderStatus } from "./school-status";
 
 export type AttendanceStatus = "Present" | "Released" | "Absent" | "Unresolved" | "Pending";
@@ -48,43 +49,68 @@ export async function loadAttendance(
   to: string,
   routeId?: string | null,
 ): Promise<AttendanceRow[]> {
-  let runsQuery = supabase
-    .from("route_runs")
-    .select("id, route_id, run_date, status, routes(name, route_type)")
-    .eq("organization_id", orgId)
-    .gte("run_date", from)
-    .lte("run_date", to)
-    .order("run_date");
-  if (routeId) runsQuery = runsQuery.eq("route_id", routeId);
-  const { data: runs } = await runsQuery;
-  if (!runs?.length) return [];
+  // The report goes to the school district: every read pages through the
+  // whole result and any error is thrown (see lib/supabase/fetch-all.ts). A
+  // report with students silently missing is worse than no report.
+  const runs = await selectAll<{
+    id: string;
+    route_id: string;
+    run_date: string;
+    status: string;
+    routes: { name: string; route_type: string } | { name: string; route_type: string }[] | null;
+  }>((a, b) => {
+    let q = supabase
+      .from("route_runs")
+      .select("id, route_id, run_date, status, routes(name, route_type)")
+      .eq("organization_id", orgId)
+      .gte("run_date", from)
+      .lte("run_date", to);
+    if (routeId) q = q.eq("route_id", routeId);
+    return q.order("run_date").order("id").range(a, b);
+  });
+  if (!runs.length) return [];
 
   const routeIds = [...new Set(runs.map((r) => r.route_id))];
   const runIds = runs.map((r) => r.id);
-  const [{ data: assignments }, { data: events }, { data: reached }, { data: students }, { data: schools }, { data: stops }, rodeAm] =
-    await Promise.all([
-      supabase.from("student_stop_assignments").select("route_id, student_id, stop_id, action").in("route_id", routeIds),
-      supabase.from("ridership_events").select("run_id, student_id, stop_id, action, at, reason, note").in("run_id", runIds),
-      supabase.from("route_stop_events").select("run_id, stop_id, arrived_at, departed_at").in("run_id", runIds),
-      supabase.from("students").select("id, first_name, last_initial, grade, external_id, school_site_id").eq("organization_id", orgId),
-      supabase.from("school_sites").select("id, name").eq("organization_id", orgId),
-      supabase.from("route_stops").select("id, name").in("route_id", routeIds),
-      loadRodeAm(supabase, orgId, from, to),
-    ]);
+  type Assignment = { route_id: string; student_id: string; stop_id: string; action: string };
+  type Ride = { run_id: string; student_id: string; stop_id: string | null; action: string; at: string; reason: string | null; note: string | null };
+  type Reached = { run_id: string; stop_id: string; arrived_at: string; departed_at: string | null };
+  type StudentRow = { id: string; first_name: string; last_initial: string | null; grade: string | null; external_id: string | null; school_site_id: string | null };
+  const [assignments, events, reached, students, schools, stops, rodeAm] = await Promise.all([
+    selectAllIn<Assignment>(routeIds, (c, a, b) =>
+      supabase.from("student_stop_assignments").select("route_id, student_id, stop_id, action").in("route_id", c).order("id").range(a, b),
+    ),
+    selectAllIn<Ride>(runIds, (c, a, b) =>
+      supabase.from("ridership_events").select("run_id, student_id, stop_id, action, at, reason, note").in("run_id", c).order("id").range(a, b),
+    ),
+    selectAllIn<Reached>(runIds, (c, a, b) =>
+      supabase.from("route_stop_events").select("run_id, stop_id, arrived_at, departed_at").in("run_id", c).order("id").range(a, b),
+    ),
+    selectAll<StudentRow>((a, b) =>
+      supabase.from("students").select("id, first_name, last_initial, grade, external_id, school_site_id").eq("organization_id", orgId).order("id").range(a, b),
+    ),
+    selectAll<{ id: string; name: string }>((a, b) =>
+      supabase.from("school_sites").select("id, name").eq("organization_id", orgId).order("id").range(a, b),
+    ),
+    selectAllIn<{ id: string; name: string }>(routeIds, (c, a, b) =>
+      supabase.from("route_stops").select("id, name").in("route_id", c).order("id").range(a, b),
+    ),
+    loadRodeAm(supabase, orgId, from, to),
+  ]);
 
-  const studentById = new Map((students ?? []).map((s) => [s.id, s]));
-  const schoolName = new Map((schools ?? []).map((s) => [s.id, s.name]));
-  const stopName = new Map((stops ?? []).map((s) => [s.id, s.name]));
+  const studentById = new Map(students.map((s) => [s.id, s]));
+  const schoolName = new Map(schools.map((s) => [s.id, s.name]));
+  const stopName = new Map(stops.map((s) => [s.id, s.name]));
 
   const rows: AttendanceRow[] = [];
   for (const run of runs) {
     const route = Array.isArray(run.routes) ? run.routes[0] : run.routes;
-    const routeAssignments = (assignments ?? []).filter((x) => x.route_id === run.route_id);
-    const rides = (events ?? []).filter((e) => e.run_id === run.id);
+    const routeAssignments = assignments.filter((x) => x.route_id === run.route_id);
+    const rides = events.filter((e) => e.run_id === run.id);
     const statuses = runStatuses({
       routeType: route?.route_type ?? "school_am",
       completed: run.status === "completed",
-      dueStops: dueStopIds((reached ?? []).filter((e) => e.run_id === run.id)),
+      dueStops: dueStopIds(reached.filter((e) => e.run_id === run.id)),
       assignments: routeAssignments,
       rides,
       rodeAm: (studentId) => rodeAm.has(`${run.run_date}:${studentId}`),

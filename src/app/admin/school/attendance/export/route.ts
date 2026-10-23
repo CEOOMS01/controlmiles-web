@@ -23,7 +23,14 @@ export async function GET(request: Request) {
   const routeId = url.searchParams.get("route") || null;
 
   const { data: org } = await supabase.from("organizations").select("name, timezone").eq("id", orgId).maybeSingle();
-  const rows = await loadAttendance(supabase, orgId, from, to, routeId);
+  let rows: Awaited<ReturnType<typeof loadAttendance>>;
+  try {
+    rows = await loadAttendance(supabase, orgId, from, to, routeId);
+  } catch (e) {
+    // Never send a CSV with students missing to the school district.
+    console.error("[attendance export] failed:", e);
+    return new Response("The report could not be built completely. Try again.", { status: 500 });
+  }
   const csv = attendanceCsv(rows, org?.timezone ?? "America/New_York");
   const name = `attendance-${(org?.name ?? "fleet").replace(/[^a-z0-9]+/gi, "-").toLowerCase()}-${from}-to-${to}.csv`;
   return new Response(csv, {

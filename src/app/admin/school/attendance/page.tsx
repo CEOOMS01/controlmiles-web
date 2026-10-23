@@ -42,16 +42,24 @@ export default async function AttendancePage({
   const from = sp.from && DATE.test(sp.from) ? sp.from : shiftDate(to, -6);
   const routeId = sp.route || null;
 
-  const [{ data: routes }, rows, branding] = await Promise.all([
+  // A failed read must never show as a short report: say so on the page.
+  const [{ data: routes }, loaded, branding] = await Promise.all([
     supabase
       .from("routes")
       .select("id, name")
       .eq("organization_id", orgId)
       .in("route_type", ["school_am", "school_pm"])
       .order("name"),
-    loadAttendance(supabase, orgId, from, to, routeId),
+    loadAttendance(supabase, orgId, from, to, routeId).then(
+      (r) => ({ rows: r, failed: false }),
+      (e: unknown) => {
+        console.error("[attendance] report failed:", e);
+        return { rows: [] as Awaited<ReturnType<typeof loadAttendance>>, failed: true };
+      },
+    ),
     loadReportBranding(supabase, orgId),
   ]);
+  const rows = loaded.rows;
 
   const totals = attendanceTotals(rows);
   const alerts = rows.filter((r) => r.status === "Released" || r.status === "Unresolved");
@@ -61,6 +69,12 @@ export default async function AttendancePage({
 
   return (
     <main className="space-y-6 mx-auto w-full max-w-6xl px-5 py-7 sm:px-8 lg:py-8">
+      {loaded.failed && (
+        <p className="rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm font-semibold text-red-700">
+          The report could not be loaded completely, so nothing is shown. Reload the page; do not send a partial
+          report to the school district.
+        </p>
+      )}
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="flex items-center gap-4">
           {branding.logoUrl && (
