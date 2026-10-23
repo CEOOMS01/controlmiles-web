@@ -160,22 +160,19 @@ export async function recordPayment(_p: ActionState, fd: FormData): Promise<Acti
   const id = text(fd, "id", 40);
   const studentId = text(fd, "student_id", 40);
   if (!id || !studentId) return { error: "Invalid package.", success: false };
-  const supabase = await createClient();
-  const { data: row } = await supabase
-    .from("ds_student_packages")
-    .select("price_cents, amount_paid_cents")
-    .eq("id", id)
-    .maybeSingle();
-  if (!row) return { error: "Package not found.", success: false };
   const add = Math.round(Number(text(fd, "amount", 12) ?? "0") * 100) || 0;
   if (add <= 0) return { error: "Enter the amount received.", success: false };
-  const paid = row.amount_paid_cents + add;
-  const status = paid >= row.price_cents ? "paid" : "partial";
-  const { error } = await supabase
-    .from("ds_student_packages")
-    .update({ amount_paid_cents: paid, payment_status: status })
-    .eq("id", id);
-  if (error) return { error: AppError.from(error).display(), success: false };
+  // One locked step in the database (ds_record_payment): two payments at the
+  // same moment cannot overwrite each other, and one larger than the balance
+  // due is refused.
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("ds_record_payment", { p_package: id, p_amount_cents: add });
+  if (error) {
+    const msg = String(error.message ?? "");
+    if (msg.includes("PAYMENT_EXCEEDS_BALANCE")) return { error: "That is more than the balance due.", success: false };
+    if (msg.includes("PACKAGE_NOT_FOUND")) return { error: "Package not found.", success: false };
+    return { error: AppError.from(error).display(), success: false };
+  }
   revalidatePath(`/admin/students/${studentId}`);
   return { error: null, success: true };
 }
