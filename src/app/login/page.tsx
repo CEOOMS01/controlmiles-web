@@ -55,6 +55,9 @@ export default function LoginPage() {
     try {
       const saved = localStorage.getItem(REMEMBERED_EMAIL_KEY);
       if (saved) {
+        // Reading browser storage after mount is the point of this effect
+        // (it cannot be read during server rendering).
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setEmail(saved);
         setRememberEmail(true);
       }

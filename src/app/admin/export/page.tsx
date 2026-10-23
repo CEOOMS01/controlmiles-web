@@ -1,4 +1,3 @@
-import { createClient } from "@/lib/supabase/server";
 import { getAuthedProfile } from "@/lib/supabase/org-context";
 import { getBranchScope } from "@/lib/branch-scope";
 import { ExportForm } from "./export-form";
@@ -14,7 +13,6 @@ import { requireFeature } from "@/lib/fleet-features";
 // component) since Server Components can't hold that state themselves.
 export default async function ExportPage() {
   await requireFeature("fleet_export");
-  const supabase = await createClient();
   const { user, profile } = await getAuthedProfile();
   if (!user) return null;
   const orgId = profile?.default_org_id;

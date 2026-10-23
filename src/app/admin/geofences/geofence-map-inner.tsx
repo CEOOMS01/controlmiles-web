@@ -105,7 +105,9 @@ export default function GeofenceMapInner({
   // parent) -- read through a ref inside the one-time click handler
   // instead of re-registering the map click listener on every render.
   const onPickCenterRef = useRef(onPickCenter);
-  onPickCenterRef.current = onPickCenter;
+  useEffect(() => {
+    onPickCenterRef.current = onPickCenter;
+  });
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;

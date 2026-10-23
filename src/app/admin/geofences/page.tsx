@@ -37,7 +37,6 @@ export default async function GeofencesPage() {
     v.nickname || [v.make, v.model].filter(Boolean).join(" ") || v.display_id || "Vehicle";
 
   const vehicleById = new Map((vehicles ?? []).map((v) => [v.id, v]));
-  const geofenceById = new Map((geofences ?? []).map((g) => [g.id, g]));
 
   const mapVehicles = (vehicles ?? [])
     .filter((v) => v.last_latitude != null && v.last_longitude != null)
