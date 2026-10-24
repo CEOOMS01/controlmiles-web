@@ -195,8 +195,8 @@ export function AddressAutocompleteInput({
       {located && !resetOnPick && <p className="mt-1.5 text-xs text-success">✓ Located</p>}
       <p className="mt-1.5 text-[11px] leading-snug text-muted">
         {kind === "personal"
-          ? "Only the address is looked up, with the U.S. Census Bureau Geocoder (not endorsed or certified by the Census Bureau). No names are sent."
-          : "Address lookup: U.S. Census Bureau Geocoder (not endorsed or certified by the Census Bureau) and © OpenStreetMap contributors."}
+          ? "Only the address is looked up, on our own servers with U.S. Census Bureau data (not endorsed or certified by the Census Bureau). No names are sent."
+          : "Address lookup: our own geocoder (U.S. Census Bureau data, not endorsed or certified by the Census Bureau), Geoapify and © OpenStreetMap contributors."}
       </p>
     </div>
   );

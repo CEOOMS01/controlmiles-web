@@ -18,6 +18,7 @@ export async function searchAddress(query: string, kind: GeoKind): Promise<Addre
   if (q.length < 5) return { results: [], error: "Type the street number, street and city." };
   if (q.length > 200) return { results: [], error: "That address is too long." };
   const supabase = await createClient();
-  const { results } = await geocode(supabase, orgId, q, kind === "personal" ? "personal" : "place");
+  const { results, unavailable } = await geocode(supabase, orgId, q, kind === "personal" ? "personal" : "place");
+  if (unavailable) return { results: [], error: "The address lookup is not available right now. Try again in a few minutes." };
   return { results, error: null };
 }

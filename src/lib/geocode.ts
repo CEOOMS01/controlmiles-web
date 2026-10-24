@@ -88,6 +88,25 @@ export async function censusGeocode(query: string): Promise<GeoResult[]> {
   }));
 }
 
+/**
+ * Geoapify (free plan: 3,000 credits a day, commercial use allowed with
+ * attribution). Only for non-personal places: it keeps the request body for up
+ * to 24 hours on EU servers and its terms say nothing about children's data.
+ */
+export async function geoapifyGeocode(query: string): Promise<GeoResult[]> {
+  const key = process.env.GEOAPIFY_KEY;
+  if (!key) throw new Error("no geoapify key");
+  const url =
+    "https://api.geoapify.com/v1/geocode/search?format=json&limit=5&filter=countrycode:us&text=" +
+    encodeURIComponent(query) +
+    "&apiKey=" +
+    encodeURIComponent(key);
+  const res = await fetch(url, { signal: AbortSignal.timeout(7000), cache: "no-store" });
+  if (!res.ok) throw new Error(`geoapify ${res.status}`);
+  const body = (await res.json()) as { results?: { formatted?: string; lat: number; lon: number }[] };
+  return (body.results ?? []).map((r) => ({ address: (r.formatted ?? "").replace(/, United States of America$/, ""), lat: r.lat, lon: r.lon }));
+}
+
 // Best-effort 1 request per second on this server instance; the policy limit
 // is for the whole application, so volumes here must stay small.
 let lastNominatim = 0;
@@ -112,7 +131,11 @@ export async function geocode(
   orgId: string,
   query: string,
   kind: GeoKind,
-): Promise<{ results: GeoResult[]; provider: "own" | "census" | "nominatim" | "cache" | null }> {
+): Promise<{
+  results: GeoResult[];
+  provider: "own" | "census" | "nominatim" | "geoapify" | "cache" | null;
+  unavailable?: boolean;
+}> {
   const q = query.trim().replace(/\s+/g, " ");
   if (q.length < 5 || q.length > 200) return { results: [], provider: null };
 
@@ -138,18 +161,29 @@ export async function geocode(
     return { results: own.results, provider: own.results.length ? "own" : null };
   }
 
+  // A home address never goes to anyone else once our own geocoder is set up:
+  // if it is configured but unreachable, say so instead of sending it elsewhere.
+  if (kind === "personal" && process.env.GEOCODER_URL && own === null) {
+    return { results: [], provider: null, unavailable: true };
+  }
+
   let results: GeoResult[] = [];
-  let provider: "census" | "nominatim" | null = null;
+  let provider: "census" | "nominatim" | "geoapify" | null = null;
   try {
     results = await censusGeocode(q);
     if (results.length) provider = "census";
   } catch {
-    // Census down or slow: for places we still have Nominatim.
+    // Census down or slow: for places we still have the others.
   }
   if (!results.length && kind === "place") {
     try {
-      results = await nominatimGeocode(q);
-      if (results.length) provider = "nominatim";
+      if (process.env.GEOAPIFY_KEY) {
+        results = await geoapifyGeocode(q);
+        if (results.length) provider = "geoapify";
+      } else {
+        results = await nominatimGeocode(q);
+        if (results.length) provider = "nominatim";
+      }
     } catch {
       results = [];
     }
