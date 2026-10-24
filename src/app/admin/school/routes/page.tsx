@@ -8,9 +8,7 @@ import { getAuthedProfile } from "@/lib/supabase/org-context";
 import { driverLabel, fleetDriverIds } from "@/lib/driver-label";
 import { busLabel, effectiveMonitor, loadCrewOptions } from "@/lib/school-crew";
 import { ROUTE_TYPE_LABEL, clock, daysLabel } from "@/lib/school";
-import { CreateSchoolRouteForm } from "./create-school-route-form";
 import { PageHeader } from "@/components/page-ui";
-import { Sheet } from "@/components/sheet";
 import { requireFeature } from "@/lib/fleet-features";
 
 export default async function SchoolRoutesPage() {
@@ -57,17 +55,14 @@ export default async function SchoolRoutesPage() {
     <main className="space-y-6 mx-auto w-full max-w-6xl px-5 py-7 sm:px-8 lg:py-8">
       <PageHeader
         title="School routes"
-        description="Create the route, then open it to add its stops in order and the students who get on or off at each one. The driver sees it in the app on its service days."
+        description="Build a route on the map with its stops and crew, then assign the students who get on or off at each stop. The driver sees it in the app on its service days once it is published."
         actions={
-          <Sheet label="New route" title="New school route">
-            <CreateSchoolRouteForm
-              schools={(schools ?? []).map((s) => ({ id: s.id, label: s.name }))}
-              drivers={crew.drivers}
-              monitors={crew.monitors}
-              vehicles={crew.vehicles}
-              timeFormat={timeFormat}
-            />
-          </Sheet>
+          <Link
+            href="/admin/school/routes/new"
+            className="rounded-lg bg-accent px-3.5 py-2 text-sm font-semibold text-accent-foreground transition hover:opacity-90"
+          >
+            New route
+          </Link>
         }
       />
 
@@ -95,6 +90,9 @@ export default async function SchoolRoutesPage() {
                       {r.name}
                     </Link>
                     <p className="text-xs text-muted">
+                      {r.status === "draft" && (
+                        <span className="mr-1.5 rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-medium text-amber-600">Draft</span>
+                      )}
                       {ROUTE_TYPE_LABEL[r.route_type]}
                       {r.school_site_id ? ` · ${schoolName.get(r.school_site_id) ?? ""}` : ""}
                     </p>

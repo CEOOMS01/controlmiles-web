@@ -7,7 +7,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { TimeInput } from "@/components/time-input";
 import { WEEKDAYS } from "@/lib/school";
-import { deleteSchoolRoute, updateSchoolRoute } from "./actions";
+import { deleteSchoolRoute, publishSchoolRoute, updateSchoolRoute } from "./actions";
 import { ActionForm, inputClass } from "./form-kit";
 
 type Option = { id: string; label: string };
@@ -94,6 +94,35 @@ export function DeleteSchoolRoute({ routeId, routeName }: { routeId: string; rou
         {pending ? "Deleting…" : "Delete route"}
       </button>
       {error && <p className="mt-2 text-sm text-danger">{error}</p>}
+    </div>
+  );
+}
+
+export function PublishBanner({ routeId }: { routeId: string }) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-500/40 bg-amber-500/10 p-4">
+      <div>
+        <p className="text-sm font-semibold">Draft</p>
+        <p className="text-xs text-muted">This route is not in the drivers&apos; app yet. Publish it when the stops and students are ready.</p>
+        {error && <p className="mt-1 text-xs text-danger">{error}</p>}
+      </div>
+      <button
+        type="button"
+        disabled={pending}
+        onClick={() =>
+          start(async () => {
+            const r = await publishSchoolRoute(routeId);
+            if (r.error) return setError(r.error);
+            router.refresh();
+          })
+        }
+        className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground transition hover:opacity-90 disabled:opacity-60"
+      >
+        {pending ? "Publishing…" : "Publish route"}
+      </button>
     </div>
   );
 }

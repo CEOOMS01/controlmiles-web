@@ -7,6 +7,7 @@
 // Drivers never write these tables: the app uses the run RPCs.
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getAuthedProfile } from "@/lib/supabase/org-context";
 import { AppError } from "@/lib/errors";
@@ -93,11 +94,26 @@ export async function deactivateStudent(id: string): Promise<FormResult> {
 
 // --- School routes ---------------------------------------------------------
 
-export async function createSchoolRoute(_: FormResult, formData: FormData): Promise<FormResult> {
+type DraftStop = {
+  name?: unknown;
+  address?: unknown;
+  lat?: unknown;
+  lng?: unknown;
+  time?: unknown;
+  kind?: unknown;
+  radius?: unknown;
+};
+
+/**
+ * Route builder (map): create the route, its crew and its ordered stops in one
+ * go. "Save draft" keeps it out of the drivers' app; "Publish" makes it live.
+ * Students are assigned to the stops afterwards, on the route page.
+ */
+export async function createSchoolRouteWithStops(_: FormResult, formData: FormData): Promise<FormResult> {
   const { supabase, orgId, userId } = await context();
+  if (!orgId || !userId) return { error: "Not authenticated." };
   const name = text(formData, "name");
   const routeType = text(formData, "route_type");
-  if (!orgId || !userId) return { error: "Not authenticated." };
   if (!name) return { error: "Enter a route name." };
   if (routeType !== "school_am" && routeType !== "school_pm") return { error: "Choose AM or PM." };
   const days = formData
@@ -106,11 +122,52 @@ export async function createSchoolRoute(_: FormResult, formData: FormData): Prom
     .filter((d) => d >= 1 && d <= 7);
   if (days.length === 0) return { error: "Choose at least one service day." };
 
-  const { error } = await supabase
+  let draft: DraftStop[] = [];
+  try {
+    const parsed = JSON.parse(String(formData.get("stops_json") ?? "[]"));
+    if (Array.isArray(parsed)) draft = parsed as DraftStop[];
+  } catch {
+    return { error: "The stops could not be read. Reload the page and try again." };
+  }
+  if (draft.length === 0) return { error: "Add at least one stop on the map." };
+  if (draft.length > 80) return { error: "A route can have up to 80 stops." };
+  const stops: {
+    name: string;
+    address: string | null;
+    latitude: number;
+    longitude: number;
+    scheduled_time: string | null;
+    stop_kind: string;
+    radius_meters: number;
+  }[] = [];
+  for (const [i, d] of draft.entries()) {
+    const lat = Number(d.lat);
+    const lng = Number(d.lng);
+    const stopName = String(d.name ?? "").trim().slice(0, 120);
+    if (!stopName) return { error: `Stop ${i + 1} needs a name.` };
+    if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) {
+      return { error: `Stop ${i + 1} has no valid location.` };
+    }
+    const time = String(d.time ?? "");
+    const kind = String(d.kind ?? "pickup");
+    const radius = Number(d.radius);
+    stops.push({
+      name: stopName,
+      address: String(d.address ?? "").trim().slice(0, 240) || null,
+      latitude: lat,
+      longitude: lng,
+      scheduled_time: /^\d{2}:\d{2}(:\d{2})?$/.test(time) ? time : null,
+      stop_kind: kind === "school" || kind === "dropoff" ? kind : "pickup",
+      radius_meters: Number.isFinite(radius) ? Math.min(500, Math.max(20, Math.round(radius))) : 80,
+    });
+  }
+
+  const publish = text(formData, "publish") === "1";
+  const { data: route, error } = await supabase
     .from("routes")
     .insert({
       organization_id: orgId,
-      name,
+      name: name.slice(0, 120),
       route_type: routeType,
       school_site_id: text(formData, "school_site_id"),
       assigned_driver_id: text(formData, "driver_id"),
@@ -119,11 +176,35 @@ export async function createSchoolRoute(_: FormResult, formData: FormData): Prom
       monitor_name: text(formData, "monitor_id") ? null : (text(formData, "monitor_name")?.slice(0, 80) ?? null),
       scheduled_start_time: text(formData, "scheduled_start_time"),
       service_days: days,
-      status: "active",
+      status: publish ? "active" : "draft",
       created_by: userId,
-    });
-  if (error) return fail(error);
+    })
+    .select("id")
+    .single();
+  if (error || !route) return fail(error);
+
+  const { error: stopsError } = await supabase
+    .from("route_stops")
+    .insert(stops.map((s, i) => ({ ...s, route_id: route.id, organization_id: orgId, seq: i + 1 })));
+  if (stopsError) {
+    // No half-built route: remove it (a draft can be deleted).
+    await supabase.from("routes").update({ status: "draft" }).eq("id", route.id);
+    await supabase.from("routes").delete().eq("id", route.id);
+    return fail(stopsError);
+  }
   revalidatePath("/admin/school/routes");
+  revalidatePath("/admin/school");
+  redirect(`/admin/school/routes/${route.id}`);
+}
+
+/** Make a draft route live: the drivers see it in the app on its service days. */
+export async function publishSchoolRoute(routeId: string): Promise<FormResult> {
+  const { supabase } = await context();
+  const { error } = await supabase.from("routes").update({ status: "active" }).eq("id", routeId).eq("status", "draft");
+  if (error) return fail(error);
+  revalidatePath(`/admin/school/routes/${routeId}`);
+  revalidatePath("/admin/school/routes");
+  revalidatePath("/admin/school");
   return { error: null };
 }
 

@@ -66,6 +66,8 @@ export function AddressAutocompleteInput({
   required,
   latName,
   lonName,
+  onPick,
+  resetOnPick,
 }: {
   name: string;
   label: string;
@@ -75,6 +77,10 @@ export function AddressAutocompleteInput({
    *  (hidden inputs); cleared when the text is edited by hand. */
   latName?: string;
   lonName?: string;
+  /** Called with the chosen suggestion (route builder: add it as a stop). */
+  onPick?: (p: { address: string; lat: number; lon: number }) => void;
+  /** Clear the field after a pick, ready for the next address. */
+  resetOnPick?: boolean;
 }) {
   const [value, setValue] = useState("");
   const [coords, setCoords] = useState<{ lat: number; lon: number } | null>(null);
@@ -172,8 +178,9 @@ export function AddressAutocompleteInput({
   }
 
   function selectSuggestion(s: Suggestion) {
-    setValue(fullLabel(s));
-    setCoords({ lat: s.lat, lon: s.lon });
+    onPick?.({ address: fullLabel(s), lat: s.lat, lon: s.lon });
+    setValue(resetOnPick ? "" : fullLabel(s));
+    setCoords(resetOnPick ? null : { lat: s.lat, lon: s.lon });
     setOpen(false);
     setSuggestions([]);
     setActiveIndex(-1);

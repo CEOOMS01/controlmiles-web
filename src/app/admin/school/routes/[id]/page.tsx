@@ -17,7 +17,7 @@ import { AddressAutocompleteInput } from "../../../routes/address-autocomplete-i
 import { addStop, assignStudent, deleteStop, moveStop, saveSchoolRouteCrew, unassignStudent } from "../../actions";
 import { loadCrewOptions } from "@/lib/school-crew";
 import { MonitorPicker } from "../../monitor-picker";
-import { DeleteSchoolRoute, EditSchoolRouteForm } from "../../route-details";
+import { DeleteSchoolRoute, EditSchoolRouteForm, PublishBanner } from "../../route-details";
 import { driverLabel } from "@/lib/driver-label";
 import { ActionForm, RowButton, inputClass } from "../../form-kit";
 import { requireFeature } from "@/lib/fleet-features";
@@ -39,7 +39,7 @@ export default async function SchoolRoutePage({
 
   const { data: route } = await supabase
     .from("routes")
-    .select("id, name, route_type, service_days, scheduled_start_time, school_site_id, organization_id, assigned_driver_id, assigned_vehicle_id, monitor_id, monitor_name")
+    .select("id, name, status, route_type, service_days, scheduled_start_time, school_site_id, organization_id, assigned_driver_id, assigned_vehicle_id, monitor_id, monitor_name")
     .eq("id", id)
     .eq("organization_id", orgId)
     .maybeSingle();
@@ -134,6 +134,8 @@ export default async function SchoolRoutePage({
           {daysLabel(route.service_days)}
         </p>
       </div>
+
+      {route.status === "draft" && <PublishBanner routeId={id} />}
 
       <section className="space-y-3">
         <h2 className="text-base font-semibold">Route details</h2>
