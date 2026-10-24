@@ -278,7 +278,7 @@ export function RouteBuilder({
           <AddressAutocompleteInput
             name="stop_search"
             label="Search an address"
-            placeholder="Type an address to add a stop"
+            placeholder="Type an address, then press Search to add a stop"
             resetOnPick
             onPick={(p) => addStop({ name: p.address.split(",")[0] || "Stop", address: p.address, lat: p.lat, lng: p.lon })}
           />

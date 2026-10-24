@@ -349,7 +349,7 @@ export default async function SchoolRoutePage({
             <AddressAutocompleteInput
               name="address"
               label="Address (pick a suggestion)"
-              placeholder="Start typing the stop's address"
+              placeholder="Type the stop's address, then press Search"
               latName="latitude"
               lonName="longitude"
               required

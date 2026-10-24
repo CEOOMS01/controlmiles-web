@@ -38,12 +38,8 @@ function buildCsp(nonce: string, frameAncestors = "'none'") {
     // this, the fleet map's worker creation is silently blocked by CSP
     // (falls back to default-src, which doesn't cover worker-src).
     "worker-src 'self' blob:",
-    // photon.komoot.io: the free, keyless OpenStreetMap-based geocoder
-    // powering the route form's address autocomplete (admin/routes).
-    // wss://*.supabase.co: Realtime websocket for the live map's vehicle
-    // position updates -- connect-src doesn't implicitly cover a
-    // different scheme (wss vs https) on the same host, so this is
-    // listed explicitly alongside the https entry.
+    // Address search runs on our server (src/lib/geocode.ts): the browser no longer calls
+    // any geocoder, so none is listed here (Photon was removed 2026-10-24).
     // cgc-cre.vercel.app: CGC Core, where the pageview beacon
     // (src/components/pageview-beacon.tsx) reports to (2026-09-21).
     // protomaps.github.io: glyphs (.pbf) + sprite JSON for the fleet
@@ -55,7 +51,7 @@ function buildCsp(nonce: string, frameAncestors = "'none'") {
     // itself (NEXT_PUBLIC_FLEET_MAP_PMTILES_URL) -- *.r2.dev covers
     // Cloudflare's default public bucket subdomain; replace/extend with
     // your own custom domain once the bucket uses one instead.
-    "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://photon.komoot.io https://cgc-cre.vercel.app https://protomaps.github.io https://*.r2.dev https://controlmiles-tiles.integrations-55b.workers.dev https://challenges.cloudflare.com",
+    "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://cgc-cre.vercel.app https://protomaps.github.io https://*.r2.dev https://controlmiles-tiles.integrations-55b.workers.dev https://challenges.cloudflare.com",
     // 'none' everywhere except a driving school's public booking page
     // (/book/<slug>), which the school may embed on its own site
     // (ds_public_origins; see proxy.ts).
