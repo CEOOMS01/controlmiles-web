@@ -162,7 +162,7 @@ const SHARED_STOP_KM = 0.06;
  * the nearest (AM, ending at the school) or the other way round (PM, leaving
  * the school). The admin reviews and edits the list before saving.
  */
-export async function suggestRouteStops(schoolId: string, runType: string): Promise<SuggestResult> {
+export async function suggestRouteStops(schoolId: string, runType: string, includeRouted = false): Promise<SuggestResult> {
   const empty = { stops: [], noAddress: 0, alreadyRouted: 0 };
   const { supabase, orgId } = await context();
   if (!orgId) return { error: "Not authenticated.", ...empty };
@@ -197,8 +197,9 @@ export async function suggestRouteStops(schoolId: string, runType: string): Prom
 
   const located = (students ?? []).filter((s) => s.home_latitude != null && s.home_longitude != null && s.home_address);
   const noAddress = (students ?? []).length - located.length;
-  const free = located.filter((s) => !routed.has(s.id));
-  const alreadyRouted = located.length - free.length;
+  // "Include students already on a route" is for rebuilding a school's routes: they move here on save.
+  const free = includeRouted ? located : located.filter((s) => !routed.has(s.id));
+  const alreadyRouted = includeRouted ? 0 : located.length - free.length;
 
   const withDistance = free
     .map((s) => ({
@@ -346,7 +347,28 @@ export async function createSchoolRouteWithStops(_: FormResult, formData: FormDa
         action: routeType === "school_am" ? "board" : "alight",
       })),
     );
-    if (rows.length > 0) assignError = (await supabase.from("student_stop_assignments").insert(rows)).error;
+    if (rows.length > 0) {
+      assignError = (await supabase.from("student_stop_assignments").insert(rows)).error;
+      // A student rides one route per run: moving them here takes them off their old one.
+      if (!assignError) {
+        const { data: others } = await supabase
+          .from("routes")
+          .select("id")
+          .eq("organization_id", orgId)
+          .eq("route_type", routeType)
+          .neq("status", "closed")
+          .neq("id", route.id);
+        const otherIds = (others ?? []).map((r) => r.id);
+        if (otherIds.length > 0) {
+          await supabase
+            .from("student_stop_assignments")
+            .delete()
+            .in("student_id", rows.map((r) => r.student_id))
+            .eq("action", routeType === "school_am" ? "board" : "alight")
+            .in("route_id", otherIds);
+        }
+      }
+    }
   }
   if (stopsError || assignError) {
     // No half-built route: remove it (a draft can be deleted).

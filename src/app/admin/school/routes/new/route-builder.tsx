@@ -74,6 +74,7 @@ export function RouteBuilder({
   const [note, setNote] = useState<string | null>(null);
   const [suggesting, startSuggest] = useTransition();
   const [suggestInfo, setSuggestInfo] = useState<string | null>(null);
+  const [includeRouted, setIncludeRouted] = useState(false);
 
   const school = schools.find((s) => s.id === schoolId);
   const hasSchoolStop = stops.some((s) => s.kind === "school");
@@ -93,7 +94,7 @@ export function RouteBuilder({
     if (stops.length > 0 && !window.confirm("Replace the stops you have with the suggestion?")) return;
     setSuggestInfo(null);
     startSuggest(async () => {
-      const r = await suggestRouteStops(schoolId, runType);
+      const r = await suggestRouteStops(schoolId, runType, includeRouted);
       if (r.error) return setSuggestInfo(r.error);
       const pickup = runType === "school_am" ? "pickup" : "dropoff";
       const next: Stop[] = r.stops.map((x) => ({
@@ -172,7 +173,7 @@ export function RouteBuilder({
   };
 
   return (
-    <form ref={formRef} action={send} className="max-w-3xl">
+    <form ref={formRef} action={send} className="max-w-4xl">
       <div className="space-y-8">
         <section className="space-y-3">
           <h2 className="text-base font-semibold">1 · Details</h2>
@@ -266,6 +267,10 @@ export function RouteBuilder({
             >
               {suggesting ? "Working it out…" : "Suggest stops from students' addresses"}
             </button>
+            <label className="mt-2 flex items-center gap-2 text-xs text-muted">
+              <input type="checkbox" checked={includeRouted} onChange={(e) => setIncludeRouted(e.target.checked)} />
+              Include students already on a {runType === "school_am" ? "morning" : "afternoon"} route (saving moves them to this one)
+            </label>
             <p className="mt-2 text-xs text-muted">
               {suggestInfo ?? "Uses each student's home address: the farthest from the school is picked up first. You review it before saving."}
             </p>
@@ -277,7 +282,7 @@ export function RouteBuilder({
             resetOnPick
             onPick={(p) => addStop({ name: p.address.split(",")[0] || "Stop", address: p.address, lat: p.lat, lng: p.lon })}
           />
-          <p className="text-xs text-muted">Add the stops in the order the bus will run them; reorder with the arrows. Later, students\u2019 home addresses will fill this list for you.</p>
+          <p className="text-xs text-muted">Use the suggestion above to build the list from the students&apos; home addresses, or add stops one by one in the order the bus will run them. Reorder with the arrows.</p>
           {school && school.lat != null && !hasSchoolStop && (
             <button
               type="button"
@@ -288,64 +293,52 @@ export function RouteBuilder({
             </button>
           )}
 
-          <ol className="space-y-2">
+          <ol className="divide-y divide-border overflow-hidden rounded-lg border border-border">
             {stops.map((s, i) => (
-              <li key={s.key} className="rounded-lg border border-border bg-background p-3">
-                <div className="flex items-start gap-2">
+              <li key={s.key} className="bg-background px-3 py-2.5">
+                <div className="flex flex-wrap items-center gap-2">
                   <span
-                    className={`mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white ${
+                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white ${
                       s.kind === "school" ? "bg-[#bd5b26]" : "bg-[#2c6c99]"
                     }`}
                   >
                     {s.kind === "school" ? "S" : i + 1}
                   </span>
-                  <div className="min-w-0 flex-1 space-y-2">
-                    <input
-                      value={s.name}
-                      onChange={(e) => patch(s.key, { name: e.target.value })}
-                      maxLength={120}
-                      aria-label={`Stop ${i + 1} name`}
-                      className={inputClass}
-                    />
-                    {s.address && <p className="truncate text-xs text-muted">{s.address}</p>}
-                    {s.students.length > 0 && (
-                      <p className="text-xs text-muted">
-                        <span className="font-medium text-foreground">{s.students.length}</span> {s.students.length === 1 ? "student" : "students"}: {s.students.map((x) => x.name).join(", ")}
-                      </p>
-                    )}
-                    <div className="flex flex-wrap items-center gap-2 text-xs">
-                      <input
-                        type="time"
-                        value={s.time}
-                        onChange={(e) => patch(s.key, { time: e.target.value })}
-                        aria-label={`Stop ${i + 1} time`}
-                        className="rounded-md border border-border bg-background px-2 py-1"
-                      />
-                      <select
-                        value={s.kind}
-                        onChange={(e) => patch(s.key, { kind: e.target.value as Stop["kind"] })}
-                        aria-label={`Stop ${i + 1} type`}
-                        className="rounded-md border border-border bg-background px-2 py-1"
-                      >
-                        <option value="pickup">Pick-up</option>
-                        <option value="dropoff">Drop-off</option>
-                        <option value="school">School</option>
-                      </select>
-                      <label className="flex items-center gap-1 text-muted">
-                        radius
-                        <input
-                          type="number"
-                          min={20}
-                          max={500}
-                          value={s.radius}
-                          onChange={(e) => patch(s.key, { radius: Number(e.target.value) })}
-                          className="w-16 rounded-md border border-border bg-background px-2 py-1"
-                        />
-                        m
-                      </label>
-                    </div>
-                  </div>
-                  <div className="flex flex-col">
+                  <input
+                    value={s.name}
+                    onChange={(e) => patch(s.key, { name: e.target.value })}
+                    maxLength={120}
+                    aria-label={`Stop ${i + 1} name`}
+                    className="min-w-[160px] flex-1 rounded-md border border-border bg-background px-2 py-1 text-sm outline-none focus:border-accent"
+                  />
+                  <input
+                    type="time"
+                    value={s.time}
+                    onChange={(e) => patch(s.key, { time: e.target.value })}
+                    aria-label={`Stop ${i + 1} time`}
+                    className="rounded-md border border-border bg-background px-2 py-1 text-xs"
+                  />
+                  <select
+                    value={s.kind}
+                    onChange={(e) => patch(s.key, { kind: e.target.value as Stop["kind"] })}
+                    aria-label={`Stop ${i + 1} type`}
+                    className="rounded-md border border-border bg-background px-2 py-1 text-xs"
+                  >
+                    <option value="pickup">Pick-up</option>
+                    <option value="dropoff">Drop-off</option>
+                    <option value="school">School</option>
+                  </select>
+                  <input
+                    type="number"
+                    min={20}
+                    max={500}
+                    value={s.radius}
+                    onChange={(e) => patch(s.key, { radius: Number(e.target.value) })}
+                    aria-label={`Stop ${i + 1} radius in meters`}
+                    title="Arrival radius (m)"
+                    className="w-16 rounded-md border border-border bg-background px-2 py-1 text-xs"
+                  />
+                  <span className="flex items-center">
                     <button type="button" onClick={() => move(i, -1)} disabled={i === 0} aria-label="Move up" className="px-1.5 text-muted hover:text-foreground disabled:opacity-30">
                       ↑
                     </button>
@@ -360,14 +353,24 @@ export function RouteBuilder({
                     >
                       ×
                     </button>
-                  </div>
+                  </span>
                 </div>
+                {(s.address || s.students.length > 0) && (
+                  <p className="mt-1 truncate pl-8 text-xs text-muted">
+                    {s.address}
+                    {s.students.length > 0 && (
+                      <>
+                        {s.address ? " · " : ""}
+                        <span className="font-medium text-foreground">{s.students.length}</span> {s.students.length === 1 ? "student" : "students"}:{" "}
+                        {s.students.map((x) => x.name).join(", ")}
+                      </>
+                    )}
+                  </p>
+                )}
               </li>
             ))}
             {stops.length === 0 && (
-              <li className="rounded-lg border border-dashed border-border px-4 py-6 text-center text-sm text-muted">
-                No stops yet. Search an address above.
-              </li>
+              <li className="px-4 py-6 text-center text-sm text-muted">No stops yet. Search an address above.</li>
             )}
           </ol>
 

@@ -67,8 +67,9 @@ export function StudentFields({ schools, v = {} }: { schools: { id: string; name
           defaultCoords={v.home_latitude != null && v.home_longitude != null ? { lat: v.home_latitude, lon: v.home_longitude } : null}
         />
       </div>
-      <fieldset className="grid gap-3 sm:col-span-3 sm:grid-cols-2">
+      <fieldset className="min-w-0 sm:col-span-3">
         <legend className="mb-1.5 text-sm font-medium">Emergency contacts</legend>
+        <div className="grid gap-3 sm:grid-cols-2">
         <div>
           <label className={label}>Parent or guardian 1</label>
           <input name="parent1_name" maxLength={120} placeholder="Name" defaultValue={v.parent1_name ?? ""} className={inputClass} />
@@ -78,6 +79,7 @@ export function StudentFields({ schools, v = {} }: { schools: { id: string; name
           <label className={label}>Parent or guardian 2 (optional)</label>
           <input name="parent2_name" maxLength={120} placeholder="Name" defaultValue={v.parent2_name ?? ""} className={inputClass} />
           <input type="tel" name="parent2_phone" maxLength={30} placeholder="Phone" defaultValue={v.parent2_phone ?? ""} className={`${inputClass} mt-2`} />
+        </div>
         </div>
       </fieldset>
     </>

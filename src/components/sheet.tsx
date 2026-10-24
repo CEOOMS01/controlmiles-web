@@ -1,18 +1,23 @@
 "use client";
 
-// Slide-over panel (2026-10-20 redesign): create and edit forms open from a
-// button in the page header instead of sitting on the page all the time.
-// Right side, 420px, scrim, Escape and the close button close it, focus
-// moves into it and back to the button. Forms inside can close it with
-// useSheet().close() after saving.
+// Create / edit forms open from a button as a centered dialog (2026-10-24, the
+// owner's change from the right-hand slide-over: its forms were squeezed into
+// 440px and rendered badly). Built on the native <dialog> element opened with
+// showModal(), which gives what a hand-rolled modal usually misses: focus moves
+// inside and stays there, the page behind is inert, Escape closes it, it sits in
+// the top layer (no z-index fights) and focus returns to the button on close.
+// Also: a visible Close button and a click on the backdrop close it, the page
+// behind does not scroll, it never fills the screen (max 85% of the height; the
+// form scrolls inside, the title stays), and on a phone it keeps a 16px margin.
+// Forms inside can close it with useSheet().close() after saving.
 
 import { createContext, useContext, useEffect, useId, useRef, useState, type ReactNode } from "react";
 
-const SheetContext = createContext<{ close: () => void } | null>(null);
+const SheetContext = createContext<{ close: () => void; active: boolean } | null>(null);
 
 /** Inside a Sheet: close it (e.g. after a successful save). Outside: no-op. */
 export function useSheet() {
-  return useContext(SheetContext) ?? { close: () => {} };
+  return useContext(SheetContext) ?? { close: () => {}, active: false };
 }
 
 export function Sheet({
@@ -29,31 +34,32 @@ export function Sheet({
   children: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
-  const trigger = useRef<HTMLButtonElement>(null);
-  const panel = useRef<HTMLDivElement>(null);
+  const dialog = useRef<HTMLDialogElement>(null);
   const titleId = useId();
 
+  function show() {
+    setOpen(true);
+    dialog.current?.showModal();
+  }
+  function hide() {
+    dialog.current?.close();
+  }
+
+  // The page behind must not scroll while the dialog is open.
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
-    };
-    document.addEventListener("keydown", onKey);
-    const first = panel.current?.querySelector<HTMLElement>("input, select, textarea, button");
-    first?.focus();
-    const btn = trigger.current;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     return () => {
-      document.removeEventListener("keydown", onKey);
-      btn?.focus();
+      document.body.style.overflow = previous;
     };
   }, [open]);
 
   return (
     <>
       <button
-        ref={trigger}
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={show}
         className={
           variant === "primary"
             ? "rounded-lg bg-accent px-3.5 py-2 text-sm font-medium text-accent-foreground transition hover:opacity-90"
@@ -62,23 +68,19 @@ export function Sheet({
       >
         {label}
       </button>
-      {open && (
-        <div className="fixed inset-0 z-50 flex justify-end">
-          <button
-            type="button"
-            aria-label="Close"
-            tabIndex={-1}
-            onClick={() => setOpen(false)}
-            className="absolute inset-0 bg-black/30 backdrop-blur-[1px]"
-          />
-          <div
-            ref={panel}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby={titleId}
-            className="relative flex h-full w-full max-w-[440px] flex-col border-l border-border bg-surface shadow-2xl"
-          >
-            <div className="flex items-start justify-between gap-4 border-b border-border px-5 py-4">
+      <dialog
+        ref={dialog}
+        aria-labelledby={titleId}
+        onClose={() => setOpen(false)}
+        // A click on the backdrop targets the dialog itself, not its content.
+        onClick={(e) => {
+          if (e.target === dialog.current) hide();
+        }}
+        className="m-auto w-[calc(100%-2rem)] max-w-2xl rounded-2xl border border-border bg-surface p-0 text-left font-normal normal-case text-foreground shadow-2xl backdrop:bg-black/40 backdrop:backdrop-blur-[1px]"
+      >
+        {open && (
+          <div className="flex max-h-[85vh] flex-col">
+            <div className="flex items-start justify-between gap-4 border-b border-border px-6 py-4">
               <div>
                 <h2 id={titleId} className="text-base font-semibold">
                   {title}
@@ -87,7 +89,7 @@ export function Sheet({
               </div>
               <button
                 type="button"
-                onClick={() => setOpen(false)}
+                onClick={hide}
                 aria-label="Close"
                 className="rounded-md p-1 text-muted transition hover:bg-background hover:text-foreground"
               >
@@ -96,12 +98,12 @@ export function Sheet({
                 </svg>
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto px-5 py-5">
-              <SheetContext.Provider value={{ close: () => setOpen(false) }}>{children}</SheetContext.Provider>
+            <div className="overflow-y-auto px-6 py-5">
+              <SheetContext.Provider value={{ close: hide, active: true }}>{children}</SheetContext.Provider>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </dialog>
     </>
   );
 }

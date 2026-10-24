@@ -6,9 +6,10 @@
 
 import { useActionState, useEffect, useRef, useTransition } from "react";
 import type { FormResult } from "./actions";
+import { useSheet } from "@/components/sheet";
 
 export const inputClass =
-  "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/20";
+  "block w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/20";
 
 export function ActionForm({
   action,
@@ -24,9 +25,15 @@ export function ActionForm({
   const [state, formAction, pending] = useActionState(action, { error: null });
   const formRef = useRef<HTMLFormElement>(null);
   const submitted = useRef(false);
+  const sheet = useSheet();
 
   useEffect(() => {
-    if (submitted.current && !pending && !state.error) formRef.current?.reset();
+    if (submitted.current && !pending && !state.error) {
+      formRef.current?.reset();
+      // Inside a dialog: a saved form closes it.
+      if (sheet.active) sheet.close();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pending, state]);
 
   return (
@@ -36,7 +43,7 @@ export function ActionForm({
         submitted.current = true;
         formAction(fd);
       }}
-      className={className ?? "grid gap-3 rounded-xl border border-border bg-surface p-5 sm:grid-cols-3"}
+      className={className ?? (sheet.active ? "grid gap-3 sm:grid-cols-3" : "grid gap-3 rounded-xl border border-border bg-surface p-5 sm:grid-cols-3")}
     >
       {children}
       {state.error && (
