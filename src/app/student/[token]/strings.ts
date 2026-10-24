@@ -1,0 +1,154 @@
+// Olympus Mont Systems LLC - ControlMiles Web
+// src/app/student/[token]/strings.ts
+//
+// Student / parent portal text in English and Spanish. The language is
+// ?lang=es|en when present, else the browser's Accept-Language, else English:
+// the link has no account to read a preference from.
+
+export type Lang = "en" | "es";
+
+export function pickLang(param: string | string[] | undefined, acceptLanguage: string | null): Lang {
+  const p = Array.isArray(param) ? param[0] : param;
+  if (p === "es" || p === "en") return p;
+  return /^\s*es\b/i.test(acceptLanguage ?? "") ? "es" : "en";
+}
+
+export const DATE_LOCALE: Record<Lang, string> = { en: "en-US", es: "es-US" };
+
+const en = {
+  metaTitle: "Your driving lessons · ControlMiles",
+  inactiveTitle: "This link isn't active",
+  inactiveBody: "Ask your driving school for a new link.",
+  behindWheel: "Behind the wheel",
+  atNight: "At night",
+  nightInline: "at night",
+  packagesLeft: "Lesson time left in your packages:",
+  afterBooked: "(after the {time} you have booked)",
+  classesMiles: "{n} classes · {mi} miles. Every class is recorded by GPS during the lesson.",
+  certificate: "Certificate",
+  downloadPdf: "Download PDF",
+  upcoming: "Upcoming classes",
+  noUpcoming: "No classes scheduled.",
+  finished: "Finished classes",
+  noFinished: "No finished classes yet.",
+  night: "night",
+  mi: "mi",
+  private: "ControlMiles · This page is private to you; don't share the link.",
+  score1: "Needs work",
+  score2: "Developing",
+  score3: "Good",
+  score4: "Mastered",
+  bookTitle: "Book a lesson",
+  seeTimes: "See free times",
+  loading: "Loading…",
+  unavailable: "Online booking isn't available right now.",
+  booked: "Booked: {day} at {time}.",
+  minuteLessons: "{n}-minute lessons",
+  withInstructor: " with an instructor who teaches in {lang}",
+  langEn: "English",
+  langEs: "Spanish",
+  pickTime: " Pick a time; the school assigns the instructor.",
+  noTimes: "No free times right now. Check back soon.",
+  daysAria: "Days",
+  oneTime: "time",
+  manyTimes: "times",
+  agree: "I agree to the school's cancellation policy.",
+  bookThis: "Book this lesson",
+  booking: "Booking…",
+  back: "Back",
+  close: "Close",
+  cancel: "Cancel",
+  lateCancel: "It's late to cancel: this lesson will count as used.",
+  freeCancel: "Free cancellation.",
+  yesCancel: "Yes, cancel",
+  cancelling: "Cancelling…",
+  keepIt: "Keep it",
+  smsTitle: "Text reminders",
+  smsOn: "On for {phone}. Reply STOP to any text, or",
+  turnOff: "turn them off",
+  mobile: "Mobile number",
+  textMe: "Text me reminders",
+  smsConsent:
+    "By turning this on you agree to receive lesson reminder texts from your school. Message and data rates may apply. Reply STOP to opt out.",
+  LINK_NOT_ACTIVE: "This link isn't active. Ask your driving school for a new one.",
+  BOOKING_OFF: "Online booking isn't available right now.",
+  TOO_MANY_UPCOMING: "You already have the most upcoming lessons your school allows. Cancel one or wait until after your next lesson.",
+  NO_BALANCE: "You don't have enough lesson hours left. Ask your school for a new package.",
+  SLOT_TAKEN: "That time was just taken. Please pick another one.",
+  CLASS_NOT_CANCELLABLE: "That lesson can't be cancelled anymore.",
+  PHONE_REQUIRED: "Enter your mobile number.",
+  GENERIC: "Something went wrong. Please try again.",
+};
+
+const es: typeof en = {
+  metaTitle: "Tus clases de manejo · ControlMiles",
+  inactiveTitle: "Este enlace no está activo",
+  inactiveBody: "Pídele a tu escuela de manejo un enlace nuevo.",
+  behindWheel: "Al volante",
+  atNight: "De noche",
+  nightInline: "de noche",
+  packagesLeft: "Tiempo de clase que te queda en tus paquetes:",
+  afterBooked: "(después de los {time} que ya reservaste)",
+  classesMiles: "{n} clases · {mi} millas. Cada clase se graba por GPS durante la lección.",
+  certificate: "Certificado",
+  downloadPdf: "Descargar PDF",
+  upcoming: "Próximas clases",
+  noUpcoming: "No hay clases programadas.",
+  finished: "Clases terminadas",
+  noFinished: "Aún no hay clases terminadas.",
+  night: "noche",
+  mi: "mi",
+  private: "ControlMiles · Esta página es privada para ti; no compartas el enlace.",
+  score1: "Por mejorar",
+  score2: "En desarrollo",
+  score3: "Bien",
+  score4: "Dominado",
+  bookTitle: "Reservar una clase",
+  seeTimes: "Ver horarios libres",
+  loading: "Cargando…",
+  unavailable: "La reserva en línea no está disponible ahora.",
+  booked: "Reservado: {day} a las {time}.",
+  minuteLessons: "Clases de {n} minutos",
+  withInstructor: " con un instructor que enseña en {lang}",
+  langEn: "inglés",
+  langEs: "español",
+  pickTime: " Elige un horario; la escuela asigna al instructor.",
+  noTimes: "No hay horarios libres por ahora. Vuelve pronto.",
+  daysAria: "Días",
+  oneTime: "horario",
+  manyTimes: "horarios",
+  agree: "Acepto la política de cancelación de la escuela.",
+  bookThis: "Reservar esta clase",
+  booking: "Reservando…",
+  back: "Atrás",
+  close: "Cerrar",
+  cancel: "Cancelar",
+  lateCancel: "Es tarde para cancelar: esta clase contará como usada.",
+  freeCancel: "Cancelación gratis.",
+  yesCancel: "Sí, cancelar",
+  cancelling: "Cancelando…",
+  keepIt: "Mantenerla",
+  smsTitle: "Recordatorios por mensaje",
+  smsOn: "Activos para {phone}. Responde STOP a cualquier mensaje, o",
+  turnOff: "desactívalos",
+  mobile: "Número de celular",
+  textMe: "Enviarme recordatorios",
+  smsConsent:
+    "Al activar esto aceptas recibir mensajes de recordatorio de clases de tu escuela. Pueden aplicar tarifas de mensajes y datos. Responde STOP para dejar de recibirlos.",
+  LINK_NOT_ACTIVE: "Este enlace no está activo. Pídele a tu escuela de manejo uno nuevo.",
+  BOOKING_OFF: "La reserva en línea no está disponible ahora.",
+  TOO_MANY_UPCOMING: "Ya tienes el máximo de clases próximas que permite tu escuela. Cancela una o espera a después de tu próxima clase.",
+  NO_BALANCE: "No te quedan suficientes horas de clase. Pídele a tu escuela un paquete nuevo.",
+  SLOT_TAKEN: "Ese horario acaba de ocuparse. Elige otro.",
+  CLASS_NOT_CANCELLABLE: "Esa clase ya no se puede cancelar.",
+  PHONE_REQUIRED: "Escribe tu número de celular.",
+  GENERIC: "Algo salió mal. Inténtalo de nuevo.",
+};
+
+export type Strings = typeof en;
+export const STR: Record<Lang, Strings> = { en, es };
+
+/** "{n} classes" style templates. */
+export function fill(template: string, values: Record<string, string | number>): string {
+  return template.replace(/\{(\w+)\}/g, (_, k) => String(values[k] ?? ""));
+}

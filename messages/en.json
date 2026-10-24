@@ -76,8 +76,7 @@
       "growthName": "Growth",
       "growthTagline": "Run the whole fleet from one dashboard.",
       "enterpriseName": "Enterprise",
-      "enterpriseTagline": "Everything, plus onboarding and priority support.",
-      "enterprisePrice": "$27.99"
+      "enterpriseTagline": "Everything, plus onboarding and priority support."
     },
     "features": {
       "gpsCarousel": "GPS trip tracking, start/stop from the gig-app carousel",
@@ -108,45 +107,13 @@
       "oneVehicle": "1 vehicle",
       "fiveVehicles": "Up to 5 vehicles",
       "fuelMaintenance": "Fuel log & maintenance records",
-      "serviceStarter": "What your service needs: IFTA for trucking, school routes & attendance for student transport",
       "liveMap": "Live map",
       "routesGeofences": "Routes & geofences, where your service uses them",
       "safetyScores": "Driver safety scores",
-      "fuelAlerts": "Fuel anomaly alerts",
-      "serviceGrowth": "Live run board for school fleets, trip approval for sales teams"
+      "fuelAlerts": "Fuel anomaly alerts"
     },
     "disclaimer": "Prices in USD; taxes may apply. Not tax or financial advice.",
-    "startTrial": "Start 15-day free trial",
-    "school": {
-      "title": "For driving schools",
-      "note": "A monthly base with 3 cars and the software included, then a price per extra car. 15-day free trial with everything in Growth. Lesson hours come from each class's real GPS trip.",
-      "starterTagline": "Your cars and instructors on the record.",
-      "growthTagline": "Classes and students, measured by GPS.",
-      "enterpriseTagline": "The full school: portal, booking and certificates.",
-      "fleetBasics": "Instructor and vehicle roster, GPS on every trip",
-      "dvir": "Vehicle inspections, fuel and maintenance",
-      "liveMap": "Live map of every car",
-      "branchStarter": "1 branch included · add 1 more for $24.99 / month",
-      "everythingStarter": "Everything in Starter",
-      "classes": "Classes and weekly schedule per instructor",
-      "students": "Student records with GPS-verified hours, night hours and miles",
-      "safety": "Instructor safety scores and fuel alerts",
-      "export": "Activity log and CSV / PDF export",
-      "branchGrowth": "2 branches included · add up to 2 more for $19.99 / month each",
-      "everythingGrowth": "Everything in Growth",
-      "reportCards": "Skill report cards after each lesson",
-      "portal": "Student and parent portal with online booking",
-      "reminders": "Class reminders by email and text",
-      "packages": "Lesson packages, payments and balances",
-      "certificates": "Sealed completion certificates and state records",
-      "branchEnterprise": "Unlimited branches",
-      "support": "Dedicated onboarding and priority support",
-      "unit": "/ month",
-      "carsStarter": "3 cars included · $12.99 / month per extra car · up to 10 cars",
-      "carsGrowth": "3 cars included · $19.99 / month per extra car ($16.99 from the 16th)",
-      "carsEnterprise": "3 cars included · $27.99 / month per extra car ($23.99 from the 16th)",
-      "ownDomain": "Optional: enrollment page on your own web address, +$29 / month"
-    }
+    "startTrial": "Start 15-day free trial"
   },
   "portalCta": {
     "eyebrow": "REPORT PORTAL",
