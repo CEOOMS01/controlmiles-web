@@ -12,13 +12,52 @@
 //    an identifying User-Agent/Referer, results cached, NO autocomplete, and
 //    "do not submit personal data or other confidential material".
 //
-// So: a student's HOME address (personal data of a minor) goes ONLY to the
-// Census geocoder, never to Nominatim, and is never cached here. Schools and
-// other places (not personal) try the cache, then the Census, then Nominatim.
+//  * OUR OWN geocoder (GEOCODER_URL, a Cloudflare Worker over U.S. Census
+//    TIGER/Line address ranges, public domain; see controlmiles-backend
+//    infra/cloudflare/geocoder-worker.js): no third party sees the address, no
+//    terms to depend on. It covers the states whose data file is loaded; for
+//    any other state it answers covered=false and we fall back as below.
+//
+// So: a student's HOME address (personal data of a minor) goes to our own
+// geocoder first; ONLY when it does not cover that state does it go to the
+// Census geocoder, never to Nominatim, and it is never cached here. Schools and
+// other places (not personal) try the cache, our own geocoder, the Census, then
+// Nominatim.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type GeoKind = "personal" | "place";
+
+/** Our own geocoder. null = not configured / unreachable; covered=false = state not loaded. */
+export async function ownGeocode(
+  query: string,
+): Promise<{ covered: boolean; results: GeoResult[]; notAddress: boolean } | null> {
+  const url = process.env.GEOCODER_URL;
+  if (!url) return null;
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...(process.env.GEOCODER_KEY ? { "X-CM-Key": process.env.GEOCODER_KEY } : {}) },
+      // POST body, not the URL: URLs are logged and this can be a child's home.
+      body: JSON.stringify({ q: query }),
+      signal: AbortSignal.timeout(5000),
+      cache: "no-store",
+    });
+    if (!res.ok) return null;
+    const body = (await res.json()) as {
+      covered?: boolean;
+      note?: string;
+      results?: { address: string; lat: number; lon: number }[];
+    };
+    return {
+      covered: body.covered !== false,
+      notAddress: body.note === "not a street address",
+      results: (body.results ?? []).map((r) => ({ address: r.address, lat: r.lat, lon: r.lon })),
+    };
+  } catch {
+    return null;
+  }
+}
 export type GeoResult = { address: string; lat: number; lon: number };
 
 const CENSUS_URL = "https://geocoding.geo.census.gov/geocoder/locations/onelineaddress";
@@ -73,7 +112,7 @@ export async function geocode(
   orgId: string,
   query: string,
   kind: GeoKind,
-): Promise<{ results: GeoResult[]; provider: "census" | "nominatim" | "cache" | null }> {
+): Promise<{ results: GeoResult[]; provider: "own" | "census" | "nominatim" | "cache" | null }> {
   const q = query.trim().replace(/\s+/g, " ");
   if (q.length < 5 || q.length > 200) return { results: [], provider: null };
 
@@ -88,6 +127,15 @@ export async function geocode(
     if (data && Date.now() - new Date(data.created_at).getTime() < CACHE_DAYS * 86_400_000) {
       return { results: [{ address: data.label, lat: data.latitude, lon: data.longitude }], provider: "cache" };
     }
+  }
+
+  // Our own geocoder first. Where it covers the state its answer is final: an
+  // address it cannot place is not forwarded to anyone else. A place name that
+  // is not a street address ("Lincoln Elementary") may still go on to the
+  // public providers, but only for non-personal places.
+  const own = await ownGeocode(q);
+  if (own?.covered && (own.results.length > 0 || kind === "personal" || !own.notAddress)) {
+    return { results: own.results, provider: own.results.length ? "own" : null };
   }
 
   let results: GeoResult[] = [];
