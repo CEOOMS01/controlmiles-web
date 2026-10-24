@@ -4,6 +4,7 @@
 // red alerts and how each was resolved. Filter by dates and route; download
 // the CSV or print it as a PDF for the county school district.
 
+import { RoutesMenu } from "../routes-menu";
 import { createClient } from "@/lib/supabase/server";
 import { getAuthedProfile } from "@/lib/supabase/org-context";
 import { ATTENDANCE_COLOR, attendanceTotals, loadAttendance } from "@/lib/school-attendance";
@@ -69,6 +70,7 @@ export default async function AttendancePage({
 
   return (
     <main className="space-y-6 mx-auto w-full max-w-6xl px-5 py-7 sm:px-8 lg:py-8">
+      <RoutesMenu active="attendance" />
       {loaded.failed && (
         <p className="rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm font-semibold text-red-700">
           The report could not be loaded completely, so nothing is shown. Reload the page; do not send a partial

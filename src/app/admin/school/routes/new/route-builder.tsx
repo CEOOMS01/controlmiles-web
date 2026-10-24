@@ -3,7 +3,8 @@
 // Olympus Mont Systems LLC - ControlMiles
 // src/app/admin/school/routes/new/route-builder.tsx
 //
-// School route builder, end to end on one page (2026-10-24, after how bus
+// School route builder, end to end on one page (2026-10-24, no map and no cards
+// per the owner: the map lives on the live Dashboard only; after how bus
 // routing tools work: BusRight's one-page route editor with a map beside the
 // stop list, BusBoss / Upper / UniteGPS: geocoded addresses, stops in order
 // with times, crew, save for later or publish to the drivers):
@@ -18,7 +19,6 @@ import { AddressAutocompleteInput } from "../../../routes/address-autocomplete-i
 import { createSchoolRouteWithStops, type FormResult } from "../../actions";
 import { inputClass } from "../../form-kit";
 import { MonitorPicker } from "../../monitor-picker";
-import { RouteBuilderMap } from "./route-builder-map";
 
 type Option = { id: string; label: string };
 type School = { id: string; label: string; lat: number | null; lng: number | null; address: string | null };
@@ -46,24 +46,6 @@ const km = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) =>
   return 2 * R * Math.asin(Math.sqrt(h));
 };
 
-type PhotonProps = { name?: string; housenumber?: string; street?: string; city?: string; state?: string };
-async function reverseGeocode(lat: number, lng: number): Promise<{ name: string; address: string } | null> {
-  try {
-    const res = await fetch(`https://photon.komoot.io/reverse?lon=${lng}&lat=${lat}&limit=1`, {
-      signal: AbortSignal.timeout(4000),
-    });
-    if (!res.ok) return null;
-    const p = ((await res.json()) as { features?: { properties: PhotonProps }[] }).features?.[0]?.properties;
-    if (!p) return null;
-    const street = [p.housenumber, p.street].filter(Boolean).join(" ");
-    const name = street || p.name || "";
-    if (!name) return null;
-    return { name, address: [name, p.city, p.state].filter(Boolean).join(", ") };
-  } catch {
-    return null;
-  }
-}
-
 const hhmm = (mins: number) => {
   const m = ((Math.round(mins) % 1440) + 1440) % 1440;
   return `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
@@ -75,23 +57,18 @@ export function RouteBuilder({
   monitors,
   vehicles,
   timeFormat,
-  center,
-  zoom,
 }: {
   schools: School[];
   drivers: Option[];
   monitors: Option[];
   vehicles: Option[];
   timeFormat: "12h" | "24h";
-  center: [number, number];
-  zoom: number;
 }) {
   const [state, action, pending] = useActionState<FormResult, FormData>(createSchoolRouteWithStops, { error: null });
   const formRef = useRef<HTMLFormElement>(null);
   const [runType, setRunType] = useState<"school_am" | "school_pm">("school_am");
   const [schoolId, setSchoolId] = useState("");
   const [stops, setStops] = useState<Stop[]>([]);
-  const [fitToken, setFitToken] = useState(0);
   const [gap, setGap] = useState(3);
   const [note, setNote] = useState<string | null>(null);
 
@@ -100,20 +77,11 @@ export function RouteBuilder({
   const lengthKm = stops.slice(1).reduce((sum, s, i) => sum + km(stops[i], s), 0);
 
   const patch = (key: string, p: Partial<Stop>) => setStops((all) => all.map((s) => (s.key === key ? { ...s, ...p } : s)));
-  const refit = () => setFitToken((t) => t + 1);
 
   function addStop(s: Omit<Stop, "key" | "radius" | "time" | "kind"> & Partial<Pick<Stop, "kind">>, atStart = false) {
     const stop: Stop = { key: newKey(), radius: 80, time: "", kind: "pickup", ...s };
     setStops((all) => (atStart ? [stop, ...all] : [...all, stop]));
-    refit();
     return stop.key;
-  }
-
-  async function addFromMap(lat: number, lng: number) {
-    const n = stops.length + 1;
-    const key = addStop({ name: `Stop ${n}`, address: "", lat, lng });
-    const found = await reverseGeocode(lat, lng);
-    if (found) patch(key, { name: found.name, address: found.address });
   }
 
   function addSchoolStop() {
@@ -149,9 +117,9 @@ export function RouteBuilder({
   };
 
   return (
-    <form ref={formRef} action={send} className="grid gap-6 lg:grid-cols-[minmax(0,430px)_1fr]">
-      <div className="space-y-6">
-        <section className="space-y-3 rounded-xl border border-border bg-surface p-5">
+    <form ref={formRef} action={send} className="max-w-3xl">
+      <div className="space-y-8">
+        <section className="space-y-3">
           <h2 className="text-base font-semibold">1 · Details</h2>
           <div>
             <label className="mb-1.5 block text-sm font-medium">Route name</label>
@@ -199,7 +167,7 @@ export function RouteBuilder({
           </fieldset>
         </section>
 
-        <section className="space-y-3 rounded-xl border border-border bg-surface p-5">
+        <section className="space-y-3 border-t border-border pt-6">
           <h2 className="text-base font-semibold">2 · Crew</h2>
           <div>
             <label className="mb-1.5 block text-sm font-medium">Driver</label>
@@ -226,7 +194,7 @@ export function RouteBuilder({
           <MonitorPicker monitors={monitors} label="Bus aide (optional)" />
         </section>
 
-        <section className="space-y-3 rounded-xl border border-border bg-surface p-5">
+        <section className="space-y-3 border-t border-border pt-6">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-base font-semibold">3 · Stops</h2>
             <p className="text-xs text-muted">
@@ -241,7 +209,7 @@ export function RouteBuilder({
             resetOnPick
             onPick={(p) => addStop({ name: p.address.split(",")[0] || "Stop", address: p.address, lat: p.lat, lng: p.lon })}
           />
-          <p className="text-xs text-muted">Or click the map to drop a stop. Drag a pin to fine-tune it.</p>
+          <p className="text-xs text-muted">Add the stops in the order the bus will run them; reorder with the arrows. Later, students\u2019 home addresses will fill this list for you.</p>
           {school && school.lat != null && !hasSchoolStop && (
             <button
               type="button"
@@ -325,7 +293,7 @@ export function RouteBuilder({
             ))}
             {stops.length === 0 && (
               <li className="rounded-lg border border-dashed border-border px-4 py-6 text-center text-sm text-muted">
-                No stops yet. Search an address or click the map.
+                No stops yet. Search an address above.
               </li>
             )}
           </ol>
@@ -352,7 +320,7 @@ export function RouteBuilder({
           {note && <p className="text-xs text-danger">{note}</p>}
         </section>
 
-        <section className="space-y-3 rounded-xl border border-border bg-surface p-5">
+        <section className="space-y-3 border-t border-border pt-6">
           <h2 className="text-base font-semibold">4 · Save</h2>
           <p className="text-xs text-muted">
             A draft stays out of the drivers&apos; app until you publish it. After saving, assign the students to the stops on the
@@ -386,18 +354,6 @@ export function RouteBuilder({
         </section>
       </div>
 
-      <div className="lg:sticky lg:top-6 lg:h-[calc(100vh-6rem)]">
-        <div className="h-[460px] overflow-hidden rounded-xl border border-border lg:h-full">
-          <RouteBuilderMap
-            stops={stops.map((s) => ({ key: s.key, lat: s.lat, lng: s.lng, kind: s.kind }))}
-            center={center}
-            zoom={zoom}
-            fitToken={fitToken}
-            onAdd={addFromMap}
-            onMove={(key, lat, lng) => patch(key, { lat, lng })}
-          />
-        </div>
-      </div>
     </form>
   );
 }

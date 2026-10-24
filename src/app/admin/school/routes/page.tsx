@@ -9,9 +9,15 @@ import { driverLabel, fleetDriverIds } from "@/lib/driver-label";
 import { busLabel, effectiveMonitor, loadCrewOptions } from "@/lib/school-crew";
 import { ROUTE_TYPE_LABEL, clock, daysLabel } from "@/lib/school";
 import { PageHeader } from "@/components/page-ui";
+import { AddressAutocompleteInput } from "../../routes/address-autocomplete-input";
+import { addSchool, deleteSchool } from "../actions";
+import { ActionForm, RowButton, inputClass } from "../form-kit";
+import { RoutesMenu } from "../routes-menu";
+import { Sheet } from "@/components/sheet";
 import { requireFeature } from "@/lib/fleet-features";
 
-export default async function SchoolRoutesPage() {
+export default async function SchoolRoutesPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
+  const tab = (await searchParams).tab === "schools" ? "schools" : "routes";
   await requireFeature("school");
   const supabase = await createClient();
   const { user, profile } = await getAuthedProfile();
@@ -36,7 +42,7 @@ export default async function SchoolRoutesPage() {
       .in("route_type", ["school_am", "school_pm"])
       .neq("status", "closed")
       .order("scheduled_start_time", { ascending: true, nullsFirst: false }),
-    supabase.from("school_sites").select("id, name").eq("organization_id", orgId).order("name"),
+    supabase.from("school_sites").select("id, name, address").eq("organization_id", orgId).order("name"),
     loadCrewOptions(supabase, orgId),
     supabase.from("route_stops").select("route_id").eq("organization_id", orgId),
     supabase.from("student_stop_assignments").select("route_id, action").eq("organization_id", orgId),
@@ -53,19 +59,12 @@ export default async function SchoolRoutesPage() {
 
   return (
     <main className="space-y-6 mx-auto w-full max-w-6xl px-5 py-7 sm:px-8 lg:py-8">
-      <PageHeader
-        title="School routes"
-        description="Build a route on the map with its stops and crew, then assign the students who get on or off at each stop. The driver sees it in the app on its service days once it is published."
-        actions={
-          <Link
-            href="/admin/school/routes/new"
-            className="rounded-lg bg-accent px-3.5 py-2 text-sm font-semibold text-accent-foreground transition hover:opacity-90"
-          >
-            New route
-          </Link>
-        }
-      />
+      <RoutesMenu active={tab} count={{ routes: (routes ?? []).length, schools: (schools ?? []).length }} />
 
+      {tab === "schools" ? (
+        <SchoolsTab schools={schools ?? []} />
+      ) : (
+        <>
       <div className="overflow-x-auto rounded-xl border border-border bg-surface">
         <table className="w-full text-sm">
           <thead>
@@ -122,6 +121,63 @@ export default async function SchoolRoutesPage() {
           </tbody>
         </table>
       </div>
+        </>
+      )}
     </main>
+  );
+}
+
+function SchoolsTab({ schools }: { schools: { id: string; name: string; address: string | null }[] }) {
+  return (
+    <section className="space-y-4">
+      <PageHeader
+        title="Schools"
+        description="The schools your routes serve. A route and a student each point to one school."
+        actions={
+          <Sheet label="Add school" title="Add a school">
+            <ActionForm action={addSchool} submitLabel="Add school">
+              <div>
+                <label className="mb-1.5 block text-sm font-medium">School name</label>
+                <input name="name" required placeholder="Lincoln Elementary" className={inputClass} />
+              </div>
+              <div className="sm:col-span-2">
+                <AddressAutocompleteInput
+                  name="address"
+                  label="Address"
+                  placeholder="Start typing the school's address"
+                  latName="latitude"
+                  lonName="longitude"
+                />
+              </div>
+            </ActionForm>
+          </Sheet>
+        }
+      />
+      <div className="overflow-x-auto rounded-xl border border-border bg-surface">
+        <table className="w-full text-sm">
+          <tbody>
+            {schools.map((s) => (
+              <tr key={s.id} className="border-b border-border last:border-0">
+                <td className="px-4 py-3 font-medium">{s.name}</td>
+                <td className="px-4 py-3 text-muted">{s.address ?? "—"}</td>
+                <td className="px-4 py-3 text-right">
+                  <RowButton
+                    onRun={deleteSchool.bind(null, s.id)}
+                    label="Remove"
+                    danger
+                    confirmText={`Remove ${s.name}? Routes and students keep working without it.`}
+                  />
+                </td>
+              </tr>
+            ))}
+            {schools.length === 0 && (
+              <tr>
+                <td className="px-4 py-6 text-center text-muted">No schools yet.</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </section>
   );
 }

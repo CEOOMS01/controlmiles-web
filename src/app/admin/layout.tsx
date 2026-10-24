@@ -148,8 +148,8 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
     { href: "/admin/roster", label: "Team", icon: "team" },
     ...(has("school")
       ? [
-          { href: "/admin/school/routes", label: "School routes", icon: "route" as const },
-          { href: "/admin/school/students", label: "Schools & students", icon: "students" as const },
+          { href: "/admin/school/routes", label: "Routes", icon: "route" as const },
+          { href: "/admin/school/students", label: "Students & parents", icon: "students" as const },
           { href: "/admin/school/attendance", label: "Attendance", icon: "attendance" as const },
         ]
       : []),

@@ -5,15 +5,13 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { getAuthedProfile } from "@/lib/supabase/org-context";
-import { AddressAutocompleteInput } from "../../routes/address-autocomplete-input";
-import { addSchool, addStudent, deactivateStudent, deleteSchool } from "../actions";
+import { addStudent, deactivateStudent } from "../actions";
 import { ActionForm, RowButton, inputClass } from "../form-kit";
 import { requireFeature } from "@/lib/fleet-features";
-import { PageHeader, PageTabs } from "@/components/page-ui";
+import { PageHeader } from "@/components/page-ui";
 import { Sheet } from "@/components/sheet";
 
-export default async function SchoolsAndStudentsPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
-  const tab = (await searchParams).tab === "schools" ? "schools" : "students";
+export default async function StudentsAndParentsPage() {
   await requireFeature("school");
   const supabase = await createClient();
   const { profile } = await getAuthedProfile();
@@ -37,29 +35,10 @@ export default async function SchoolsAndStudentsPage({ searchParams }: { searchP
   return (
     <main className="mx-auto w-full max-w-6xl px-5 py-7 sm:px-8 lg:py-8">
       <PageHeader
-        title="Schools &amp; students"
+        title="Students &amp; parents"
         description="Keep only what drivers need on a route: first name, last initial, grade and school. Student records are protected by FERPA and state privacy laws."
         actions={
-          tab === "schools" ? (
-            <Sheet label="Add school" title="Add a school">
-              <ActionForm action={addSchool} submitLabel="Add school">
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium">School name</label>
-                  <input name="name" required placeholder="Lincoln Elementary" className={inputClass} />
-                </div>
-                <div className="sm:col-span-2">
-                  <AddressAutocompleteInput
-                    name="address"
-                    label="Address"
-                    placeholder="Start typing the school's address"
-                    latName="latitude"
-                    lonName="longitude"
-                  />
-                </div>
-              </ActionForm>
-            </Sheet>
-          ) : (
-            <Sheet label="Add student" title="Add a student">
+          <Sheet label="Add student" title="Add a student">
               <ActionForm action={addStudent} submitLabel="Add student">
                 <div>
                   <label className="mb-1.5 block text-sm font-medium">First name</label>
@@ -89,51 +68,10 @@ export default async function SchoolsAndStudentsPage({ searchParams }: { searchP
                   <input name="external_id" className={inputClass} />
                 </div>
               </ActionForm>
-            </Sheet>
-          )
+          </Sheet>
         }
       />
-      <PageTabs
-        base="/admin/school/students"
-        current={tab}
-        tabs={[
-          { id: "students", label: "Students", count: students?.length ?? 0 },
-          { id: "schools", label: "Schools", count: schools?.length ?? 0 },
-        ]}
-      />
-
-      {tab === "schools" && (
-        <section className="space-y-4">
-          <div className="overflow-x-auto rounded-xl border border-border bg-surface">
-            <table className="w-full text-sm">
-              <tbody>
-                {(schools ?? []).map((s) => (
-                  <tr key={s.id} className="border-b border-border last:border-0">
-                    <td className="px-4 py-3 font-medium">{s.name}</td>
-                    <td className="px-4 py-3 text-muted">{s.address ?? "—"}</td>
-                    <td className="px-4 py-3 text-right">
-                      <RowButton
-                        onRun={deleteSchool.bind(null, s.id)}
-                        label="Remove"
-                        danger
-                        confirmText={`Remove ${s.name}? Routes and students keep working without it.`}
-                      />
-                    </td>
-                  </tr>
-                ))}
-                {(schools ?? []).length === 0 && (
-                  <tr>
-                    <td className="px-4 py-6 text-center text-muted">No schools yet.</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      )}
-
-      {tab === "students" && (
-        <section className="space-y-4">
+      <section className="space-y-4">
           <div className="overflow-x-auto rounded-xl border border-border bg-surface">
             <table className="w-full text-sm">
               <thead>
@@ -179,8 +117,7 @@ export default async function SchoolsAndStudentsPage({ searchParams }: { searchP
               </tbody>
             </table>
           </div>
-        </section>
-      )}
+      </section>
     </main>
   );
 }

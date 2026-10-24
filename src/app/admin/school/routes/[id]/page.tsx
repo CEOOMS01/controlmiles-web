@@ -5,7 +5,6 @@
 // (each with a map location and arrival radius), the students who board or
 // get off at each stop, and the last runs.
 
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getAuthedProfile } from "@/lib/supabase/org-context";
@@ -18,6 +17,7 @@ import { addStop, assignStudent, deleteStop, moveStop, saveSchoolRouteCrew, unas
 import { loadCrewOptions } from "@/lib/school-crew";
 import { MonitorPicker } from "../../monitor-picker";
 import { DeleteSchoolRoute, EditSchoolRouteForm, PublishBanner } from "../../route-details";
+import { RoutesMenu } from "../../routes-menu";
 import { driverLabel } from "@/lib/driver-label";
 import { ActionForm, RowButton, inputClass } from "../../form-kit";
 import { requireFeature } from "@/lib/fleet-features";
@@ -123,11 +123,9 @@ export default async function SchoolRoutePage({
 
   return (
     <main className="space-y-8 mx-auto w-full max-w-6xl px-5 py-7 sm:px-8 lg:py-8">
+      <RoutesMenu active="routes" />
       <div>
-        <Link href="/admin/school/routes" className="text-sm text-muted hover:text-accent">
-          ← School routes
-        </Link>
-        <h1 className="mt-1 text-xl font-semibold tracking-tight">{route.name}</h1>
+        <h1 className="text-xl font-semibold tracking-tight">{route.name}</h1>
         <p className="mt-1 text-sm text-muted">
           {ROUTE_TYPE_LABEL[route.route_type]}
           {school?.name ? ` · ${school.name}` : ""} · starts {clock(route.scheduled_start_time, timeFormat)} ·{" "}
