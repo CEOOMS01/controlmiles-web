@@ -68,6 +68,8 @@ export function AddressAutocompleteInput({
   lonName,
   onPick,
   resetOnPick,
+  defaultValue,
+  defaultCoords,
 }: {
   name: string;
   label: string;
@@ -81,9 +83,12 @@ export function AddressAutocompleteInput({
   onPick?: (p: { address: string; lat: number; lon: number }) => void;
   /** Clear the field after a pick, ready for the next address. */
   resetOnPick?: boolean;
+  /** Editing: the saved address and its coordinates. */
+  defaultValue?: string | null;
+  defaultCoords?: { lat: number; lon: number } | null;
 }) {
-  const [value, setValue] = useState("");
-  const [coords, setCoords] = useState<{ lat: number; lon: number } | null>(null);
+  const [value, setValue] = useState(defaultValue ?? "");
+  const [coords, setCoords] = useState<{ lat: number; lon: number } | null>(defaultCoords ?? null);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);

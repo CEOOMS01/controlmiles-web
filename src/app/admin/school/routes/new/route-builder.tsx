@@ -12,11 +12,11 @@
 //   pin to adjust, reorder, time each stop)  4. Save as draft or publish.
 // Students are assigned to the stops right after, on the route page.
 
-import { useActionState, useRef, useState } from "react";
+import { useActionState, useRef, useState, useTransition } from "react";
 import { TimeInput } from "@/components/time-input";
 import { WEEKDAYS } from "@/lib/school";
 import { AddressAutocompleteInput } from "../../../routes/address-autocomplete-input";
-import { createSchoolRouteWithStops, type FormResult } from "../../actions";
+import { createSchoolRouteWithStops, suggestRouteStops, type FormResult } from "../../actions";
 import { inputClass } from "../../form-kit";
 import { MonitorPicker } from "../../monitor-picker";
 
@@ -31,6 +31,7 @@ type Stop = {
   time: string;
   kind: "pickup" | "school" | "dropoff";
   radius: number;
+  students: { id: string; name: string }[];
 };
 
 let counter = 0;
@@ -71,6 +72,8 @@ export function RouteBuilder({
   const [stops, setStops] = useState<Stop[]>([]);
   const [gap, setGap] = useState(3);
   const [note, setNote] = useState<string | null>(null);
+  const [suggesting, startSuggest] = useTransition();
+  const [suggestInfo, setSuggestInfo] = useState<string | null>(null);
 
   const school = schools.find((s) => s.id === schoolId);
   const hasSchoolStop = stops.some((s) => s.kind === "school");
@@ -78,10 +81,62 @@ export function RouteBuilder({
 
   const patch = (key: string, p: Partial<Stop>) => setStops((all) => all.map((s) => (s.key === key ? { ...s, ...p } : s)));
 
-  function addStop(s: Omit<Stop, "key" | "radius" | "time" | "kind"> & Partial<Pick<Stop, "kind">>, atStart = false) {
-    const stop: Stop = { key: newKey(), radius: 80, time: "", kind: "pickup", ...s };
+  function addStop(s: Omit<Stop, "key" | "radius" | "time" | "kind" | "students"> & Partial<Pick<Stop, "kind">>, atStart = false) {
+    const stop: Stop = { key: newKey(), radius: 80, time: "", kind: "pickup", students: [], ...s };
     setStops((all) => (atStart ? [stop, ...all] : [...all, stop]));
     return stop.key;
+  }
+
+  /** Phase 1 smart order: stops from the school's students' home addresses, farthest first. */
+  function suggest() {
+    if (!schoolId) return setSuggestInfo("Choose the school first.");
+    if (stops.length > 0 && !window.confirm("Replace the stops you have with the suggestion?")) return;
+    setSuggestInfo(null);
+    startSuggest(async () => {
+      const r = await suggestRouteStops(schoolId, runType);
+      if (r.error) return setSuggestInfo(r.error);
+      const pickup = runType === "school_am" ? "pickup" : "dropoff";
+      const next: Stop[] = r.stops.map((x) => ({
+        key: newKey(),
+        name: x.name,
+        address: x.address,
+        lat: x.lat,
+        lng: x.lng,
+        time: "",
+        kind: pickup,
+        radius: 80,
+        students: x.students,
+      }));
+      // The school closes the morning run and opens the evening one.
+      if (school && school.lat != null && school.lng != null) {
+        const schoolStop: Stop = {
+          key: newKey(),
+          name: school.label,
+          address: school.address ?? "",
+          lat: school.lat,
+          lng: school.lng,
+          time: "",
+          kind: "school",
+          radius: 120,
+          students: [],
+        };
+        if (runType === "school_am") next.push(schoolStop);
+        else next.unshift(schoolStop);
+      }
+      setStops(next);
+      const n = r.stops.reduce((sum, x) => sum + x.students.length, 0);
+      const extra = [
+        r.noAddress > 0 ? `${r.noAddress} without a located address` : "",
+        r.alreadyRouted > 0 ? `${r.alreadyRouted} already on another ${runType === "school_am" ? "AM" : "PM"} route` : "",
+      ].filter(Boolean);
+      setSuggestInfo(
+        r.stops.length === 0
+          ? `No students to place.${extra.length ? ` Left out: ${extra.join("; ")}.` : ""}`
+          : `${r.stops.length} stop${r.stops.length === 1 ? "" : "s"} for ${n} student${n === 1 ? "" : "s"}, ${
+              runType === "school_am" ? "farthest from the school first" : "nearest to the school first"
+            }.${extra.length ? ` Left out: ${extra.join("; ")}.` : ""} Review the order and edit what is not right.`,
+      );
+    });
   }
 
   function addSchoolStop() {
@@ -112,7 +167,7 @@ export function RouteBuilder({
   }
 
   const send = (fd: FormData) => {
-    fd.set("stops_json", JSON.stringify(stops.map((s) => ({ ...s }))));
+    fd.set("stops_json", JSON.stringify(stops.map((s) => ({ ...s, students: s.students.map((x) => x.id) }))));
     action(fd);
   };
 
@@ -202,6 +257,19 @@ export function RouteBuilder({
               {stops.length > 1 ? ` · about ${(lengthKm * 0.621371).toFixed(1)} mi in a straight line` : ""}
             </p>
           </div>
+          <div className="rounded-lg border border-dashed border-accent/50 bg-accent/5 p-3">
+            <button
+              type="button"
+              onClick={suggest}
+              disabled={suggesting || !schoolId}
+              className="rounded-lg bg-accent px-3 py-1.5 text-sm font-semibold text-accent-foreground transition hover:opacity-90 disabled:opacity-50"
+            >
+              {suggesting ? "Working it out…" : "Suggest stops from students' addresses"}
+            </button>
+            <p className="mt-2 text-xs text-muted">
+              {suggestInfo ?? "Uses each student's home address: the farthest from the school is picked up first. You review it before saving."}
+            </p>
+          </div>
           <AddressAutocompleteInput
             name="stop_search"
             label="Search an address"
@@ -240,6 +308,11 @@ export function RouteBuilder({
                       className={inputClass}
                     />
                     {s.address && <p className="truncate text-xs text-muted">{s.address}</p>}
+                    {s.students.length > 0 && (
+                      <p className="text-xs text-muted">
+                        <span className="font-medium text-foreground">{s.students.length}</span> {s.students.length === 1 ? "student" : "students"}: {s.students.map((x) => x.name).join(", ")}
+                      </p>
+                    )}
                     <div className="flex flex-wrap items-center gap-2 text-xs">
                       <input
                         type="time"
