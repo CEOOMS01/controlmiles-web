@@ -146,7 +146,6 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   // highlighted; the same gating as before (plan features, operator role).
   const operations: NavItem[] = [
     { href: "/admin/roster", label: "Team", icon: "team" },
-    ...(has("school_live") ? [{ href: "/admin/school", label: "School: live", icon: "bus" as const }] : []),
     ...(has("school")
       ? [
           { href: "/admin/school/routes", label: "School routes", icon: "route" as const },
@@ -185,7 +184,9 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
     ...(!isOperatorOnly ? [{ href: "/admin/settings", label: "Settings", icon: "settings" as const }] : []),
   ];
   const groups: NavGroup[] = [
-    { items: [{ href: "/admin", label: "Dashboard", icon: "dashboard" }] },
+    // School bus plans with the live run board (school_live): that board IS
+    // the dashboard (one map, not two); other plans keep the fleet dashboard.
+    { items: [{ href: has("school_live") ? "/admin/school" : "/admin", label: "Dashboard", icon: "dashboard" }] },
     ...(operations.length ? [{ title: "Operations", items: operations }] : []),
     ...(fleet.length ? [{ title: "Fleet", items: fleet }] : []),
     { title: "Admin", items: admin },

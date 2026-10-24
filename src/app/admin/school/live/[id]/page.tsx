@@ -206,7 +206,7 @@ export default async function SchoolLiveRoutePage({ params }: { params: Promise<
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <Link href="/admin/school" className="text-sm text-muted hover:text-accent">
-            ← School: live
+            ← Dashboard
           </Link>
           <h1 className="mt-1 text-xl font-semibold tracking-tight">{route.name}</h1>
           <p className="mt-1 text-sm text-muted">

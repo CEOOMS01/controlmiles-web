@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getBranchScope } from "@/lib/branch-scope";
 import { getAuthedProfile } from "@/lib/supabase/org-context";
@@ -24,6 +25,9 @@ export default async function AdminDashboardPage() {
 
   // Only what this fleet's service and plan include (fn_org_features).
   const features = await getOrgFeatures(orgId);
+  // School bus plans with the live run board: that board is their dashboard
+  // (it already has the map), so the fleet dashboard is not shown twice.
+  if (features.has("school_live")) redirect("/admin/school");
 
   const thirtyDaysAgo = daysAgoIso(30);
   const fourteenDaysAgo = daysAgoIso(14);
