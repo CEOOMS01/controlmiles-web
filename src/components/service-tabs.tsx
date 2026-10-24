@@ -9,11 +9,14 @@
 // it in already translated so this stays a small client component.
 
 import { useState } from "react";
+import Image from "next/image";
 import { Link } from "@/i18n/routing";
 
 export type ServiceTab = {
   key: string;
   icon: string;
+  /** The service's own icon (public/service-*.png); the line icon is the fallback. */
+  image?: string;
   title: string;
   body: string;
   intro: string;
@@ -64,12 +67,16 @@ export function ServiceTabs({
                 setActive(t.key);
                 document.getElementById(`svc-tab-${t.key}`)?.focus();
               }}
-              className="lift rounded-2xl border bg-[var(--lg-bg-raised)] p-6 text-left transition"
+              className="lift flex flex-col items-start justify-start rounded-2xl border bg-[var(--lg-bg-raised)] p-6 text-left transition"
               style={{ borderColor: on ? "var(--lg-ink)" : "var(--lg-line)", boxShadow: on ? "0 12px 30px -18px rgba(0,0,0,0.5)" : undefined }}
             >
-              <span className="cf-metal flex h-10 w-10 items-center justify-center rounded-full text-white">
-                <Icon d={s.icon} />
-              </span>
+              {s.image ? (
+                <Image src={s.image} alt="" width={56} height={56} className="h-14 w-14" />
+              ) : (
+                <span className="cf-metal flex h-14 w-14 items-center justify-center rounded-full text-white">
+                  <Icon d={s.icon} />
+                </span>
+              )}
               <h3 className="display mt-5 text-lg font-semibold">{s.title}</h3>
               <p className="mt-2 text-sm leading-relaxed text-[var(--lg-ink-dim)]">{s.body}</p>
             </button>
@@ -84,7 +91,11 @@ export function ServiceTabs({
         className="mt-6 grid gap-8 rounded-2xl border border-[var(--lg-line)] bg-[var(--lg-bg-raised)] p-6 sm:p-8 lg:grid-cols-[0.8fr_1.2fr]"
       >
         <div className="cf-metal flex min-h-48 flex-col justify-between rounded-xl p-6 text-white">
-          <Icon d={current.icon} className="h-10 w-10" />
+          {current.image ? (
+            <Image src={current.image} alt="" width={96} height={96} className="h-24 w-24" />
+          ) : (
+            <Icon d={current.icon} className="h-10 w-10" />
+          )}
           <div>
             <p className="display text-2xl font-semibold">{current.title}</p>
             <p className="mt-2 text-sm leading-relaxed text-white/80">{current.intro}</p>

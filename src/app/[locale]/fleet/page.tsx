@@ -86,10 +86,18 @@ export default async function CMFleetPage({ params }: { params: Promise<{ locale
     { key: "sales", icon: ICONS.sales },
     { key: "general", icon: ICONS.pin },
   ];
+  // The native service icons (public/service-*.png); "general" has none and keeps its line icon.
+  const SERVICE_IMAGES: Record<string, string | undefined> = {
+    school: "/service-school.png",
+    transport: "/service-transport.png",
+    trucking: "/service-trucking.png",
+    sales: "/service-sales.png",
+  };
   const featureCounts: Record<string, number> = { school: 7, trucking: 4, transport: 5, sales: 4, general: 5 };
   const SERVICE_TABS: ServiceTab[] = services.map((svc) => ({
     key: svc.key,
     icon: svc.icon,
+    image: SERVICE_IMAGES[svc.key],
     title: t(`services.${svc.key}Title`),
     body: t(`services.${svc.key}Body`),
     intro: t(`detail.${svc.key}.intro`),
