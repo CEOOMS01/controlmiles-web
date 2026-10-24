@@ -48,11 +48,14 @@ function buildCsp(nonce: string, frameAncestors = "'none'") {
     // (src/components/pageview-beacon.tsx) reports to (2026-09-21).
     // protomaps.github.io: glyphs (.pbf) + sprite JSON for the fleet
     // map's basemap style, fetched via fetch()/XHR, not <img>.
+    // controlmiles-tiles.integrations-55b.workers.dev: the Worker that serves the
+    // .pmtiles file from R2 in production (infra/cloudflare/tiles-worker.js in
+    // controlmiles-backend). r2.dev is kept for the old direct address.
     // r2.dev / your R2 custom domain: the self-hosted .pmtiles file
     // itself (NEXT_PUBLIC_FLEET_MAP_PMTILES_URL) -- *.r2.dev covers
     // Cloudflare's default public bucket subdomain; replace/extend with
     // your own custom domain once the bucket uses one instead.
-    "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://photon.komoot.io https://cgc-cre.vercel.app https://protomaps.github.io https://*.r2.dev https://challenges.cloudflare.com",
+    "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://photon.komoot.io https://cgc-cre.vercel.app https://protomaps.github.io https://*.r2.dev https://controlmiles-tiles.integrations-55b.workers.dev https://challenges.cloudflare.com",
     // 'none' everywhere except a driving school's public booking page
     // (/book/<slug>), which the school may embed on its own site
     // (ds_public_origins; see proxy.ts).
