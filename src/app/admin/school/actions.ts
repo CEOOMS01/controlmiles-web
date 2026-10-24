@@ -127,6 +127,75 @@ export async function createSchoolRoute(_: FormResult, formData: FormData): Prom
   return { error: null };
 }
 
+/**
+ * Edit a school route's details (name, school, start time, service days).
+ * The run (AM/PM) is not editable: its stops and who boards or gets off at
+ * each one only make sense for that run. Crew has its own form.
+ */
+export async function updateSchoolRoute(_: FormResult, formData: FormData): Promise<FormResult> {
+  const { supabase } = await context();
+  const routeId = text(formData, "route_id");
+  const name = text(formData, "name");
+  if (!routeId) return { error: "Route not found." };
+  if (!name) return { error: "Enter a route name." };
+  const days = formData
+    .getAll("service_days")
+    .map((d) => Number(d))
+    .filter((d) => d >= 1 && d <= 7);
+  if (days.length === 0) return { error: "Choose at least one service day." };
+  const { error } = await supabase
+    .from("routes")
+    .update({
+      name: name.slice(0, 120),
+      school_site_id: text(formData, "school_site_id"),
+      scheduled_start_time: text(formData, "scheduled_start_time"),
+      service_days: days,
+    })
+    .eq("id", routeId);
+  if (error) return fail(error);
+  revalidatePath(`/admin/school/routes/${routeId}`);
+  revalidatePath(`/admin/school/live/${routeId}`);
+  revalidatePath("/admin/school/routes");
+  revalidatePath("/admin/school");
+  return { error: null };
+}
+
+export type DeleteRouteResult = FormResult & { archived?: boolean };
+
+/**
+ * Delete a school route. A route that never ran is removed with its stops and
+ * assignments. One that has run keeps its history (attendance and the "no child
+ * left on board" checks), so it is archived instead: closed, off the lists and
+ * out of the drivers' app.
+ */
+export async function deleteSchoolRoute(routeId: string): Promise<DeleteRouteResult> {
+  const { supabase } = await context();
+  const { count, error: runsError } = await supabase
+    .from("route_runs")
+    .select("id", { count: "exact", head: true })
+    .eq("route_id", routeId);
+  if (runsError) return fail(runsError);
+  if ((count ?? 0) > 0) {
+    const { error } = await supabase
+      .from("routes")
+      .update({ status: "closed", closed_at: new Date().toISOString() })
+      .eq("id", routeId);
+    if (error) return fail(error);
+    revalidatePath("/admin/school/routes");
+    revalidatePath("/admin/school");
+    return { error: null, archived: true };
+  }
+  // Only draft routes can be deleted (row policy): step it back to draft first.
+  const { error: draftError } = await supabase.from("routes").update({ status: "draft" }).eq("id", routeId);
+  if (draftError) return fail(draftError);
+  const { data: gone, error } = await supabase.from("routes").delete().eq("id", routeId).select("id");
+  if (error) return fail(error);
+  if (!gone || gone.length === 0) return { error: "Could not delete the route." };
+  revalidatePath("/admin/school/routes");
+  revalidatePath("/admin/school");
+  return { error: null, archived: false };
+}
+
 /** The route's crew: driver, bus and bus monitor (aide, by name). */
 export async function saveSchoolRouteCrew(_: FormResult, formData: FormData): Promise<FormResult> {
   const { supabase } = await context();

@@ -17,6 +17,7 @@ import { AddressAutocompleteInput } from "../../../routes/address-autocomplete-i
 import { addStop, assignStudent, deleteStop, moveStop, saveSchoolRouteCrew, unassignStudent } from "../../actions";
 import { loadCrewOptions } from "@/lib/school-crew";
 import { MonitorPicker } from "../../monitor-picker";
+import { DeleteSchoolRoute, EditSchoolRouteForm } from "../../route-details";
 import { driverLabel } from "@/lib/driver-label";
 import { ActionForm, RowButton, inputClass } from "../../form-kit";
 import { requireFeature } from "@/lib/fleet-features";
@@ -44,7 +45,7 @@ export default async function SchoolRoutePage({
     .maybeSingle();
   if (!route || (route.route_type !== "school_am" && route.route_type !== "school_pm")) notFound();
 
-  const [{ data: stops }, { data: assignments }, { data: students }, { data: runs }, { data: me }, { data: school }, { data: org }, crew, { data: currentDriver }] =
+  const [{ data: stops }, { data: assignments }, { data: students }, { data: runs }, { data: me }, { data: school }, { data: org }, crew, { data: currentDriver }, { data: allSchools }] =
     await Promise.all([
       supabase
         .from("route_stops")
@@ -73,6 +74,7 @@ export default async function SchoolRoutePage({
       route.assigned_driver_id
         ? supabase.from("profiles").select("first_name, last_name").eq("id", route.assigned_driver_id).maybeSingle()
         : Promise.resolve({ data: null }),
+      supabase.from("school_sites").select("id, name").eq("organization_id", orgId).order("name"),
     ]);
   // The assigned driver may not be a "driver" member (e.g. the owner drives).
   const driverOptions =
@@ -132,6 +134,20 @@ export default async function SchoolRoutePage({
           {daysLabel(route.service_days)}
         </p>
       </div>
+
+      <section className="space-y-3">
+        <h2 className="text-base font-semibold">Route details</h2>
+        <EditSchoolRouteForm
+          routeId={id}
+          name={route.name}
+          schoolId={route.school_site_id}
+          startTime={route.scheduled_start_time}
+          days={route.service_days ?? []}
+          schools={(allSchools ?? []).map((x) => ({ id: x.id, label: x.name }))}
+          timeFormat={timeFormat}
+        />
+        <DeleteSchoolRoute routeId={id} routeName={route.name} />
+      </section>
 
       <section className="space-y-3">
         <h2 className="text-base font-semibold">Crew</h2>
