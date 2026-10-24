@@ -291,6 +291,50 @@
       "reports": "Reportes que resisten una auditoría",
       "reportsBody": "Viajes sellados y exportaciones.",
       "foot": "Funciona en el teléfono de tu equipo. Ningún equipo en el auto."
+    },
+    "detail": {
+      "planNote": "Algunas herramientas dependen de tu plan. La adquisición única del servicio está en la tabla de abajo.",
+      "cta": "Empezar con este servicio",
+      "school": {
+        "intro": "Clases, alumnos y horas de práctica que salen del viaje GPS real del auto, no de lo que alguien escribió.",
+        "f1": "Horas de práctica, horas nocturnas y millas medidas por GPS",
+        "f2": "Clases semanales por instructor y auto, con disponibilidad y tiempo libre",
+        "f3": "Portal de alumno y padres con reserva en línea y política de cancelación",
+        "f4": "Boletas de habilidades después de cada clase",
+        "f5": "Paquetes de clases, pagos y saldos",
+        "f6": "Certificados de finalización sellados y registro de horas imprimible",
+        "f7": "Sucursales: autos, instructores y alumnos en cada ubicación"
+      },
+      "trucking": {
+        "intro": "Los registros que necesita un transportista pequeño, desde el teléfono del conductor.",
+        "f1": "Millas IFTA por estado, a partir de los viajes GPS",
+        "f2": "Inspecciones DVIR antes del viaje",
+        "f3": "Registro de combustible y mantenimiento",
+        "f4": "Dueños-operadores en la misma lista"
+      },
+      "transport": {
+        "intro": "Rutas escolares que manejan tus conductores, con la oficina siguiendo el recorrido.",
+        "f1": "Rutas escolares de mañana y tarde",
+        "f2": "Asistencia en cada parada",
+        "f3": "Tablero en vivo del recorrido para la oficina",
+        "f4": "Invitaciones a tutores por correo",
+        "f5": "Inspecciones y mapa en vivo"
+      },
+      "sales": {
+        "intro": "Viajes de negocio que tus gerentes pueden aprobar, con millas limpias.",
+        "f1": "Viajes de negocio con aprobación del gerente",
+        "f2": "Reportes y exportaciones de millas limpios",
+        "f3": "Viajes GPS y fotos del odómetro",
+        "f4": "Turnos recurrentes"
+      },
+      "general": {
+        "intro": "El núcleo de CMFleet para cualquier equipo con vehículos y conductores.",
+        "f1": "Listas de vehículos y conductores",
+        "f2": "Viaje GPS en cada trayecto",
+        "f3": "Foto del odómetro cada mes",
+        "f4": "Inspecciones, combustible y mantenimiento",
+        "f5": "Reportes y exportaciones"
+      }
     }
   }
 }

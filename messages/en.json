@@ -291,6 +291,50 @@
       "reports": "Reports that hold up",
       "reportsBody": "Sealed trips and exports.",
       "foot": "Runs on your team's phones. No device in the car."
+    },
+    "detail": {
+      "planNote": "Some tools depend on your plan. The one-time acquisition of the service is in the table below.",
+      "cta": "Start with this service",
+      "school": {
+        "intro": "Classes, students and lesson hours that come from the car's real GPS trip, not from what someone typed.",
+        "f1": "Lesson hours, night hours and miles measured by GPS",
+        "f2": "Weekly classes per instructor and car, with availability and time off",
+        "f3": "Student and parent portal with online booking and a cancellation policy",
+        "f4": "Skill report cards after each lesson",
+        "f5": "Lesson packages, payments and balances",
+        "f6": "Sealed completion certificates and a printable hour log",
+        "f7": "Branches: cars, instructors and students in each location"
+      },
+      "trucking": {
+        "intro": "Records a small carrier needs, kept from the driver's phone.",
+        "f1": "IFTA miles by state, from the GPS trips",
+        "f2": "DVIR pre-trip inspections",
+        "f3": "Fuel log and maintenance records",
+        "f4": "Owner-operators on the same roster"
+      },
+      "transport": {
+        "intro": "School routes run by your drivers, with the office watching the run.",
+        "f1": "Morning and afternoon school routes",
+        "f2": "Attendance at every stop",
+        "f3": "Live run board for the office",
+        "f4": "Guardian invitations by email",
+        "f5": "Inspections and live map"
+      },
+      "sales": {
+        "intro": "Business trips your managers can approve, with clean mileage.",
+        "f1": "Business trips with manager approval",
+        "f2": "Clean mileage reports and exports",
+        "f3": "GPS trips and odometer photos",
+        "f4": "Recurring shift scheduling"
+      },
+      "general": {
+        "intro": "The core of CMFleet for any team with vehicles and drivers.",
+        "f1": "Vehicle and driver rosters",
+        "f2": "GPS trips on every drive",
+        "f3": "Odometer photos each month",
+        "f4": "Inspections, fuel and maintenance",
+        "f5": "Reports and exports"
+      }
     }
   }
 }

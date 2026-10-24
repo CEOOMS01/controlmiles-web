@@ -19,7 +19,7 @@ import { alternatesFor } from "@/i18n/metadata";
 import { Link } from "@/i18n/routing";
 import { LandingNav, LandingFooter } from "@/components/landing-chrome";
 import { PlanCard } from "@/components/plan-card";
-import { Reveal } from "@/components/reveal";
+import { ServiceTabs, type ServiceTab } from "@/components/service-tabs";
 import { genericFleetPlans, getFleetCatalog } from "@/lib/fleet-pricing";
 import { usd } from "@/lib/school-pricing";
 import "../landing.css";
@@ -86,6 +86,15 @@ export default async function CMFleetPage({ params }: { params: Promise<{ locale
     { key: "sales", icon: ICONS.sales },
     { key: "general", icon: ICONS.pin },
   ];
+  const featureCounts: Record<string, number> = { school: 7, trucking: 4, transport: 5, sales: 4, general: 5 };
+  const SERVICE_TABS: ServiceTab[] = services.map((svc) => ({
+    key: svc.key,
+    icon: svc.icon,
+    title: t(`services.${svc.key}Title`),
+    body: t(`services.${svc.key}Body`),
+    intro: t(`detail.${svc.key}.intro`),
+    features: Array.from({ length: featureCounts[svc.key] }, (_, i) => t(`detail.${svc.key}.f${i + 1}`)),
+  }));
   const capabilities = [
     { key: "gps", icon: ICONS.gps },
     { key: "odo", icon: ICONS.odo },
@@ -223,23 +232,12 @@ export default async function CMFleetPage({ params }: { params: Promise<{ locale
         <p className="mono text-xs font-medium tracking-[0.2em] text-[var(--lg-amber)]">{t("services.eyebrow")}</p>
         <h2 className="display mt-4 max-w-2xl text-3xl font-semibold sm:text-4xl">{t("services.title")}</h2>
         <p className="mt-3 max-w-xl text-sm leading-relaxed text-[var(--lg-ink-dim)]">{t("services.subtitle")}</p>
-        <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          {services.map((s, i) => (
-            <Reveal
-              key={s.key}
-              index={i}
-              className="lift rounded-2xl border border-[var(--lg-line)] bg-[var(--lg-bg-raised)] p-6"
-            >
-              <span
-                className="cf-metal flex h-10 w-10 items-center justify-center rounded-full text-white"
-              >
-                <Icon d={s.icon} />
-              </span>
-              <h3 className="display mt-5 text-lg font-semibold">{t(`services.${s.key}Title`)}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-[var(--lg-ink-dim)]">{t(`services.${s.key}Body`)}</p>
-            </Reveal>
-          ))}
-        </div>
+        <ServiceTabs
+          services={SERVICE_TABS}
+          planNote={t("detail.planNote")}
+          cta={t("detail.cta")}
+          ctaHref="/signup"
+        />
         {/* Same acquisition for every service, from the same catalog billing uses. */}
         <div className="mt-8 overflow-x-auto rounded-2xl border border-[var(--lg-line)] bg-[var(--lg-bg-raised)]">
           <table className="w-full min-w-[420px] text-left text-sm">
