@@ -186,7 +186,8 @@ export function AddressAutocompleteInput({
   }
 
   function setField(k: keyof Fields, v: string) {
-    edited();
+    // The apartment is not part of the lookup, so it must not forget the location.
+    if (k !== "apt") edited();
     setFields((f) => ({ ...f, [k]: v }));
   }
 
