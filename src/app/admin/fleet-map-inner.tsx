@@ -33,7 +33,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import { Protocol } from "pmtiles";
 import { layers, namedFlavor } from "@protomaps/basemaps";
 import { circlePolygon } from "@/lib/geo-circle";
-import { vehicleStatus, type FleetVehicle, type VehicleStatus } from "./fleet-map";
+import { vehicleStatus, type FleetRoute, type FleetVehicle, type VehicleStatus } from "./fleet-map";
 
 export type FleetGeofence = {
   id: string;
@@ -99,13 +99,16 @@ function buildStyle(): maplibregl.StyleSpecification {
 export default function FleetMapInner({
   vehicles,
   geofences = [],
+  routes = [],
 }: {
   vehicles: FleetVehicle[];
   geofences?: FleetGeofence[];
+  routes?: FleetRoute[];
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const markersRef = useRef<Map<string, maplibregl.Marker>>(new Map());
+  const framedRef = useRef("");
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -145,6 +148,50 @@ export default function FleetMapInner({
         source: "fleet-geofences",
         paint: { "line-color": ["get", "color"], "line-width": 1.5, "line-dasharray": [2, 2] },
       });
+
+      // School routes: the stops in order joined by a line (straight between
+      // stops: it is the planned order, not the road), numbered stops, the
+      // school marked S.
+      map.addSource("school-routes", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+      map.addLayer({
+        id: "school-routes-line",
+        type: "line",
+        source: "school-routes",
+        filter: ["==", ["geometry-type"], "LineString"],
+        layout: { "line-cap": "round", "line-join": "round" },
+        paint: { "line-color": ["get", "color"], "line-width": 3, "line-opacity": 0.75 },
+      });
+      map.addLayer({
+        id: "school-routes-stops",
+        type: "circle",
+        source: "school-routes",
+        filter: ["==", ["geometry-type"], "Point"],
+        paint: {
+          "circle-color": ["get", "color"],
+          "circle-radius": 10,
+          "circle-stroke-color": "#ffffff",
+          "circle-stroke-width": 2,
+        },
+      });
+      map.addLayer({
+        id: "school-routes-labels",
+        type: "symbol",
+        source: "school-routes",
+        filter: ["==", ["geometry-type"], "Point"],
+        layout: { "text-field": ["get", "label"], "text-size": 11, "text-font": ["Noto Sans Medium"], "text-allow-overlap": true },
+        paint: { "text-color": "#ffffff" },
+      });
+      map.on("click", "school-routes-stops", (e) => {
+        const f = e.features?.[0];
+        if (!f || f.geometry.type !== "Point") return;
+        const p = f.properties as { route: string; name: string; time: string; label: string };
+        const el = document.createElement("div");
+        el.className = "text-sm";
+        el.innerHTML = `<p class="font-semibold">${escapeHtml(p.name)}</p><p class="text-xs text-muted">${escapeHtml(p.route)} · stop ${escapeHtml(p.label)}${p.time ? ` · ${escapeHtml(p.time)}` : ""}</p>`;
+        new maplibregl.Popup({ offset: 12 }).setLngLat(f.geometry.coordinates as [number, number]).setDOMContent(el).addTo(map);
+      });
+      map.on("mouseenter", "school-routes-stops", () => (map.getCanvas().style.cursor = "pointer"));
+      map.on("mouseleave", "school-routes-stops", () => (map.getCanvas().style.cursor = ""));
     });
 
     return () => {
@@ -233,6 +280,42 @@ export default function FleetMapInner({
     if (map.isStyleLoaded()) applyGeofences();
     else map.once("load", applyGeofences);
   }, [geofences]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    const apply = () => {
+      const source = map.getSource("school-routes") as maplibregl.GeoJSONSource | undefined;
+      if (!source) return;
+      const features: GeoJSON.Feature[] = [];
+      const bounds = new maplibregl.LngLatBounds();
+      for (const r of routes) {
+        const coords = r.stops.map((s) => [s.lon, s.lat] as [number, number]);
+        if (coords.length > 1) {
+          features.push({ type: "Feature", properties: { color: r.color }, geometry: { type: "LineString", coordinates: coords } });
+        }
+        r.stops.forEach((s, i) => {
+          bounds.extend([s.lon, s.lat]);
+          features.push({
+            type: "Feature",
+            properties: { color: r.color, route: r.name, name: s.name, time: s.time ?? "", label: s.kind === "school" ? "S" : String(i + 1) },
+            geometry: { type: "Point", coordinates: [s.lon, s.lat] },
+          });
+        });
+      }
+      source.setData({ type: "FeatureCollection", features });
+      // Frame the routes once per set of routes, so the person's own panning is left alone.
+      const sig = routes.map((r) => `${r.id}:${r.stops.length}`).join("|");
+      if (sig && sig !== framedRef.current && !bounds.isEmpty()) {
+        framedRef.current = sig;
+        map.fitBounds(bounds, { padding: 50, maxZoom: 15, duration: 0 });
+      }
+    };
+
+    if (map.isStyleLoaded()) apply();
+    else map.once("load", apply);
+  }, [routes]);
 
   return <div ref={containerRef} className="h-full w-full" />;
 }

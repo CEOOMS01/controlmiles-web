@@ -31,6 +31,14 @@ export type FleetGeofence = {
   is_active: boolean;
 };
 
+/** A school route drawn on the live map: its stops in order, joined by a line. */
+export type FleetRoute = {
+  id: string;
+  name: string;
+  color: string;
+  stops: { lat: number; lon: number; name: string; time: string | null; kind: string | null }[];
+};
+
 export type FleetVehicle = {
   id: string;
   displayId: string | null;
@@ -73,10 +81,12 @@ export function FleetMap({
   orgId,
   initialVehicles,
   geofences = [],
+  routes = [],
 }: {
   orgId: string;
   initialVehicles: FleetVehicle[];
   geofences?: FleetGeofence[];
+  routes?: FleetRoute[];
 }) {
   const [vehicles, setVehicles] = useState(initialVehicles);
   const supabaseRef = useRef(createClient());
@@ -181,11 +191,17 @@ export function FleetMap({
           <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-[#2c6c99]" />On trip</span>
           <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-[#d97706]" />No signal</span>
           <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-[#94a3b8]" />Parked</span>
+          {routes.map((r) => (
+            <span key={r.id} className="flex items-center gap-1.5">
+              <span className="h-0.5 w-4 rounded" style={{ background: r.color }} />
+              {r.name}
+            </span>
+          ))}
         </div>
       </div>
 
       <div className="relative h-96 overflow-hidden rounded-lg">
-        <MapInner vehicles={vehicles} geofences={geofences} />
+        <MapInner vehicles={vehicles} geofences={geofences} routes={routes} />
         {vehicles.length === 0 && (
           <div className="pointer-events-none absolute inset-x-4 bottom-4 rounded-lg border border-dashed border-border bg-surface/90 px-3 py-2 text-center text-sm text-muted">
             Vehicles show up here once a driver starts a trip.

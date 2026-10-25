@@ -11,7 +11,7 @@ import { driverLabel, fleetDriverIds } from "@/lib/driver-label";
 import { ROUTE_TYPE_LABEL, clock, fleetNow, minutesOf } from "@/lib/school";
 import { dueStopIds, loadRodeAm, runStatuses } from "@/lib/school-status";
 import { busLabel, effectiveMonitor, loadCrewOptions, loadCrewOverrides } from "@/lib/school-crew";
-import { FleetMap, type FleetVehicle } from "../fleet-map";
+import { FleetMap, type FleetRoute, type FleetVehicle } from "../fleet-map";
 import { AutoRefresh } from "./auto-refresh";
 import { requireFeature } from "@/lib/fleet-features";
 
@@ -79,7 +79,7 @@ export default async function SchoolLivePage() {
           .in("route_id", routeIds)
       : Promise.resolve({ data: [] }),
     routeIds.length
-      ? supabase.from("route_stops").select("id, route_id, seq, name, scheduled_time").in("route_id", routeIds).order("seq")
+      ? supabase.from("route_stops").select("id, route_id, seq, name, scheduled_time, latitude, longitude, stop_kind").in("route_id", routeIds).order("seq")
       : Promise.resolve({ data: [] }),
     routeIds.length
       ? supabase.from("student_stop_assignments").select("route_id, stop_id, student_id, action").in("route_id", routeIds)
@@ -199,6 +199,25 @@ export default async function SchoolLivePage() {
     onTrip: v.active_session_id != null,
   }));
 
+  // Today's routes on the map: stops in order, one colour per route.
+  const ROUTE_COLORS = ["#e4572e", "#2c6c99", "#17a398", "#a855f7", "#d97706", "#db2777"];
+  const mapRoutes: FleetRoute[] = routes
+    .map((r, i) => ({
+      id: r.id,
+      name: r.name,
+      color: ROUTE_COLORS[i % ROUTE_COLORS.length],
+      stops: (stops ?? [])
+        .filter((s) => s.route_id === r.id && s.latitude != null && s.longitude != null)
+        .map((s) => ({
+          lat: s.latitude as number,
+          lon: s.longitude as number,
+          name: s.name,
+          time: s.scheduled_time ? clock(s.scheduled_time, timeFormat) : null,
+          kind: s.stop_kind as string | null,
+        })),
+    }))
+    .filter((r) => r.stops.length > 0);
+
   const counts = {
     running: cards.filter((c) => c.state === "on_time" || c.state === "behind").length,
     attention: cards.filter((c) => c.state === "late_start" || c.state === "behind" || c.alerts > 0).length,
@@ -224,7 +243,7 @@ export default async function SchoolLivePage() {
         </Link>
       </div>
 
-      <FleetMap orgId={orgId} initialVehicles={vehicles} />
+      <FleetMap orgId={orgId} initialVehicles={vehicles} routes={mapRoutes} />
 
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {cards.map((c) => (
