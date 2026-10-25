@@ -36,7 +36,7 @@ export type FleetRoute = {
   id: string;
   name: string;
   color: string;
-  stops: { lat: number; lon: number; name: string; time: string | null; kind: string | null }[];
+  stops: { lat: number; lon: number; name: string; time: string | null; kind: string | null; milesToSchool: number | null }[];
 };
 
 export type FleetVehicle = {
@@ -82,11 +82,13 @@ export function FleetMap({
   initialVehicles,
   geofences = [],
   routes = [],
+  showParked = true,
 }: {
   orgId: string;
   initialVehicles: FleetVehicle[];
   geofences?: FleetGeofence[];
   routes?: FleetRoute[];
+  showParked?: boolean;
 }) {
   const [vehicles, setVehicles] = useState(initialVehicles);
   const supabaseRef = useRef(createClient());
@@ -181,7 +183,7 @@ export function FleetMap({
               : [
                   `${onTripCount} on trip`,
                   noSignalCount > 0 ? `${noSignalCount} no signal` : null,
-                  `${parkedCount} parked (last known spot)`,
+                  showParked ? `${parkedCount} parked (last known spot)` : null,
                 ]
                   .filter(Boolean)
                   .join(" · ")}
@@ -190,10 +192,12 @@ export function FleetMap({
         <div className="flex flex-wrap gap-3 text-xs text-muted">
           <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-[#2c6c99]" />On trip</span>
           <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-[#d97706]" />No signal</span>
-          <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-[#94a3b8]" />Parked</span>
+          {showParked && (
+            <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-[#94a3b8]" />Parked</span>
+          )}
           {routes.map((r) => (
             <span key={r.id} className="flex items-center gap-1.5">
-              <span className="h-0.5 w-4 rounded" style={{ background: r.color }} />
+              <span className="h-2.5 w-2.5 rounded-full" style={{ background: r.color }} />
               {r.name}
             </span>
           ))}
@@ -201,8 +205,8 @@ export function FleetMap({
       </div>
 
       <div className="relative h-96 overflow-hidden rounded-lg">
-        <MapInner vehicles={vehicles} geofences={geofences} routes={routes} />
-        {vehicles.length === 0 && (
+        <MapInner vehicles={vehicles} geofences={geofences} routes={routes} showParked={showParked} />
+        {(showParked ? vehicles.length === 0 : onTripCount + noSignalCount === 0 && routes.length === 0) && (
           <div className="pointer-events-none absolute inset-x-4 bottom-4 rounded-lg border border-dashed border-border bg-surface/90 px-3 py-2 text-center text-sm text-muted">
             Vehicles show up here once a driver starts a trip.
           </div>

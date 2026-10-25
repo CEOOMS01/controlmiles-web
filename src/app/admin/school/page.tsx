@@ -42,6 +42,13 @@ const STATE_STYLE: Record<Card["state"], { label: string; className: string }> =
 
 const LATE_MIN = 5;
 
+/** Straight-line miles between two points (haversine). */
+function milesBetween(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const rad = (d: number) => (d * Math.PI) / 180;
+  const a = Math.sin(rad(lat2 - lat1) / 2) ** 2 + Math.cos(rad(lat1)) * Math.cos(rad(lat2)) * Math.sin(rad(lon2 - lon1) / 2) ** 2;
+  return 3958.8 * 2 * Math.asin(Math.sqrt(a));
+}
+
 export default async function SchoolLivePage() {
   await requireFeature("school_live");
   const supabase = await createClient();
@@ -202,20 +209,25 @@ export default async function SchoolLivePage() {
   // Today's routes on the map: stops in order, one colour per route.
   const ROUTE_COLORS = ["#e4572e", "#2c6c99", "#17a398", "#a855f7", "#d97706", "#db2777"];
   const mapRoutes: FleetRoute[] = routes
-    .map((r, i) => ({
-      id: r.id,
-      name: r.name,
-      color: ROUTE_COLORS[i % ROUTE_COLORS.length],
-      stops: (stops ?? [])
-        .filter((s) => s.route_id === r.id && s.latitude != null && s.longitude != null)
-        .map((s) => ({
+    .map((r, i) => {
+      const placed = (stops ?? []).filter((s) => s.route_id === r.id && s.latitude != null && s.longitude != null);
+      const school = placed.find((s) => s.stop_kind === "school");
+      return {
+        id: r.id,
+        name: r.name,
+        color: ROUTE_COLORS[i % ROUTE_COLORS.length],
+        stops: placed.map((s) => ({
           lat: s.latitude as number,
           lon: s.longitude as number,
           name: s.name,
           time: s.scheduled_time ? clock(s.scheduled_time, timeFormat) : null,
           kind: s.stop_kind as string | null,
+          milesToSchool: school
+            ? milesBetween(s.latitude as number, s.longitude as number, school.latitude as number, school.longitude as number)
+            : null,
         })),
-    }))
+      };
+    })
     .filter((r) => r.stops.length > 0);
 
   const counts = {
@@ -243,7 +255,7 @@ export default async function SchoolLivePage() {
         </Link>
       </div>
 
-      <FleetMap orgId={orgId} initialVehicles={vehicles} routes={mapRoutes} />
+      <FleetMap orgId={orgId} initialVehicles={vehicles} routes={mapRoutes} showParked={false} />
 
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {cards.map((c) => (
