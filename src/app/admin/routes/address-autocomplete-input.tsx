@@ -83,8 +83,11 @@ export function AddressAutocompleteInput({
             ? "No match. Check the street number and city, or leave out the apartment. You can still save it and fix it later."
             : "No match. Check the spelling, or add the city and state.",
         );
-      } else if (r.results.length === 1) pick(r.results[0]);
-      else setMatches(r.results);
+      } else if (r.results.length === 1 && !r.note) pick(r.results[0]);
+      else {
+        setMatches(r.results);
+        if (r.note) setMessage(r.note);
+      }
     } catch {
       setMessage("The address search is not available right now. Try again in a moment.");
     } finally {

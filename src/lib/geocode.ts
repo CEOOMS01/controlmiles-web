@@ -31,7 +31,7 @@ export type GeoKind = "personal" | "place";
 /** Our own geocoder. null = not configured / unreachable; covered=false = state not loaded. */
 export async function ownGeocode(
   query: string,
-): Promise<{ covered: boolean; results: GeoResult[]; notAddress: boolean } | null> {
+): Promise<{ covered: boolean; results: GeoResult[]; notAddress: boolean; cityMatch: boolean } | null> {
   const url = process.env.GEOCODER_URL;
   if (!url) return null;
   try {
@@ -47,11 +47,13 @@ export async function ownGeocode(
     const body = (await res.json()) as {
       covered?: boolean;
       note?: string;
+      cityMatch?: boolean;
       results?: { address: string; lat: number; lon: number }[];
     };
     return {
       covered: body.covered !== false,
       notAddress: body.note === "not a street address",
+      cityMatch: body.cityMatch !== false,
       results: (body.results ?? []).map((r) => ({ address: r.address, lat: r.lat, lon: r.lon })),
     };
   } catch {
@@ -135,6 +137,8 @@ export async function geocode(
   results: GeoResult[];
   provider: "own" | "census" | "nominatim" | "geoapify" | "cache" | null;
   unavailable?: boolean;
+  /** The street exists, but not in the city that was typed: a person must choose. */
+  cityMismatch?: boolean;
 }> {
   const q = query.trim().replace(/\s+/g, " ");
   if (q.length < 5 || q.length > 200) return { results: [], provider: null };
@@ -158,7 +162,7 @@ export async function geocode(
   // public providers, but only for non-personal places.
   const own = await ownGeocode(q);
   if (own?.covered && (own.results.length > 0 || kind === "personal" || !own.notAddress)) {
-    return { results: own.results, provider: own.results.length ? "own" : null };
+    return { results: own.results, provider: own.results.length ? "own" : null, cityMismatch: own.results.length > 0 && !own.cityMatch };
   }
 
   // A home address never goes to anyone else once our own geocoder is set up:
