@@ -68,22 +68,30 @@ export function AddressAutocompleteInput({
     return () => document.removeEventListener("mousedown", onClickOutside);
   }, []);
 
-  async function search() {
-    if (loading) return;
+  // Search by itself when the person pauses typing (no ZIP needed). Only our own
+  // server sees the text; a late answer to an older text is dropped.
+  const seq = useRef(0);
+
+  async function search(auto = false) {
+    if (loading && !auto) return;
+    const mine = ++seq.current;
     setMessage(null);
     setMatches([]);
     if (value.trim().length < 5) return setMessage("Type the street number, street and city, then search.");
     setLoading(true);
     try {
       const r = await searchAddress(value, kind);
+      if (mine !== seq.current) return;
       if (r.error) setMessage(r.error);
       else if (r.results.length === 0) {
+        // While typing, "no match" is noise: only say it when asked.
+        if (auto) return;
         setMessage(
           kind === "personal"
             ? "No match. Check the street number and city, or leave out the apartment. You can still save it and fix it later."
             : "No match. Check the spelling, or add the city and state.",
         );
-      } else if (r.results.length === 1 && !r.note) pick(r.results[0]);
+      } else if (r.results.length === 1 && !r.note && !auto) pick(r.results[0]);
       else {
         setMatches(r.results);
         if (r.note) setMessage(r.note);
@@ -91,11 +99,19 @@ export function AddressAutocompleteInput({
     } catch {
       setMessage("The address search is not available right now. Try again in a moment.");
     } finally {
-      setLoading(false);
+      if (mine === seq.current) setLoading(false);
     }
   }
 
+  useEffect(() => {
+    if (coords || !/^\d+\s+\S{3,}/.test(value.trim()) || value.trim().length < 8) return;
+    const t = setTimeout(() => void search(true), 700);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
+
   function pick(m: Match) {
+    seq.current++;
     onPick?.({ address: m.address, lat: m.lat, lon: m.lon });
     setValue(resetOnPick ? "" : m.address);
     setCoords(resetOnPick ? null : { lat: m.lat, lon: m.lon });
@@ -130,6 +146,8 @@ export function AddressAutocompleteInput({
             aria-expanded={matches.length > 0}
             aria-controls={listboxId}
             onChange={(e) => {
+              seq.current++;
+              setLoading(false);
               setValue(e.target.value);
               setCoords(null);
               setMatches([]);

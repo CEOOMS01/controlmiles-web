@@ -31,6 +31,7 @@ export type GeoKind = "personal" | "place";
 /** Our own geocoder. null = not configured / unreachable; covered=false = state not loaded. */
 export async function ownGeocode(
   query: string,
+  state?: string,
 ): Promise<{ covered: boolean; results: GeoResult[]; notAddress: boolean; cityMatch: boolean } | null> {
   const url = process.env.GEOCODER_URL;
   if (!url) return null;
@@ -39,7 +40,7 @@ export async function ownGeocode(
       method: "POST",
       headers: { "Content-Type": "application/json", ...(process.env.GEOCODER_KEY ? { "X-CM-Key": process.env.GEOCODER_KEY } : {}) },
       // POST body, not the URL: URLs are logged and this can be a child's home.
-      body: JSON.stringify({ q: query }),
+      body: JSON.stringify(state ? { q: query, state } : { q: query }),
       signal: AbortSignal.timeout(5000),
       cache: "no-store",
     });
@@ -133,6 +134,7 @@ export async function geocode(
   orgId: string,
   query: string,
   kind: GeoKind,
+  stateHint?: string | null,
 ): Promise<{
   results: GeoResult[];
   provider: "own" | "census" | "nominatim" | "geoapify" | "cache" | null;
@@ -160,7 +162,12 @@ export async function geocode(
   // address it cannot place is not forwarded to anyone else. A place name that
   // is not a street address ("Lincoln Elementary") may still go on to the
   // public providers, but only for non-personal places.
-  const own = await ownGeocode(q);
+  // Without a state our geocoder scans all 52 state files (4-16 s); with one it
+  // answers in ~0.3 s. So when the person typed no state or ZIP we try the
+  // organization's own state first and only then the whole country.
+  const typedState = /,\s*[A-Za-z]{2}\b/.test(q) || /\b\d{5}\b/.test(q);
+  let own = stateHint && !typedState ? await ownGeocode(q, stateHint) : null;
+  if (!own?.covered || own.results.length === 0) own = await ownGeocode(q);
   if (own?.covered && (own.results.length > 0 || kind === "personal" || !own.notAddress)) {
     return { results: own.results, provider: own.results.length ? "own" : null, cityMismatch: own.results.length > 0 && !own.cityMatch };
   }
