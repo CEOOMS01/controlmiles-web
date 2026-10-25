@@ -551,10 +551,40 @@ export async function addStop(_: FormResult, formData: FormData): Promise<FormRe
     .maybeSingle();
   const kind = text(formData, "stop_kind");
   const radius = num(formData, "radius_meters");
+  // A morning route ends at the school: a pick-up added later goes just before
+  // it, not after it. The stops from the school on move up one place, last
+  // first, so (route, seq) is never duplicated.
+  let seq = (last?.seq ?? 0) + 1;
+  if (kind !== "school") {
+    const { data: route } = await supabase.from("routes").select("route_type").eq("id", routeId).maybeSingle();
+    if (route?.route_type === "school_am") {
+      const { data: school } = await supabase
+        .from("route_stops")
+        .select("seq")
+        .eq("route_id", routeId)
+        .eq("stop_kind", "school")
+        .order("seq", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (school) {
+        const { data: tail } = await supabase
+          .from("route_stops")
+          .select("id, seq")
+          .eq("route_id", routeId)
+          .gte("seq", school.seq)
+          .order("seq", { ascending: false });
+        for (const t of tail ?? []) {
+          const { error: e } = await supabase.from("route_stops").update({ seq: t.seq + 1 }).eq("id", t.id);
+          if (e) return fail(e);
+        }
+        seq = school.seq;
+      }
+    }
+  }
   const { error } = await supabase.from("route_stops").insert({
     route_id: routeId,
     organization_id: orgId,
-    seq: (last?.seq ?? 0) + 1,
+    seq,
     name,
     address: text(formData, "address"),
     latitude: lat,

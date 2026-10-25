@@ -209,12 +209,13 @@ export function AddressAutocompleteInput({
         className="absolute z-30 mt-1 w-full overflow-hidden rounded-lg border border-border bg-surface shadow-lg"
       >
         {matches.map((m) => {
-          const [first, ...rest] = m.address.split(",");
+          const [first, ...restParts] = m.address.split(",");
+          const rest = [m.city, ...restParts.map((x) => x.trim())].filter(Boolean);
           return (
             <li key={`${m.lat},${m.lon}`} role="option" aria-selected={false}>
               <button type="button" onClick={() => pick(m)} className="block w-full px-3 py-2 text-left text-sm hover:bg-accent/10">
                 <span className="block font-medium">{first}</span>
-                {rest.length > 0 && <span className="block text-xs text-muted">{rest.join(",").trim()}</span>}
+                {rest.length > 0 && <span className="block text-xs text-muted">{rest.join(", ")}</span>}
               </button>
             </li>
           );
