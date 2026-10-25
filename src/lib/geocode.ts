@@ -63,6 +63,30 @@ export async function ownGeocode(
 }
 export type GeoResult = { address: string; lat: number; lon: number };
 
+const STATES =
+  "AL AK AZ AR CA CO CT DE DC FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA PR RI SC SD TN TX UT VT VA WA WV WI WY".split(
+    " ",
+  );
+
+/**
+ * No state typed and none inferred: ask every state at once. One call per state
+ * answers in ~0.3 s, whereas the Worker walking all 52 files by itself takes
+ * 4-16 s (and used to hit our timeout). null only when none of them answered.
+ */
+async function ownGeocodeEverywhere(query: string, skip?: string | null) {
+  const all = await Promise.all(STATES.filter((s) => s !== skip).map((s) => ownGeocode(query, s)));
+  const answered = all.filter((a): a is NonNullable<typeof a> => a !== null);
+  if (answered.length === 0) return null;
+  const results = answered.flatMap((a) => a.results).slice(0, 5);
+  return {
+    covered: answered.some((a) => a.covered),
+    results,
+    notAddress: answered.every((a) => a.notAddress),
+    // A city that matched in at least one state is a real match.
+    cityMatch: answered.some((a) => a.results.length > 0 && a.cityMatch) || results.length === 0,
+  };
+}
+
 const CENSUS_URL = "https://geocoding.geo.census.gov/geocoder/locations/onelineaddress";
 const NOMINATIM_URL = "https://nominatim.openstreetmap.org/search";
 const USER_AGENT = "ControlMiles/1.0 (https://controlmiles.com; info@controlmiles.com)";
@@ -167,7 +191,7 @@ export async function geocode(
   // organization's own state first and only then the whole country.
   const typedState = /,\s*[A-Za-z]{2}\b/.test(q) || /\b\d{5}\b/.test(q);
   let own = stateHint && !typedState ? await ownGeocode(q, stateHint) : null;
-  if (!own?.covered || own.results.length === 0) own = await ownGeocode(q);
+  if (!own?.covered || own.results.length === 0) own = typedState ? await ownGeocode(q) : await ownGeocodeEverywhere(q, stateHint);
   if (own?.covered && (own.results.length > 0 || kind === "personal" || !own.notAddress)) {
     return { results: own.results, provider: own.results.length ? "own" : null, cityMismatch: own.results.length > 0 && !own.cityMatch };
   }
