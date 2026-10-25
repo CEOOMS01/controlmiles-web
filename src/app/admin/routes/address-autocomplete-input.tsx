@@ -1,25 +1,55 @@
 "use client";
 
-// Address field with a SEARCH button (2026-10-24). It replaces the old
-// type-ahead that sent every keystroke to the public Photon service: the
-// public geocoders we may use for free either forbid search-as-you-type
-// (OpenStreetMap Nominatim) or have no published terms, and a student's home
-// address is personal data of a minor that must not be streamed to a third
-// party while someone types. Now the address is sent once, when the person
-// presses Search or Enter, to OUR server (src/lib/geocode.ts), which decides
-// which service may receive it:
+// Address field (2026-10-24/25). The address is looked up on OUR server
+// (src/lib/geocode.ts), which decides which service may receive it:
 //
-//   kind="personal"  student home address -> U.S. Census Geocoder only
-//   kind="place"     school / depot / stop -> cache, Census, then Nominatim
+//   kind="personal"  student home address -> our own geocoder (Census data) only
+//   kind="place"     school / depot / stop -> cache, own geocoder, Census, Geoapify/Nominatim
 //
-// Still a plain text <input name=...> plus optional hidden latitude/longitude
-// inputs, so the existing server actions need no changes. The component keeps
-// its old name because five screens already import it.
+// Two looks, same contract (a text input called `name` plus optional hidden
+// latitude/longitude inputs, so the server actions need no changes):
+//
+//   plain       one text box + Search button (route builder, origin/destination)
+//   structured  a quick-search box that fills street / apt / city / state / ZIP
+//               fields; the saved text is the fields joined into one line
+//
+// Searching starts by itself when the person pauses typing; only our own
+// server sees the text, and a late answer to older text is dropped. The notice
+// about where the address goes lives behind a "?" button.
 
 import { useEffect, useId, useRef, useState } from "react";
 import { searchAddress } from "../geocode-actions";
 
-type Match = { address: string; lat: number; lon: number };
+type Match = { address: string; lat: number; lon: number; city?: string };
+type Fields = { street: string; apt: string; city: string; st: string; zip: string };
+
+const STATES =
+  "AL AK AZ AR CA CO CT DE DC FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA PR RI SC SD TN TX UT VT VA WA WV WI WY".split(
+    " ",
+  );
+const EMPTY: Fields = { street: "", apt: "", city: "", st: "", zip: "" };
+const STREET_START = /^\d+\s+\S{3,}/;
+
+/** "123 Main St, Baltimore, MD 21211" or "123 Main St, 21211, MD" -> fields. */
+function parseAddress(text: string | null | undefined, city?: string): Fields {
+  const parts = String(text ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+  const f: Fields = { ...EMPTY, street: parts[0] ?? "", city: city ?? "" };
+  for (const p of parts.slice(1)) {
+    const stZip = /^([A-Za-z]{2})(?:\s+(\d{5})(?:-\d{4})?)?$/.exec(p);
+    if (stZip && STATES.includes(stZip[1].toUpperCase())) {
+      f.st = stZip[1].toUpperCase();
+      if (stZip[2]) f.zip = stZip[2];
+    } else if (/^\d{5}(-\d{4})?$/.test(p)) f.zip = p.slice(0, 5);
+    else if (!f.city) f.city = p;
+  }
+  return f;
+}
+
+/** One line to save (with the apartment) or to look up (without it). */
+function compose(f: Fields, withApt: boolean): string {
+  const line1 = [f.street.trim(), withApt ? f.apt.trim() : ""].filter(Boolean).join(" ");
+  return [line1, f.city.trim(), [f.st, f.zip.trim()].filter(Boolean).join(" ")].filter(Boolean).join(", ");
+}
 
 export function AddressAutocompleteInput({
   name,
@@ -33,6 +63,7 @@ export function AddressAutocompleteInput({
   defaultValue,
   defaultCoords,
   kind = "place",
+  structured = false,
 }: {
   name: string;
   label: string;
@@ -51,36 +82,47 @@ export function AddressAutocompleteInput({
   defaultCoords?: { lat: number; lon: number } | null;
   /** "personal": a person's home address (never leaves for Nominatim). */
   kind?: "personal" | "place";
+  /** Street / apt / city / state / ZIP fields instead of one text box. */
+  structured?: boolean;
 }) {
   const [value, setValue] = useState(defaultValue ?? "");
+  const [fields, setFields] = useState<Fields>(() => (structured ? parseAddress(defaultValue) : EMPTY));
+  const [quick, setQuick] = useState("");
   const [coords, setCoords] = useState<{ lat: number; lon: number } | null>(defaultCoords ?? null);
   const [matches, setMatches] = useState<Match[]>([]);
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [infoOpen, setInfoOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const listboxId = useId();
+  const infoId = useId();
+  const seq = useRef(0);
 
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) setMatches([]);
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setMatches([]);
+        setInfoOpen(false);
+      }
     }
     document.addEventListener("mousedown", onClickOutside);
     return () => document.removeEventListener("mousedown", onClickOutside);
   }, []);
 
-  // Search by itself when the person pauses typing (no ZIP needed). Only our own
-  // server sees the text; a late answer to an older text is dropped.
-  const seq = useRef(0);
+  // What the geocoder gets: in the structured look, the fields without the apartment.
+  const lookup = structured ? compose(fields, false) : value;
+  const saved = structured ? compose(fields, true) : value;
 
-  async function search(auto = false) {
+  /** From = "quick" (the finder box) or "fields"/"plain" (the text being edited). */
+  async function search(text: string, auto: boolean, from: "quick" | "form") {
     if (loading && !auto) return;
     const mine = ++seq.current;
     setMessage(null);
     setMatches([]);
-    if (value.trim().length < 5) return setMessage("Type the street number, street and city, then search.");
+    if (text.trim().length < 5) return setMessage("Type the street number, street and city, then search.");
     setLoading(true);
     try {
-      const r = await searchAddress(value, kind);
+      const r = await searchAddress(text, kind);
       if (mine !== seq.current) return;
       if (r.error) setMessage(r.error);
       else if (r.results.length === 0) {
@@ -91,7 +133,7 @@ export function AddressAutocompleteInput({
             ? "No match. Check the street number and city, or leave out the apartment. You can still save it and fix it later."
             : "No match. Check the spelling, or add the city and state.",
         );
-      } else if (r.results.length === 1 && !r.note && !auto) pick(r.results[0]);
+      } else if (r.results.length === 1 && !r.note && !(auto && from === "quick")) pick(r.results[0], from === "quick");
       else {
         setMatches(r.results);
         if (r.note) setMessage(r.note);
@@ -103,106 +145,260 @@ export function AddressAutocompleteInput({
     }
   }
 
+  // Search by itself when the person pauses typing (no ZIP needed).
   useEffect(() => {
-    if (coords || !/^\d+\s+\S{3,}/.test(value.trim()) || value.trim().length < 8) return;
-    const t = setTimeout(() => void search(true), 700);
+    if (coords || !STREET_START.test(lookup.trim()) || lookup.trim().length < 8) return;
+    const t = setTimeout(() => void search(lookup, true, "form"), 700);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value]);
+  }, [lookup]);
+  useEffect(() => {
+    if (!structured || !STREET_START.test(quick.trim()) || quick.trim().length < 8) return;
+    const t = setTimeout(() => void search(quick, true, "quick"), 700);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quick]);
 
-  function pick(m: Match) {
+  /** overwrite: the person chose this match, so it replaces the fields; otherwise it only fills empty ones. */
+  function pick(m: Match, overwrite = true) {
     seq.current++;
     onPick?.({ address: m.address, lat: m.lat, lon: m.lon });
-    setValue(resetOnPick ? "" : m.address);
+    if (structured) {
+      const p = parseAddress(m.address, m.city);
+      setFields((f) =>
+        overwrite
+          ? { ...p, apt: f.apt, city: p.city || f.city }
+          : { ...f, city: f.city || p.city, st: f.st || p.st, zip: f.zip || p.zip },
+      );
+      setQuick("");
+    } else setValue(resetOnPick ? "" : m.address);
     setCoords(resetOnPick ? null : { lat: m.lat, lon: m.lon });
     setMatches([]);
     setMessage(null);
   }
 
   function clearField() {
+    seq.current++;
     setValue("");
+    setFields(EMPTY);
+    setQuick("");
     setCoords(null);
     setMatches([]);
     setMessage(null);
   }
 
+  function edited() {
+    seq.current++;
+    setLoading(false);
+    setCoords(null);
+    setMatches([]);
+    setMessage(null);
+  }
+
+  function setField(k: keyof Fields, v: string) {
+    edited();
+    setFields((f) => ({ ...f, [k]: v }));
+  }
+
   const located = coords != null;
+  const inputBase =
+    "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/20";
+  const smallLabel = "mb-1 block text-xs text-muted";
+
+  const notice =
+    kind === "personal"
+      ? "Only the address is looked up, on our own servers with U.S. Census Bureau data (not endorsed or certified by the Census Bureau). No names are sent."
+      : "Address lookup: our own geocoder (U.S. Census Bureau data, not endorsed or certified by the Census Bureau), Geoapify and © OpenStreetMap contributors.";
+
+  const list =
+    matches.length > 0 ? (
+      <ul
+        id={listboxId}
+        role="listbox"
+        className="absolute z-30 mt-1 w-full overflow-hidden rounded-lg border border-border bg-surface shadow-lg"
+      >
+        {matches.map((m) => {
+          const [first, ...rest] = m.address.split(",");
+          return (
+            <li key={`${m.lat},${m.lon}`} role="option" aria-selected={false}>
+              <button type="button" onClick={() => pick(m)} className="block w-full px-3 py-2 text-left text-sm hover:bg-accent/10">
+                <span className="block font-medium">{first}</span>
+                {rest.length > 0 && <span className="block text-xs text-muted">{rest.join(",").trim()}</span>}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    ) : null;
+
+  const clearButton = (
+    <button
+      type="button"
+      onClick={clearField}
+      aria-label="Clear address"
+      className="absolute top-1/2 right-2 -translate-y-1/2 text-muted hover:text-foreground"
+    >
+      <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
+        <path d="M6 6l12 12M18 6 6 18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      </svg>
+    </button>
+  );
 
   return (
     <div ref={containerRef} className="relative">
-      <label className="mb-1.5 block text-sm font-medium">{label}</label>
-      {latName && <input type="hidden" name={latName} value={coords?.lat ?? ""} />}
-      {lonName && <input type="hidden" name={lonName} value={coords?.lon ?? ""} />}
-      <div className="flex gap-2">
-        <div className="relative flex-1">
-          <input
-            name={name}
-            type="text"
-            required={required}
-            placeholder={placeholder}
-            value={value}
-            autoComplete="off"
-            role="combobox"
-            aria-expanded={matches.length > 0}
-            aria-controls={listboxId}
-            onChange={(e) => {
-              seq.current++;
-              setLoading(false);
-              setValue(e.target.value);
-              setCoords(null);
-              setMatches([]);
-              setMessage(null);
-            }}
-            onKeyDown={(e) => {
-              // Enter searches; it must not submit the surrounding form.
-              if (e.key === "Enter") {
-                e.preventDefault();
-                void search();
-              } else if (e.key === "Escape") setMatches([]);
-            }}
-            className="w-full rounded-lg border border-border bg-background px-3 py-2 pr-8 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
-          />
-          {value && (
-            <button
-              type="button"
-              onClick={clearField}
-              aria-label="Clear address"
-              className="absolute top-1/2 right-2 -translate-y-1/2 text-muted hover:text-foreground"
-            >
-              <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
-                <path d="M6 6l12 12M18 6 6 18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-              </svg>
-            </button>
-          )}
-        </div>
+      <div className="mb-1.5 flex items-center gap-1.5">
+        <label className="text-sm font-medium">{label}</label>
         <button
           type="button"
-          onClick={() => void search()}
-          disabled={loading}
-          className="shrink-0 rounded-lg border border-border px-3 py-2 text-sm font-medium transition hover:border-accent disabled:opacity-60"
+          onClick={() => setInfoOpen((o) => !o)}
+          aria-expanded={infoOpen}
+          aria-controls={infoId}
+          aria-label="Where does this address go?"
+          className="flex h-4 w-4 items-center justify-center rounded-full border border-border text-[10px] leading-none font-semibold text-muted hover:border-accent hover:text-foreground"
         >
-          {loading ? "Searching…" : "Search"}
+          ?
         </button>
       </div>
+      {infoOpen && (
+        <p id={infoId} role="note" className="mb-2 rounded-lg border border-border bg-surface px-3 py-2 text-xs leading-snug text-muted">
+          {notice}
+        </p>
+      )}
+      {latName && <input type="hidden" name={latName} value={coords?.lat ?? ""} />}
+      {lonName && <input type="hidden" name={lonName} value={coords?.lon ?? ""} />}
 
-      {matches.length > 0 && (
-        <ul
-          id={listboxId}
-          role="listbox"
-          className="absolute z-30 mt-1 w-full overflow-hidden rounded-lg border border-border bg-surface shadow-lg"
-        >
-          {matches.map((m) => {
-            const [first, ...rest] = m.address.split(",");
-            return (
-              <li key={`${m.lat},${m.lon}`} role="option" aria-selected={false}>
-                <button type="button" onClick={() => pick(m)} className="block w-full px-3 py-2 text-left text-sm hover:bg-accent/10">
-                  <span className="block font-medium">{first}</span>
-                  {rest.length > 0 && <span className="block text-xs text-muted">{rest.join(",").trim()}</span>}
-                </button>
-              </li>
-            );
-          })}
-        </ul>
+      {structured ? (
+        <div>
+          <input type="hidden" name={name} value={saved} />
+          <div className="relative mb-3">
+            <input
+              type="text"
+              value={quick}
+              placeholder={placeholder ?? "Start typing the street, e.g. 1600 Pennsylvania"}
+              autoComplete="off"
+              role="combobox"
+              aria-expanded={matches.length > 0}
+              aria-controls={listboxId}
+              onChange={(e) => {
+                seq.current++;
+                setLoading(false);
+                setQuick(e.target.value);
+                setMatches([]);
+                setMessage(null);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  void search(quick, false, "quick");
+                } else if (e.key === "Escape") setMatches([]);
+              }}
+              className={inputBase + " pr-20"}
+            />
+            <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-xs text-muted">
+              {loading ? "Searching…" : ""}
+            </span>
+            {list}
+          </div>
+          <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-2.5">
+            <div>
+              <label className={smallLabel}>Street address</label>
+              <input
+                type="text"
+                required={required}
+                value={fields.street}
+                autoComplete="off"
+                onChange={(e) => setField("street", e.target.value)}
+                className={inputBase}
+              />
+            </div>
+            <div>
+              <label className={smallLabel}>Apt, unit (optional)</label>
+              <input type="text" value={fields.apt} autoComplete="off" onChange={(e) => setField("apt", e.target.value)} className={inputBase} />
+            </div>
+          </div>
+          <div className="mt-2.5 grid grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)] gap-2.5">
+            <div>
+              <label className={smallLabel}>City</label>
+              <input type="text" value={fields.city} autoComplete="off" onChange={(e) => setField("city", e.target.value)} className={inputBase} />
+            </div>
+            <div>
+              <label className={smallLabel}>State</label>
+              <select value={fields.st} onChange={(e) => setField("st", e.target.value)} className={inputBase}>
+                <option value="">—</option>
+                {STATES.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className={smallLabel}>ZIP</label>
+              <input
+                type="text"
+                inputMode="numeric"
+                maxLength={5}
+                value={fields.zip}
+                autoComplete="off"
+                onChange={(e) => setField("zip", e.target.value.replace(/\D/g, ""))}
+                className={inputBase}
+              />
+            </div>
+          </div>
+          <div className="mt-2 flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => void search(lookup, false, "form")}
+              disabled={loading}
+              className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium transition hover:border-accent disabled:opacity-60"
+            >
+              {loading ? "Searching…" : "Locate on map"}
+            </button>
+            {fields.street && (
+              <button type="button" onClick={clearField} className="text-xs text-muted hover:text-foreground">
+                Clear
+              </button>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <input
+              name={name}
+              type="text"
+              required={required}
+              placeholder={placeholder}
+              value={value}
+              autoComplete="off"
+              role="combobox"
+              aria-expanded={matches.length > 0}
+              aria-controls={listboxId}
+              onChange={(e) => {
+                edited();
+                setValue(e.target.value);
+              }}
+              onKeyDown={(e) => {
+                // Enter searches; it must not submit the surrounding form.
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  void search(value, false, "form");
+                } else if (e.key === "Escape") setMatches([]);
+              }}
+              className={inputBase + " pr-8"}
+            />
+            {value && clearButton}
+            {list}
+          </div>
+          <button
+            type="button"
+            onClick={() => void search(value, false, "form")}
+            disabled={loading}
+            className="shrink-0 rounded-lg border border-border px-3 py-2 text-sm font-medium transition hover:border-accent disabled:opacity-60"
+          >
+            {loading ? "Searching…" : "Search"}
+          </button>
+        </div>
       )}
 
       {message && (
@@ -210,15 +406,12 @@ export function AddressAutocompleteInput({
           {message}
         </p>
       )}
-      {!message && value.trim() && !located && matches.length === 0 && (
-        <p className="mt-1.5 text-xs text-muted">Not located yet: press Search (or Enter) and pick the match.</p>
+      {!message && !located && matches.length === 0 && (structured ? lookup.trim() : value.trim()) && (
+        <p className="mt-1.5 text-xs text-muted">
+          {structured ? "Not located yet: it is looked up when you stop typing, or press Locate on map." : "Not located yet: press Search (or Enter) and pick the match."}
+        </p>
       )}
       {located && !resetOnPick && <p className="mt-1.5 text-xs text-success">✓ Located</p>}
-      <p className="mt-1.5 text-[11px] leading-snug text-muted">
-        {kind === "personal"
-          ? "Only the address is looked up, on our own servers with U.S. Census Bureau data (not endorsed or certified by the Census Bureau). No names are sent."
-          : "Address lookup: our own geocoder (U.S. Census Bureau data, not endorsed or certified by the Census Bureau), Geoapify and © OpenStreetMap contributors."}
-      </p>
     </div>
   );
 }

@@ -349,7 +349,8 @@ export default async function SchoolRoutePage({
             <AddressAutocompleteInput
               name="address"
               label="Address (pick a suggestion)"
-              placeholder="Type the stop's address, then press Search"
+              placeholder="Start typing the street, e.g. 3608 Chestnut Ave"
+              structured
               latName="latitude"
               lonName="longitude"
               required

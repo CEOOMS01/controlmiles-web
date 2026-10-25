@@ -144,7 +144,8 @@ function SchoolsTab({ schools }: { schools: { id: string; name: string; address:
                 <AddressAutocompleteInput
                   name="address"
                   label="Address"
-                  placeholder="Type the school's address, then press Search"
+                  placeholder="Start typing the street, e.g. 3608 Chestnut Ave"
+                  structured
                   latName="latitude"
                   lonName="longitude"
                 />
