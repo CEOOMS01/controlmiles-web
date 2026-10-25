@@ -162,6 +162,7 @@ export function AddressAutocompleteInput({
   /** overwrite: the person chose this match, so it replaces the fields; otherwise it only fills empty ones. */
   function pick(m: Match, overwrite = true) {
     seq.current++;
+    setLoading(false);
     onPick?.({ address: m.address, lat: m.lat, lon: m.lon });
     if (structured) {
       const p = parseAddress(m.address, m.city);
