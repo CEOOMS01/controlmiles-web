@@ -252,14 +252,16 @@ export default function FleetMapInner({
     routePinsRef.current = [];
     const bounds = new maplibregl.LngLatBounds();
     for (const r of routes) {
-      r.stops.forEach((st, i) => {
+      let n = 0; // numbers count the stops, not the school (the S pin)
+      r.stops.forEach((st) => {
         const school = st.kind === "school";
+        if (!school) n++;
         const el = document.createElement("div");
         el.style.cursor = "pointer";
-        el.innerHTML = `<svg width="30" height="38" viewBox="0 0 30 38" aria-hidden="true"><path d="M15 37C15 37 2 23.5 2 14.5a13 13 0 0 1 26 0C28 23.5 15 37 15 37z" fill="${r.color}" stroke="#fff" stroke-width="2"/><text x="15" y="19.5" text-anchor="middle" font-size="${school ? 14 : 13}" font-weight="700" fill="#fff" font-family="system-ui,sans-serif">${school ? "S" : i + 1}</text></svg>`;
+        el.innerHTML = `<svg width="30" height="38" viewBox="0 0 30 38" aria-hidden="true"><path d="M15 37C15 37 2 23.5 2 14.5a13 13 0 0 1 26 0C28 23.5 15 37 15 37z" fill="${r.color}" stroke="#fff" stroke-width="2"/><text x="15" y="19.5" text-anchor="middle" font-size="${school ? 14 : 13}" font-weight="700" fill="#fff" font-family="system-ui,sans-serif">${school ? "S" : n}</text></svg>`;
         const content = document.createElement("div");
         content.className = "text-sm";
-        content.innerHTML = `<p class="font-semibold">${escapeHtml(st.name)}</p><p class="text-xs text-muted">${escapeHtml(r.name)} · ${school ? "school" : `stop ${i + 1}`}${st.time ? ` · ${escapeHtml(st.time)}` : ""}</p>${st.milesToSchool != null && !school ? `<p class="text-xs">${st.milesToSchool.toFixed(1)} mi from the school</p>` : ""}`;
+        content.innerHTML = `<p class="font-semibold">${escapeHtml(st.name)}</p><p class="text-xs text-muted">${escapeHtml(r.name)} · ${school ? "school" : `stop ${n}`}${st.time ? ` · ${escapeHtml(st.time)}` : ""}</p>${st.milesToSchool != null && !school ? `<p class="text-xs">${st.milesToSchool.toFixed(1)} mi from the school</p>` : ""}`;
         const pin = new maplibregl.Marker({ element: el, anchor: "bottom" })
           .setLngLat([st.lon, st.lat])
           .setPopup(new maplibregl.Popup({ offset: 30 }).setDOMContent(content))
