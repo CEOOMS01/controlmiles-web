@@ -10,7 +10,7 @@
 // latitude/longitude inputs, so the server actions need no changes):
 //
 //   plain       one text box + Search button (route builder, origin/destination)
-//   structured  a quick-search box that fills street / apt / city / state / ZIP
+//   structured  street / apt / city / state / ZIP fields; suggestions drop down from the street field
 //               fields; the saved text is the fields joined into one line
 //
 // Searching starts by itself when the person pauses typing; only our own
@@ -87,7 +87,6 @@ export function AddressAutocompleteInput({
 }) {
   const [value, setValue] = useState(defaultValue ?? "");
   const [fields, setFields] = useState<Fields>(() => (structured ? parseAddress(defaultValue) : EMPTY));
-  const [quick, setQuick] = useState("");
   const [coords, setCoords] = useState<{ lat: number; lon: number } | null>(defaultCoords ?? null);
   const [matches, setMatches] = useState<Match[]>([]);
   const [message, setMessage] = useState<string | null>(null);
@@ -113,8 +112,7 @@ export function AddressAutocompleteInput({
   const lookup = structured ? compose(fields, false) : value;
   const saved = structured ? compose(fields, true) : value;
 
-  /** From = "quick" (the finder box) or "fields"/"plain" (the text being edited). */
-  async function search(text: string, auto: boolean, from: "quick" | "form") {
+  async function search(text: string, auto: boolean) {
     if (loading && !auto) return;
     const mine = ++seq.current;
     setMessage(null);
@@ -133,7 +131,7 @@ export function AddressAutocompleteInput({
             ? "No match. Check the street number and city, or leave out the apartment. You can still save it and fix it later."
             : "No match. Check the spelling, or add the city and state.",
         );
-      } else if (r.results.length === 1 && !r.note && !(auto && from === "quick")) pick(r.results[0], from === "quick");
+      } else if (r.results.length === 1 && !r.note && (structured || !auto)) pick(r.results[0], false);
       else {
         setMatches(r.results);
         if (r.note) setMessage(r.note);
@@ -148,17 +146,10 @@ export function AddressAutocompleteInput({
   // Search by itself when the person pauses typing (no ZIP needed).
   useEffect(() => {
     if (coords || !STREET_START.test(lookup.trim()) || lookup.trim().length < 8) return;
-    const t = setTimeout(() => void search(lookup, true, "form"), 700);
+    const t = setTimeout(() => void search(lookup, true), 700);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lookup]);
-  useEffect(() => {
-    if (!structured || !STREET_START.test(quick.trim()) || quick.trim().length < 8) return;
-    const t = setTimeout(() => void search(quick, true, "quick"), 700);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [quick]);
-
   /** overwrite: the person chose this match, so it replaces the fields; otherwise it only fills empty ones. */
   function pick(m: Match, overwrite = true) {
     seq.current++;
@@ -171,7 +162,6 @@ export function AddressAutocompleteInput({
           ? { ...p, apt: f.apt, city: p.city || f.city }
           : { ...f, city: f.city || p.city, st: f.st || p.st, zip: f.zip || p.zip },
       );
-      setQuick("");
     } else setValue(resetOnPick ? "" : m.address);
     setCoords(resetOnPick ? null : { lat: m.lat, lon: m.lon });
     setMatches([]);
@@ -182,7 +172,6 @@ export function AddressAutocompleteInput({
     seq.current++;
     setValue("");
     setFields(EMPTY);
-    setQuick("");
     setCoords(null);
     setMatches([]);
     setMessage(null);
@@ -271,46 +260,28 @@ export function AddressAutocompleteInput({
       {structured ? (
         <div>
           <input type="hidden" name={name} value={saved} />
-          <div className="relative mb-3">
-            <input
-              type="text"
-              value={quick}
-              placeholder={placeholder ?? "Start typing the street, e.g. 1600 Pennsylvania"}
-              autoComplete="off"
-              role="combobox"
-              aria-expanded={matches.length > 0}
-              aria-controls={listboxId}
-              onChange={(e) => {
-                seq.current++;
-                setLoading(false);
-                setQuick(e.target.value);
-                setMatches([]);
-                setMessage(null);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  void search(quick, false, "quick");
-                } else if (e.key === "Escape") setMatches([]);
-              }}
-              className={inputBase + " pr-20"}
-            />
-            <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-xs text-muted">
-              {loading ? "Searching…" : ""}
-            </span>
-            {list}
-          </div>
           <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-2.5">
-            <div>
+            <div className="relative">
               <label className={smallLabel}>Street address</label>
               <input
                 type="text"
                 required={required}
                 value={fields.street}
+                placeholder={placeholder}
                 autoComplete="off"
+                role="combobox"
+                aria-expanded={matches.length > 0}
+                aria-controls={listboxId}
                 onChange={(e) => setField("street", e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    void search(lookup, false);
+                  } else if (e.key === "Escape") setMatches([]);
+                }}
                 className={inputBase}
               />
+              {list}
             </div>
             <div>
               <label className={smallLabel}>Apt, unit (optional)</label>
@@ -349,7 +320,7 @@ export function AddressAutocompleteInput({
           <div className="mt-2 flex items-center gap-3">
             <button
               type="button"
-              onClick={() => void search(lookup, false, "form")}
+              onClick={() => void search(lookup, false)}
               disabled={loading}
               className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium transition hover:border-accent disabled:opacity-60"
             >
@@ -383,7 +354,7 @@ export function AddressAutocompleteInput({
                 // Enter searches; it must not submit the surrounding form.
                 if (e.key === "Enter") {
                   e.preventDefault();
-                  void search(value, false, "form");
+                  void search(value, false);
                 } else if (e.key === "Escape") setMatches([]);
               }}
               className={inputBase + " pr-8"}
@@ -393,7 +364,7 @@ export function AddressAutocompleteInput({
           </div>
           <button
             type="button"
-            onClick={() => void search(value, false, "form")}
+            onClick={() => void search(value, false)}
             disabled={loading}
             className="shrink-0 rounded-lg border border-border px-3 py-2 text-sm font-medium transition hover:border-accent disabled:opacity-60"
           >

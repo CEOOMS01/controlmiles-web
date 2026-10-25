@@ -60,7 +60,7 @@ export function StudentFields({ schools, v = {} }: { schools: { id: string; name
         <AddressAutocompleteInput
           name="home_address"
           label="Home address (pick-up stop)"
-          placeholder="Start typing the street, e.g. 3608 Chestnut Ave"
+          placeholder="e.g. 3608 Chestnut Ave"
           kind="personal"
           structured
           latName="home_latitude"
