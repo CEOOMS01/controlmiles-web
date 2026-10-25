@@ -150,6 +150,24 @@ export function AddressAutocompleteInput({
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lookup]);
+  // The surrounding form was reset (it saved): empty these controlled fields too.
+  useEffect(() => {
+    const form = containerRef.current?.closest("form");
+    if (!form) return;
+    const onReset = () => {
+      seq.current++;
+      setLoading(false);
+      setValue(defaultValue ?? "");
+      setFields(structured ? parseAddress(defaultValue) : EMPTY);
+      setCoords(defaultCoords ?? null);
+      setMatches([]);
+      setMessage(null);
+    };
+    form.addEventListener("reset", onReset);
+    return () => form.removeEventListener("reset", onReset);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   /** overwrite: the person chose this match, so it replaces the fields; otherwise it only fills empty ones. */
   function pick(m: Match, overwrite = true) {
     seq.current++;
