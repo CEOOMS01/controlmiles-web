@@ -228,16 +228,17 @@ async function Hero() {
   );
 }
 
+// The site cover no longer claims 11 languages (2026-10-25: English and Spanish
+// for now); the Gig app itself keeps all of them.
 async function StatsStrip() {
   const t = await getTranslations("home.stats");
   const stats = [
-    { value: "11", unit: t("languagesUnit"), label: t("languagesLabel") },
     { value: "51", unit: t("statesUnit"), label: t("statesLabel") },
     { value: "0", unit: t("guessworkUnit"), label: t("guessworkLabel") },
   ];
   return (
     <section className="border-y border-[var(--lg-line)] bg-white/60">
-      <div className="mx-auto grid max-w-6xl divide-y divide-[var(--lg-line)] px-6 sm:grid-cols-3 sm:divide-x sm:divide-y-0 sm:px-10">
+      <div className="mx-auto grid max-w-6xl divide-y divide-[var(--lg-line)] px-6 sm:grid-cols-2 sm:divide-x sm:divide-y-0 sm:px-10">
         {stats.map((s, i) => (
           <Reveal
             key={s.label}
