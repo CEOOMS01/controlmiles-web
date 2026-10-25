@@ -39,14 +39,17 @@ export function RoutesMenu({ active, count }: { active: Active; count?: { routes
           );
         })}
       </nav>
-      <Link
-        href="/admin/school/routes/new"
-        className={`mb-2 rounded-lg px-3.5 py-1.5 text-sm font-semibold transition ${
-          active === "new" ? "bg-border/60 text-muted" : "bg-accent text-accent-foreground hover:opacity-90"
-        }`}
-      >
-        + New route
-      </Link>
+      {/* Only where routes are made: not on Schools or Attendance. */}
+      {(active === "routes" || active === "new") && (
+        <Link
+          href="/admin/school/routes/new"
+          className={`mb-2 rounded-lg px-3.5 py-1.5 text-sm font-semibold transition ${
+            active === "new" ? "bg-border/60 text-muted" : "bg-accent text-accent-foreground hover:opacity-90"
+          }`}
+        >
+          + New route
+        </Link>
+      )}
     </div>
   );
 }

@@ -136,11 +136,11 @@ function SchoolsTab({ schools }: { schools: { id: string; name: string; address:
         actions={
           <Sheet label="Add school" title="Add a school">
             <ActionForm action={addSchool} submitLabel="Add school">
-              <div>
+              <div className="sm:col-span-full">
                 <label className="mb-1.5 block text-sm font-medium">School name</label>
                 <input name="name" required placeholder="Lincoln Elementary" className={inputClass} />
               </div>
-              <div className="sm:col-span-2">
+              <div className="sm:col-span-full">
                 <AddressAutocompleteInput
                   name="address"
                   label="Address"
