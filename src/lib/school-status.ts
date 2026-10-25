@@ -6,6 +6,9 @@
 //            boarded and the bus passed their stop without dropping them off
 //   yellow = didn't ride this morning -> absent, not expected in the PM
 //   gray   = red resolved with a reason (counts as attendance)
+//   sky    = excused: a parent or the office told us the student is not riding
+//            that day (student_ride_notices, 2026-10-25) -- not an absence of
+//            the bus, so no alert and out of the attendance rate
 //   expected | pending | on_board = not decided yet
 // Grace period (migration 20261009150000): a stop is only "due" -- students
 // there decided red/yellow -- once the bus left it or 5 minutes after it
@@ -14,7 +17,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { selectAll, selectAllIn } from "@/lib/supabase/fetch-all";
 
-export type RiderStatus = "blue" | "red" | "yellow" | "gray" | "expected" | "pending" | "on_board";
+export type RiderStatus = "blue" | "red" | "yellow" | "gray" | "excused" | "expected" | "pending" | "on_board";
 
 export const RELEASE_REASON_LABEL: Record<string, string> = {
   parent_pickup: "Picked up by a parent/guardian",
@@ -23,11 +26,35 @@ export const RELEASE_REASON_LABEL: Record<string, string> = {
   other: "Other",
 };
 
+export const NOTICE_REASON_LABEL: Record<string, string> = {
+  medical: "Medical appointment",
+  overslept: "Overslept",
+  sick: "Sick",
+  other: "Other",
+};
+
+/** A "not riding the bus" notice (parent from the app, or the office). */
+export type RideNotice = {
+  part: "am" | "pm" | "both";
+  reason: string;
+  will_attend_school: boolean;
+  note: string | null;
+  reported_by_role: "guardian" | "staff";
+};
+
+/** The notice that applies to a morning or an afternoon run, if any. */
+export function noticeForRun(notices: Map<string, RideNotice>, date: string, studentId: string, routeType: string): RideNotice | null {
+  const n = notices.get(`${date}:${studentId}`);
+  if (!n) return null;
+  return n.part === "both" || n.part === (routeType === "school_pm" ? "pm" : "am") ? n : null;
+}
+
 export const STATUS_PILL: Record<RiderStatus, string> = {
   blue: "border-blue-500/40 bg-blue-500/10 text-blue-700",
   red: "border-red-500/40 bg-red-500/10 text-red-700",
   yellow: "border-amber-500/40 bg-amber-500/10 text-amber-700",
   gray: "border-slate-400/40 bg-slate-400/10 text-slate-600",
+  excused: "border-sky-500/40 bg-sky-500/10 text-sky-700",
   expected: "border-border text-muted",
   pending: "border-border text-muted",
   on_board: "border-border text-muted",
@@ -50,7 +77,13 @@ export function dueStopIds(
 type Assignment = { stop_id: string; student_id: string; action: string };
 type Ride = { student_id: string; action: string; at: string; reason?: string | null; note?: string | null };
 
-export type RiderState = { status: RiderStatus; at: string | null; reason: string | null; note: string | null };
+export type RiderState = {
+  status: RiderStatus;
+  at: string | null;
+  reason: string | null;
+  note: string | null;
+  notice?: RideNotice | null;
+};
 
 /** Status of every assignment (`${student_id}:${action}`) in one run. */
 export function runStatuses(input: {
@@ -60,8 +93,10 @@ export function runStatuses(input: {
   assignments: Assignment[];
   rides: Ride[];
   rodeAm: (studentId: string) => boolean;
+  /** The "not riding" notice that applies to this run, per student. */
+  notice?: (studentId: string) => RideNotice | null;
 }): Map<string, RiderState> {
-  const { routeType, completed, dueStops, assignments, rides, rodeAm } = input;
+  const { routeType, completed, dueStops, assignments, rides, rodeAm, notice } = input;
   const ride = new Map(rides.map((r) => [`${r.student_id}:${r.action}`, r]));
   const pm = routeType === "school_pm";
   const out = new Map<string, RiderState>();
@@ -85,6 +120,12 @@ export function runStatuses(input: {
         status = completed || pickupReached ? "yellow" : "pending";
       }
     } else status = due ? "red" : "on_board";
+    // Told in advance that the student is not riding: not an absence, not an alert.
+    const told = notice?.(a.student_id) ?? null;
+    if (told && !done && (status === "yellow" || status === "pending" || status === "expected" || status === "red")) {
+      out.set(`${a.student_id}:${a.action}`, { status: "excused", at: null, reason: told.reason, note: told.note, notice: told });
+      continue;
+    }
     out.set(`${a.student_id}:${a.action}`, {
       status,
       at: done?.at ?? null,
@@ -126,4 +167,24 @@ export async function loadRodeAm(
       .range(a, b),
   );
   return new Set(boards.map((b) => `${dateOf.get(b.run_id)}:${b.student_id}`));
+}
+
+/** Notices for a date range, keyed `${date}:${student_id}`. */
+export async function loadNotices(
+  supabase: SupabaseClient,
+  orgId: string,
+  from: string,
+  to: string,
+): Promise<Map<string, RideNotice>> {
+  const rows = await selectAll<RideNotice & { student_id: string; notice_date: string }>((a, b) =>
+    supabase
+      .from("student_ride_notices")
+      .select("student_id, notice_date, part, reason, will_attend_school, note, reported_by_role")
+      .eq("organization_id", orgId)
+      .gte("notice_date", from)
+      .lte("notice_date", to)
+      .order("id")
+      .range(a, b),
+  );
+  return new Map(rows.map((r) => [`${r.notice_date}:${r.student_id}`, r]));
 }

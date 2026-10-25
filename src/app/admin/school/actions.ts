@@ -37,6 +37,47 @@ function fail(error: unknown): FormResult {
   return { error: AppError.from(error).display() };
 }
 
+// --- "Not riding the bus" notices -------------------------------------------
+// The office records what a parent told them (the parent's own notice comes
+// from the Fleet app through the same database function). RLS on
+// student_ride_notices has no write policy: only these functions write.
+
+function noticeError(error: { message?: string }): FormResult {
+  if (error.message?.includes("NOTICE_DATE_OUT_OF_RANGE")) {
+    return { error: "That day can't be used: pick today or a day in the next 30 days." };
+  }
+  return fail(error);
+}
+
+export async function recordNoRide(_: FormResult, formData: FormData): Promise<FormResult> {
+  const { supabase } = await context();
+  const studentId = text(formData, "student_id");
+  const date = text(formData, "date");
+  const reason = text(formData, "reason");
+  const part = text(formData, "part") ?? "am";
+  if (!studentId || !date) return { error: "Student not found." };
+  if (!reason) return { error: "Choose a reason." };
+  const { error } = await supabase.rpc("report_student_no_ride", {
+    p_student_id: studentId,
+    p_date: date,
+    p_part: part,
+    p_reason: reason,
+    p_will_attend: formData.get("will_attend") === "on",
+    p_note: text(formData, "note"),
+  });
+  if (error) return noticeError(error);
+  revalidatePath("/admin/school", "layout");
+  return { error: null };
+}
+
+export async function undoNoRide(studentId: string, date: string): Promise<FormResult> {
+  const { supabase } = await context();
+  const { error } = await supabase.rpc("cancel_student_no_ride", { p_student_id: studentId, p_date: date });
+  if (error) return noticeError(error);
+  revalidatePath("/admin/school", "layout");
+  return { error: null };
+}
+
 // --- Schools ---------------------------------------------------------------
 
 export async function addSchool(_: FormResult, formData: FormData): Promise<FormResult> {

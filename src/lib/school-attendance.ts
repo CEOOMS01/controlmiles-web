@@ -5,6 +5,12 @@
 //   Released   (gray)   red alert resolved with a reason (parent pick-up,
 //                       early dismissal, activity, other) -- counts as
 //                       attendance; the reason and note go in the report
+//   Notified   (sky)    a parent or the office told us in advance the student
+//                       is not riding that day (medical appointment, overslept
+//                       and a parent drives them, sick...) -- not counted as
+//                       absent and left out of the attendance rate; the reason,
+//                       whether a parent takes them to school, and who reported
+//                       it go in the report
 //   Absent     (yellow) not picked up in the AM / didn't ride this morning
 //   Unresolved (red)    alert still open (only while a route is running)
 //   Pending             the bus hasn't reached the stop yet
@@ -14,13 +20,23 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { selectAll, selectAllIn } from "@/lib/supabase/fetch-all";
 import { csvCell } from "@/lib/csv";
-import { RELEASE_REASON_LABEL, dueStopIds, loadRodeAm, runStatuses, type RiderStatus } from "./school-status";
+import {
+  NOTICE_REASON_LABEL,
+  RELEASE_REASON_LABEL,
+  dueStopIds,
+  loadNotices,
+  loadRodeAm,
+  noticeForRun,
+  runStatuses,
+  type RiderStatus,
+} from "./school-status";
 
-export type AttendanceStatus = "Present" | "Released" | "Absent" | "Unresolved" | "Pending";
+export type AttendanceStatus = "Present" | "Released" | "Notified" | "Absent" | "Unresolved" | "Pending";
 
 export const ATTENDANCE_COLOR: Record<AttendanceStatus, RiderStatus> = {
   Present: "blue",
   Released: "gray",
+  Notified: "excused",
   Absent: "yellow",
   Unresolved: "red",
   Pending: "pending",
@@ -41,7 +57,17 @@ export type AttendanceRow = {
 };
 
 const toAttendance = (s: RiderStatus): AttendanceStatus =>
-  s === "blue" ? "Present" : s === "gray" ? "Released" : s === "yellow" ? "Absent" : s === "red" ? "Unresolved" : "Pending";
+  s === "blue"
+    ? "Present"
+    : s === "gray"
+      ? "Released"
+      : s === "excused"
+        ? "Notified"
+        : s === "yellow"
+          ? "Absent"
+          : s === "red"
+            ? "Unresolved"
+            : "Pending";
 
 export async function loadAttendance(
   supabase: SupabaseClient,
@@ -77,7 +103,7 @@ export async function loadAttendance(
   type Ride = { run_id: string; student_id: string; stop_id: string | null; action: string; at: string; reason: string | null; note: string | null };
   type Reached = { run_id: string; stop_id: string; arrived_at: string; departed_at: string | null };
   type StudentRow = { id: string; first_name: string; last_initial: string | null; grade: string | null; external_id: string | null; school_site_id: string | null };
-  const [assignments, events, reached, students, schools, stops, rodeAm] = await Promise.all([
+  const [assignments, events, reached, students, schools, stops, rodeAm, notices] = await Promise.all([
     selectAllIn<Assignment>(routeIds, (c, a, b) =>
       supabase.from("student_stop_assignments").select("route_id, student_id, stop_id, action").in("route_id", c).order("id").range(a, b),
     ),
@@ -97,6 +123,7 @@ export async function loadAttendance(
       supabase.from("route_stops").select("id, name").in("route_id", c).order("id").range(a, b),
     ),
     loadRodeAm(supabase, orgId, from, to),
+    loadNotices(supabase, orgId, from, to),
   ]);
 
   const studentById = new Map(students.map((s) => [s.id, s]));
@@ -115,6 +142,7 @@ export async function loadAttendance(
       assignments: routeAssignments,
       rides,
       rodeAm: (studentId) => rodeAm.has(`${run.run_date}:${studentId}`),
+      notice: (studentId) => noticeForRun(notices, run.run_date, studentId, route?.route_type ?? "school_am"),
     });
     for (const a of routeAssignments.filter((x) => x.action === "board")) {
       const st = studentById.get(a.student_id);
@@ -137,7 +165,16 @@ export async function loadAttendance(
         note:
           status === "Released"
             ? [RELEASE_REASON_LABEL[s?.reason ?? "other"] ?? s?.reason, s?.note].filter(Boolean).join(" -- ")
-            : status === "Absent" && route?.route_type === "school_pm"
+            : status === "Notified"
+              ? [
+                  NOTICE_REASON_LABEL[s?.reason ?? "other"] ?? s?.reason,
+                  s?.notice?.will_attend_school ? "a parent takes them to school" : "staying home",
+                  s?.note,
+                  s?.notice?.reported_by_role === "guardian" ? "reported by the parent" : "reported by the office",
+                ]
+                  .filter(Boolean)
+                  .join(" -- ")
+              : status === "Absent" && route?.route_type === "school_pm"
               ? "Didn't ride this morning"
               : status === "Unresolved"
                 ? "Rode this morning, hasn't come out -- driver/bus aide checking at the school"
@@ -149,17 +186,19 @@ export async function loadAttendance(
   return rows;
 }
 
-/** Present + Released count as attendance; Pending isn't decided yet. */
+/** Present + Released count as attendance; Notified (told in advance) is left out of the rate; Pending isn't decided yet. */
 export function attendanceTotals(rows: AttendanceRow[]) {
   const n = (s: AttendanceStatus) => rows.filter((r) => r.status === s).length;
   const present = n("Present");
   const released = n("Released");
+  const notified = n("Notified");
   const absent = n("Absent");
   const unresolved = n("Unresolved");
   const decided = present + released + absent;
   return {
     present,
     released,
+    notified,
     absent,
     unresolved,
     rate: decided ? Math.round(((present + released) / decided) * 100) : null,

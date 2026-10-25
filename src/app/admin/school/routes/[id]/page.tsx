@@ -10,7 +10,17 @@ import { createClient } from "@/lib/supabase/server";
 import { getAuthedProfile } from "@/lib/supabase/org-context";
 import { TimeInput } from "@/components/time-input";
 import { ROUTE_TYPE_LABEL, STOP_KIND_LABEL, clock, daysLabel, fleetNow } from "@/lib/school";
-import { RELEASE_REASON_LABEL, STATUS_PILL, dueStopIds, loadRodeAm, runStatuses } from "@/lib/school-status";
+import {
+  NOTICE_REASON_LABEL,
+  RELEASE_REASON_LABEL,
+  STATUS_PILL,
+  dueStopIds,
+  loadNotices,
+  loadRodeAm,
+  noticeForRun,
+  runStatuses,
+  type RideNotice,
+} from "@/lib/school-status";
 import { AutoRefresh } from "../../auto-refresh";
 import { AddressAutocompleteInput } from "../../../routes/address-autocomplete-input";
 import { addStop, assignStudent, deleteStop, moveStop, saveSchoolRouteCrew, unassignStudent } from "../../actions";
@@ -95,13 +105,14 @@ export default async function SchoolRoutePage({
   // Pick-up viewer: the chosen day's run (today by default).
   const viewDate = dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam) ? dateParam : fleetNow(tz).date;
   const viewRun = (runs ?? []).find((r) => r.run_date === viewDate) ?? null;
-  const [{ data: viewEvents }, { data: viewRides }, rodeAm] = viewRun
+  const [{ data: viewEvents }, { data: viewRides }, rodeAm, notices] = viewRun
     ? await Promise.all([
         supabase.from("route_stop_events").select("stop_id, arrived_at, departed_at").eq("run_id", viewRun.id),
         supabase.from("ridership_events").select("student_id, action, at, reason, note").eq("run_id", viewRun.id),
         loadRodeAm(supabase, orgId, viewDate, viewDate),
+        loadNotices(supabase, orgId, viewDate, viewDate),
       ])
-    : [{ data: [] }, { data: [] }, new Set<string>()];
+    : [{ data: [] }, { data: [] }, new Set<string>(), new Map<string, RideNotice>()];
   const arrivedAt = new Map((viewEvents ?? []).map((e) => [e.stop_id, e.arrived_at]));
   const finished = viewRun?.status === "completed";
   const statuses = runStatuses({
@@ -111,6 +122,7 @@ export default async function SchoolRoutePage({
     assignments: assignments ?? [],
     rides: viewRides ?? [],
     rodeAm: (studentId) => rodeAm.has(`${viewDate}:${studentId}`),
+    notice: (studentId) => noticeForRun(notices, viewDate, studentId, route.route_type),
   });
   const pickupTotals = { blue: 0, gray: 0, yellow: 0, red: 0, waiting: 0 };
   for (const a of assignments ?? []) {
@@ -237,6 +249,7 @@ export default async function SchoolRoutePage({
                         red: board ? "rode this morning · hasn't come out" : "not dropped off · still on the bus?",
                         yellow: board && !isPm ? "absent" : "absent today",
                         gray: `released · ${RELEASE_REASON_LABEL[st.reason ?? "other"] ?? st.reason}${st.note ? ` (${st.note})` : ""}`,
+                        excused: `not riding · parent notified · ${NOTICE_REASON_LABEL[st.reason ?? "other"] ?? st.reason}`,
                         expected: "expected",
                         pending: board ? "waiting" : "on the way",
                         on_board: "on the bus",

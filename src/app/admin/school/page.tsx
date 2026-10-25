@@ -9,7 +9,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getAuthedProfile } from "@/lib/supabase/org-context";
 import { driverLabel, fleetDriverIds } from "@/lib/driver-label";
 import { ROUTE_TYPE_LABEL, clock, fleetNow, minutesOf } from "@/lib/school";
-import { dueStopIds, loadRodeAm, runStatuses } from "@/lib/school-status";
+import { dueStopIds, loadNotices, loadRodeAm, noticeForRun, runStatuses } from "@/lib/school-status";
 import { busLabel, effectiveMonitor, loadCrewOptions, loadCrewOverrides } from "@/lib/school-crew";
 import { FleetMap, type FleetRoute, type FleetVehicle } from "../fleet-map";
 import { AutoRefresh } from "./auto-refresh";
@@ -107,7 +107,7 @@ export default async function SchoolLivePage() {
   const crewLabel = new Map(
     [...crewOptions.drivers, ...crewOptions.monitors, ...crewOptions.vehicles].map((o) => [o.id, o.label]),
   );
-  const [{ data: events }, { data: ridership }, rodeAm] = await Promise.all([
+  const [{ data: events }, { data: ridership }, rodeAm, notices] = await Promise.all([
     runIds.length
       ? supabase.from("route_stop_events").select("run_id, stop_id, arrived_at, departed_at").in("run_id", runIds)
       : Promise.resolve({ data: [] }),
@@ -115,6 +115,7 @@ export default async function SchoolLivePage() {
       ? supabase.from("ridership_events").select("run_id, student_id, action, at").in("run_id", runIds)
       : Promise.resolve({ data: [] }),
     loadRodeAm(supabase, orgId, now.date, now.date),
+    loadNotices(supabase, orgId, now.date, now.date),
   ]);
 
   const runByRoute = new Map((runs ?? []).map((r) => [r.route_id, r]));
@@ -139,6 +140,7 @@ export default async function SchoolLivePage() {
             assignments: (assignments ?? []).filter((a) => a.route_id === r.id),
             rides,
             rodeAm: (studentId) => rodeAm.has(`${now.date}:${studentId}`),
+            notice: (studentId) => noticeForRun(notices, now.date, studentId, r.route_type),
           }).values(),
         ].filter((x) => x.status === "red").length
       : 0;

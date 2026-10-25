@@ -15,26 +15,31 @@ import { driverLabel, fleetDriverIds } from "@/lib/driver-label";
 import { ROUTE_TYPE_LABEL, clock, fleetNow, minutesOf } from "@/lib/school";
 import { busLabel, effectiveMonitor, loadCrewOptions, loadCrewOverrides } from "@/lib/school-crew";
 import {
+  NOTICE_REASON_LABEL,
   RELEASE_REASON_LABEL,
   STATUS_PILL,
   dueStopIds,
+  loadNotices,
   loadRodeAm,
+  noticeForRun,
   runStatuses,
   type RiderState,
   type RiderStatus,
 } from "@/lib/school-status";
 import { AutoRefresh } from "../../auto-refresh";
 import { SubstituteForm } from "../../substitute-form";
+import { NoRideSheet, UndoNoRide } from "../../no-ride-form";
 import { requireFeature } from "@/lib/fleet-features";
 
 // Display order: what needs someone's attention first.
-const ORDER: RiderStatus[] = ["red", "expected", "pending", "on_board", "blue", "gray", "yellow"];
+const ORDER: RiderStatus[] = ["red", "expected", "pending", "on_board", "blue", "gray", "excused", "yellow"];
 
 const LEGEND: { status: RiderStatus; label: string }[] = [
   { status: "blue", label: "On track" },
   { status: "red", label: "Alert — check now" },
   { status: "yellow", label: "Absent" },
   { status: "gray", label: "Released with a reason" },
+  { status: "excused", label: "Notified: not riding today" },
   { status: "pending", label: "Not decided yet" },
 ];
 
@@ -64,7 +69,7 @@ export default async function SchoolLiveRoutePage({ params }: { params: Promise<
   const hm = (iso: string) =>
     new Date(iso).toLocaleTimeString("en-US", { timeZone: tz, hour: "numeric", minute: "2-digit" });
 
-  const [{ data: run }, { data: stops }, { data: assignments }, { data: school }, fleetIds, rodeAm, overrides, crewOptions] = await Promise.all([
+  const [{ data: run }, { data: stops }, { data: assignments }, { data: school }, fleetIds, rodeAm, overrides, crewOptions, notices] = await Promise.all([
     supabase
       .from("route_runs")
       .select("id, status, started_at, completed_at, child_check_at")
@@ -80,6 +85,7 @@ export default async function SchoolLiveRoutePage({ params }: { params: Promise<
     loadRodeAm(supabase, orgId, today, today),
     loadCrewOverrides(supabase, [id], today),
     loadCrewOptions(supabase, orgId),
+    loadNotices(supabase, orgId, today, today),
   ]);
   const sub = overrides.get(id) ?? null;
   const studentIds = [...new Set((assignments ?? []).map((a) => a.student_id))];
@@ -122,6 +128,7 @@ export default async function SchoolLiveRoutePage({ params }: { params: Promise<
     assignments: assignments ?? [],
     rides: rides ?? [],
     rodeAm: (studentId) => rodeAm.has(`${today}:${studentId}`),
+    notice: (studentId) => noticeForRun(notices, today, studentId, route.route_type),
   });
   const stopName = new Map((stops ?? []).map((s) => [s.id, `${s.seq}. ${s.name}`]));
   const none: RiderState = { status: "pending", at: null, reason: null, note: null };
@@ -147,6 +154,12 @@ export default async function SchoolLiveRoutePage({ params }: { params: Promise<
       } else if (b.status === "gray") {
         status = "gray";
         situation = `Released: ${RELEASE_REASON_LABEL[b.reason ?? "other"] ?? b.reason}${b.note ? ` (${b.note})` : ""}`;
+      } else if (b.status === "excused") {
+        status = "excused";
+        const n = b.notice;
+        situation = `Not riding today — ${n?.will_attend_school ? "a parent is taking them to school" : "staying home"} · ${
+          NOTICE_REASON_LABEL[b.reason ?? "other"] ?? b.reason
+        }${b.note ? ` (${b.note})` : ""}`;
       } else if (b.status === "yellow") {
         status = "yellow";
         situation = pm ? "Absent today — didn't ride this morning" : "Absent — not picked up";
@@ -175,6 +188,7 @@ export default async function SchoolLiveRoutePage({ params }: { params: Promise<
         offAt: a.status === "blue" ? a.at : null,
         onBy: b.status === "blue" ? markedBy(st.id, "board") : b.status === "gray" ? markedBy(st.id, "released") : null,
         offBy: a.status === "blue" ? markedBy(st.id, "alight") : null,
+        notifiedBy: b.notice ? (b.notice.reported_by_role === "guardian" ? "the parent (app)" : "the office") : null,
       };
     })
     .sort((x, y) => ORDER.indexOf(x.status) - ORDER.indexOf(y.status) || x.name.localeCompare(y.name));
@@ -268,6 +282,7 @@ export default async function SchoolLiveRoutePage({ params }: { params: Promise<
         <span className={`rounded-full border px-3 py-1 font-semibold ${STATUS_PILL.red}`}>{count(["red"])} alerts</span>
         <span className={`rounded-full border px-3 py-1 font-semibold ${STATUS_PILL.yellow}`}>{count(["yellow"])} absent</span>
         <span className={`rounded-full border px-3 py-1 font-semibold ${STATUS_PILL.gray}`}>{count(["gray"])} released</span>
+        <span className={`rounded-full border px-3 py-1 font-semibold ${STATUS_PILL.excused}`}>{count(["excused"])} notified</span>
         <span className={`rounded-full border px-3 py-1 font-semibold ${STATUS_PILL.pending}`}>
           {count(["expected", "pending", "on_board"])} not decided yet
         </span>
@@ -294,6 +309,17 @@ export default async function SchoolLiveRoutePage({ params }: { params: Promise<
                   <span className={`inline-block rounded-lg border px-2.5 py-1 text-xs font-semibold ${STATUS_PILL[r.status]}`}>
                     {r.situation}
                   </span>
+                  {r.status === "excused" && (
+                    <span className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-muted">
+                      {r.notifiedBy && <span>Reported by {r.notifiedBy}</span>}
+                      <UndoNoRide studentId={r.id} date={today} />
+                    </span>
+                  )}
+                  {(r.status === "pending" || r.status === "expected" || r.status === "yellow") && (
+                    <span className="mt-1.5 block print:hidden">
+                      <NoRideSheet studentId={r.id} studentName={r.name} date={today} routeType={route.route_type} />
+                    </span>
+                  )}
                 </td>
                 <td className="px-4 py-3 text-muted">
                   {r.onStop || "—"}

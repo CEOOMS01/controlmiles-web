@@ -89,7 +89,8 @@ export default async function AttendancePage({
             <h1 className="text-xl font-semibold tracking-tight">Student transportation attendance</h1>
             <p className="mt-1 text-sm text-muted">
               {from} to {to}. A pick-up counts as attendance, and so does a release to a parent or the school
-              with a reason. Days a route didn&apos;t run aren&apos;t counted.
+              with a reason. A student the parent or the office told us is not riding is shown as notified and
+              is left out of the rate. Days a route didn&apos;t run aren&apos;t counted.
             </p>
           </div>
         </div>
@@ -132,7 +133,7 @@ export default async function AttendancePage({
         </div>
       </form>
 
-      <div className="grid gap-3 sm:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-5">
         <div className="rounded-xl border border-border bg-surface p-4">
           <p className="text-xs text-muted">Present</p>
           <p className="text-2xl font-semibold text-blue-600">{totals.present}</p>
@@ -140,6 +141,10 @@ export default async function AttendancePage({
         <div className="rounded-xl border border-border bg-surface p-4">
           <p className="text-xs text-muted">Released (with reason)</p>
           <p className="text-2xl font-semibold text-slate-500">{totals.released}</p>
+        </div>
+        <div className="rounded-xl border border-border bg-surface p-4">
+          <p className="text-xs text-muted">Notified (not riding)</p>
+          <p className="text-2xl font-semibold text-sky-600">{totals.notified}</p>
         </div>
         <div className="rounded-xl border border-border bg-surface p-4">
           <p className="text-xs text-muted">Absent</p>
