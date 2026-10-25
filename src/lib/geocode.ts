@@ -49,19 +49,19 @@ export async function ownGeocode(
       covered?: boolean;
       note?: string;
       cityMatch?: boolean;
-      results?: { address: string; lat: number; lon: number }[];
+      results?: { address: string; lat: number; lon: number; city?: string | null }[];
     };
     return {
       covered: body.covered !== false,
       notAddress: body.note === "not a street address",
       cityMatch: body.cityMatch !== false,
-      results: (body.results ?? []).map((r) => ({ address: r.address, lat: r.lat, lon: r.lon })),
+      results: (body.results ?? []).map((r) => ({ address: r.address, lat: r.lat, lon: r.lon, ...(r.city ? { city: r.city } : {}) })),
     };
   } catch {
     return null;
   }
 }
-export type GeoResult = { address: string; lat: number; lon: number };
+export type GeoResult = { address: string; lat: number; lon: number; city?: string };
 
 const STATES =
   "AL AK AZ AR CA CO CT DE DC FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA PR RI SC SD TN TX UT VT VA WA WV WI WY".split(
