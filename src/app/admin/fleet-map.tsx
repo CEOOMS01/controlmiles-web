@@ -36,6 +36,8 @@ export type FleetRoute = {
   id: string;
   name: string;
   color: string;
+  /** Road path through the stops, [lng, lat] points (from our routing server); absent when not computed. */
+  path?: [number, number][];
   stops: { lat: number; lon: number; name: string; time: string | null; kind: string | null; milesToSchool: number | null }[];
 };
 

@@ -23,7 +23,7 @@ import {
 } from "@/lib/school-status";
 import { AutoRefresh } from "../../auto-refresh";
 import { AddressAutocompleteInput } from "../../../routes/address-autocomplete-input";
-import { addStop, assignStudent, deleteStop, moveStop, saveSchoolRouteCrew, unassignStudent } from "../../actions";
+import { addStop, assignStudent, deleteStop, moveStop, recalculateRoutePath, saveSchoolRouteCrew, unassignStudent } from "../../actions";
 import { loadCrewOptions } from "@/lib/school-crew";
 import { MonitorPicker } from "../../monitor-picker";
 import { DeleteSchoolRoute, EditSchoolRouteForm, PublishBanner } from "../../route-details";
@@ -49,7 +49,7 @@ export default async function SchoolRoutePage({
 
   const { data: route } = await supabase
     .from("routes")
-    .select("id, name, status, route_type, service_days, scheduled_start_time, school_site_id, organization_id, assigned_driver_id, assigned_vehicle_id, monitor_id, monitor_name")
+    .select("id, name, status, route_type, service_days, scheduled_start_time, school_site_id, organization_id, assigned_driver_id, assigned_vehicle_id, monitor_id, monitor_name, path_polyline, path_distance_m, path_duration_s, path_computed_at")
     .eq("id", id)
     .eq("organization_id", orgId)
     .maybeSingle();
@@ -59,7 +59,7 @@ export default async function SchoolRoutePage({
     await Promise.all([
       supabase
         .from("route_stops")
-        .select("id, seq, name, address, scheduled_time, stop_kind, radius_meters")
+        .select("id, seq, name, address, scheduled_time, stop_kind, radius_meters, leg_duration_s, leg_distance_m")
         .eq("route_id", id)
         .order("seq"),
       supabase.from("student_stop_assignments").select("id, stop_id, student_id, action").eq("route_id", id),
@@ -275,6 +275,17 @@ export default async function SchoolRoutePage({
           The app marks the bus as arrived when it gets within the stop&apos;s radius, even with the phone
           locked. Drivers can also mark it by hand.
         </p>
+        <div className="flex flex-wrap items-center gap-3 text-sm print:hidden">
+          <span className="text-muted">
+            {route.path_polyline
+              ? `Road path: ${(Number(route.path_distance_m ?? 0) / 1609.344).toFixed(1)} mi · about ${Math.max(
+                  1,
+                  Math.round(Number(route.path_duration_s ?? 0) / 60),
+                )} min of driving, without stops`
+              : "Road path: not drawn yet"}
+          </span>
+          <RowButton onRun={recalculateRoutePath.bind(null, id)} label={route.path_polyline ? "Redraw the road path" : "Draw the road path"} />
+        </div>
         <ol className="space-y-3">
           {(stops ?? []).map((s, i) => {
             const riders = byStop.get(s.id) ?? [];
@@ -290,6 +301,7 @@ export default async function SchoolRoutePage({
                     </p>
                     <p className="text-xs text-muted">
                       {clock(s.scheduled_time, timeFormat)} · {s.address ?? "—"} · radius {s.radius_meters} m
+                      {s.leg_duration_s != null && ` · ${Math.max(1, Math.round(s.leg_duration_s / 60))} min from the previous stop`}
                     </p>
                   </div>
                   <div className="flex gap-1">

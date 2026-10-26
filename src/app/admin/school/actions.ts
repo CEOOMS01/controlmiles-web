@@ -11,6 +11,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getAuthedProfile } from "@/lib/supabase/org-context";
 import { AppError } from "@/lib/errors";
+import { pathSignature, routeThrough } from "@/lib/routing";
 
 export type FormResult = { error: string | null };
 
@@ -75,6 +76,84 @@ export async function undoNoRide(studentId: string, date: string): Promise<FormR
   const { error } = await supabase.rpc("cancel_student_no_ride", { p_student_id: studentId, p_date: date });
   if (error) return noticeError(error);
   revalidatePath("/admin/school", "layout");
+  return { error: null };
+}
+
+// --- Road path ---------------------------------------------------------------
+// The stops of a route are joined by the real road path from our own routing
+// server (src/lib/routing.ts), computed when the stops are saved and stored on
+// the route (path_*) and per stop (leg_*). Saving never waits on it failing: a
+// stale path is cleared, so the map shows pins only, and "Draw the road path" on
+// the route page retries.
+
+type RoadPathResult = "ok" | "short" | "unconfigured" | "failed";
+
+async function refreshRoutePath(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  routeId: string,
+  force = false,
+): Promise<RoadPathResult> {
+  const { data: stops } = await supabase
+    .from("route_stops")
+    .select("id, seq, latitude, longitude")
+    .eq("route_id", routeId)
+    .order("seq");
+  const placed = (stops ?? []).filter((s) => s.latitude != null && s.longitude != null);
+  const clear = async () => {
+    await supabase
+      .from("routes")
+      .update({ path_polyline: null, path_distance_m: null, path_duration_s: null, path_computed_at: null, path_signature: null })
+      .eq("id", routeId);
+    await supabase.from("route_stops").update({ leg_distance_m: null, leg_duration_s: null }).eq("route_id", routeId);
+  };
+  if (placed.length < 2) {
+    await clear();
+    return "short";
+  }
+  const points = placed.map((s) => ({ lat: s.latitude as number, lon: s.longitude as number }));
+  const signature = pathSignature(points);
+  const { data: current } = await supabase.from("routes").select("path_signature, path_polyline").eq("id", routeId).maybeSingle();
+  if (!force && current?.path_signature === signature && current.path_polyline) return "ok";
+
+  const path = await routeThrough(points);
+  if (!path) {
+    if (current?.path_signature !== signature) await clear();
+    return process.env.ROUTING_URL ? "failed" : "unconfigured";
+  }
+  const { error } = await supabase
+    .from("routes")
+    .update({
+      path_polyline: path.polyline,
+      path_distance_m: path.distanceM,
+      path_duration_s: path.durationS,
+      path_computed_at: new Date().toISOString(),
+      path_signature: signature,
+    })
+    .eq("id", routeId);
+  if (error) return "failed";
+  await Promise.all(
+    placed.map((s, i) =>
+      supabase
+        .from("route_stops")
+        .update({
+          leg_distance_m: i === 0 ? null : path.legs[i - 1].distanceM,
+          leg_duration_s: i === 0 ? null : path.legs[i - 1].durationS,
+        })
+        .eq("id", s.id),
+    ),
+  );
+  return "ok";
+}
+
+/** "Draw the road path": recomputes it on demand (older routes, or after the routing server was down). */
+export async function recalculateRoutePath(routeId: string): Promise<FormResult> {
+  const { supabase } = await context();
+  const result = await refreshRoutePath(supabase, routeId, true);
+  revalidatePath(`/admin/school/routes/${routeId}`);
+  revalidatePath("/admin/school");
+  if (result === "unconfigured") return { error: "The road routing server is not set up yet." };
+  if (result === "failed") return { error: "The routing server could not draw this route. Check that every stop is on a road and try again." };
+  if (result === "short") return { error: "A route needs at least two located stops." };
   return { error: null };
 }
 
@@ -417,6 +496,7 @@ export async function createSchoolRouteWithStops(_: FormResult, formData: FormDa
     await supabase.from("routes").delete().eq("id", route.id);
     return fail(stopsError ?? assignError);
   }
+  await refreshRoutePath(supabase, route.id);
   revalidatePath("/admin/school/routes");
   revalidatePath("/admin/school");
   redirect(`/admin/school/routes/${route.id}`);
@@ -635,7 +715,9 @@ export async function addStop(_: FormResult, formData: FormData): Promise<FormRe
     radius_meters: radius != null ? Math.min(500, Math.max(20, Math.round(radius))) : 80,
   });
   if (error) return fail(error);
+  await refreshRoutePath(supabase, routeId);
   revalidatePath(`/admin/school/routes/${routeId}`);
+  revalidatePath("/admin/school");
   return { error: null };
 }
 
@@ -662,7 +744,9 @@ export async function moveStop(routeId: string, stopId: string, direction: "up" 
     const { error: e } = await supabase.from("route_stops").update({ seq }).eq("id", id);
     if (e) return fail(e);
   }
+  await refreshRoutePath(supabase, routeId);
   revalidatePath(`/admin/school/routes/${routeId}`);
+  revalidatePath("/admin/school");
   return { error: null };
 }
 
@@ -670,7 +754,9 @@ export async function deleteStop(routeId: string, stopId: string): Promise<FormR
   const { supabase } = await context();
   const { error } = await supabase.from("route_stops").delete().eq("id", stopId);
   if (error) return fail(error);
+  await refreshRoutePath(supabase, routeId);
   revalidatePath(`/admin/school/routes/${routeId}`);
+  revalidatePath("/admin/school");
   return { error: null };
 }
 

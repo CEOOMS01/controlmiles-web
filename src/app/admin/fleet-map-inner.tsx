@@ -103,6 +103,15 @@ export default function FleetMapInner({
     mapRef.current.on("load", () => {
       const map = mapRef.current;
       if (!map) return;
+      // Road paths of today's school routes (under the stop pins).
+      map.addSource("school-route-paths", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+      map.addLayer({
+        id: "school-route-paths-line",
+        type: "line",
+        source: "school-route-paths",
+        layout: { "line-cap": "round", "line-join": "round" },
+        paint: { "line-color": ["get", "color"], "line-width": 4, "line-opacity": 0.7 },
+      });
       map.addSource("fleet-geofences", {
         type: "geojson",
         data: { type: "FeatureCollection", features: [] },
@@ -125,6 +134,8 @@ export default function FleetMapInner({
       mapRef.current?.remove();
       mapRef.current = null;
       markersRef.current.clear();
+      routePinsRef.current = [];
+      framedRef.current = "";
     };
     // Deliberately empty-deps-equivalent (mount/unmount only) -- the map
     // instance itself is created once; live vehicle updates are handled
@@ -237,11 +248,32 @@ export default function FleetMapInner({
         bounds.extend([st.lon, st.lat]);
       });
     }
+    const applyPaths = () => {
+      const source = map.getSource("school-route-paths") as maplibregl.GeoJSONSource | undefined;
+      source?.setData({
+        type: "FeatureCollection",
+        features: routes
+          .filter((r) => r.path && r.path.length > 1)
+          .map((r) => ({
+            type: "Feature" as const,
+            properties: { color: r.color },
+            geometry: { type: "LineString" as const, coordinates: r.path as [number, number][] },
+          })),
+      });
+    };
+    if (map.isStyleLoaded()) applyPaths();
+    else map.once("load", applyPaths);
     // Frame the routes once per set of routes, so the person's own panning is left alone.
     const sig = routes.map((r) => `${r.id}:${r.stops.length}`).join("|");
     if (sig && sig !== framedRef.current && !bounds.isEmpty()) {
       framedRef.current = sig;
-      map.fitBounds(bounds, { padding: 60, maxZoom: 15, duration: 0 });
+      // Once the map is loaded and its box has a size (a fit before that frames a zero-size map).
+      const fit = () => {
+        map.resize();
+        map.fitBounds(bounds, { padding: 60, maxZoom: 15, duration: 0 });
+      };
+      fit();
+      map.once("load", fit);
     }
   }, [routes]);
 

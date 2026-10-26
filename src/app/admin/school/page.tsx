@@ -10,6 +10,7 @@ import { getAuthedProfile } from "@/lib/supabase/org-context";
 import { driverLabel, fleetDriverIds } from "@/lib/driver-label";
 import { ROUTE_TYPE_LABEL, clock, fleetNow, minutesOf } from "@/lib/school";
 import { dueStopIds, loadNotices, loadRodeAm, noticeForRun, runStatuses } from "@/lib/school-status";
+import { decodePolyline6 } from "@/lib/routing";
 import { busLabel, effectiveMonitor, loadCrewOptions, loadCrewOverrides } from "@/lib/school-crew";
 import { FleetMap, type FleetRoute, type FleetVehicle } from "../fleet-map";
 import { AutoRefresh } from "./auto-refresh";
@@ -67,7 +68,7 @@ export default async function SchoolLivePage() {
   const { data: routeRows } = await supabase
     .from("routes")
     .select(
-      "id, name, route_type, service_days, scheduled_start_time, assigned_driver_id, assigned_vehicle_id, monitor_id, monitor_name, profiles!routes_assigned_driver_id_fkey(first_name, last_name), vehicles(nickname, make, model, display_id)",
+      "id, name, route_type, service_days, scheduled_start_time, assigned_driver_id, assigned_vehicle_id, monitor_id, monitor_name, path_polyline, profiles!routes_assigned_driver_id_fkey(first_name, last_name), vehicles(nickname, make, model, display_id)",
     )
     .eq("organization_id", orgId)
     .in("route_type", ["school_am", "school_pm"])
@@ -218,6 +219,7 @@ export default async function SchoolLivePage() {
         id: r.id,
         name: r.name,
         color: ROUTE_COLORS[i % ROUTE_COLORS.length],
+        path: r.path_polyline ? decodePolyline6(r.path_polyline as string) : undefined,
         stops: placed.map((s) => ({
           lat: s.latitude as number,
           lon: s.longitude as number,
