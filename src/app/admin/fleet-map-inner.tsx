@@ -274,6 +274,18 @@ export default function FleetMapInner({
       };
       fit();
       map.once("load", fit);
+      // The box can still be settling (fonts, layout) when the first fit runs:
+      // refit on every size change for the first 3 s, then leave the camera to the person.
+      const box = containerRef.current;
+      if (box && typeof ResizeObserver !== "undefined") {
+        const ro = new ResizeObserver(fit);
+        ro.observe(box);
+        const stop = setTimeout(() => ro.disconnect(), 3000);
+        return () => {
+          clearTimeout(stop);
+          ro.disconnect();
+        };
+      }
     }
   }, [routes]);
 
