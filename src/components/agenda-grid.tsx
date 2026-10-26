@@ -100,11 +100,11 @@ export function AgendaGrid({
   locale = "en-US",
   stepMin = 15,
   hourPx = 56,
-  minColPx = 112,
+  minColPx = 84,
   onEmptyClick,
   onItemClick,
   onDropItem,
-  maxHeight = "65vh",
+  maxHeight,
 }: {
   dates: string[];
   startMin: number;
@@ -120,6 +120,7 @@ export function AgendaGrid({
   onEmptyClick?: (date: string, minute: number) => void;
   onItemClick?: (item: AgendaItem) => void;
   onDropItem?: (item: AgendaItem, date: string, minute: number) => void;
+  /** Omit to show every hour (the page scrolls); only horizontal scroll on narrow screens. */
   maxHeight?: string;
 }) {
   const pxPerMin = hourPx / 60;
@@ -137,7 +138,7 @@ export function AgendaGrid({
   };
 
   return (
-    <div className="overflow-auto rounded-xl border border-border bg-surface" style={{ maxHeight }}>
+    <div className="overflow-x-auto rounded-xl border border-border bg-surface" style={maxHeight ? { maxHeight, overflowY: "auto" } : undefined}>
       <div className="grid" style={{ gridTemplateColumns: `52px repeat(${dates.length}, minmax(${minColPx}px, 1fr))`, minWidth: 52 + dates.length * minColPx }}>
         {/* header */}
         <div className="sticky top-0 z-20 border-b border-border bg-surface" />

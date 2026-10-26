@@ -64,6 +64,10 @@ export type DsSettings = {
   booking_enabled: boolean;
   booking_lead_hours: number;
   booking_horizon_days: number;
+  // The school's lesson hours (HH:MM:SS): classes only fall between them. Students
+  // can still book at any time of day or night. null = no limit.
+  booking_open_time: string | null;
+  booking_close_time: string | null;
   booking_max_upcoming: number;
   cancel_free_hours: number;
   cancellation_policy: string | null;
@@ -73,12 +77,14 @@ export const DEFAULT_SETTINGS: DsSettings = {
   booking_enabled: false,
   booking_lead_hours: 24,
   booking_horizon_days: 21,
+  booking_open_time: null,
+  booking_close_time: null,
   booking_max_upcoming: 2,
   cancel_free_hours: 24,
   cancellation_policy: null,
 };
 export const DS_SETTINGS_COLUMNS =
-  "reminder_hours, booking_enabled, booking_lead_hours, booking_horizon_days, booking_max_upcoming, cancel_free_hours, cancellation_policy";
+  "reminder_hours, booking_enabled, booking_lead_hours, booking_horizon_days, booking_open_time, booking_close_time, booking_max_upcoming, cancel_free_hours, cancellation_policy";
 
 // Programs (phase 2): Teen, Adult or the school's own. Classes are for
 // adults too: an Adult program has no required hours and no guardian.

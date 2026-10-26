@@ -43,6 +43,8 @@ export type AgendaWeek = {
   availability: AgendaAvailability[];
   blocked: AgendaBlocked[];
   timeOff: AgendaTimeOff[];
+  /** The school's lesson hours (HH:MM:SS), null = no limit. */
+  hours: { open: string | null; close: string | null };
 };
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -53,7 +55,7 @@ export async function getAgendaWeek(orgId: string, from: string, days: number): 
   const to = new Date(`${from}T00:00:00Z`);
   to.setUTCDate(to.getUTCDate() + Math.max(1, Math.min(days, 14)) - 1);
   const toKey = to.toISOString().slice(0, 10);
-  const [blocks, availability, blocked, timeOff] = await Promise.all([
+  const [blocks, availability, blocked, timeOff, settings] = await Promise.all([
     supabase.rpc("get_org_shift_range", { p_org: orgId, p_from: from, p_days: days }),
     supabase.from("ds_availability").select("instructor_id, weekday, start_time, end_time").eq("organization_id", orgId),
     supabase
@@ -66,6 +68,7 @@ export async function getAgendaWeek(orgId: string, from: string, days: number): 
       .eq("organization_id", orgId)
       .lte("date_from", toKey)
       .gte("date_to", from),
+    supabase.from("ds_settings").select("booking_open_time, booking_close_time").eq("organization_id", orgId).maybeSingle(),
   ]);
   if (blocks.error) return { error: AppError.from(blocks.error).display() };
   return {
@@ -73,6 +76,7 @@ export async function getAgendaWeek(orgId: string, from: string, days: number): 
     availability: (availability.data ?? []) as AgendaAvailability[],
     blocked: (blocked.data ?? []) as AgendaBlocked[],
     timeOff: (timeOff.data ?? []) as AgendaTimeOff[],
+    hours: { open: settings.data?.booking_open_time ?? null, close: settings.data?.booking_close_time ?? null },
   };
 }
 

@@ -318,6 +318,17 @@ function ClientCalendar({
         >
           ← {S.prevDays}
         </button>
+        {/* Months ahead are a long way to page through, so jump to a date. */}
+        <input
+          type="date"
+          aria-label={S.jumpTo}
+          title={S.jumpTo}
+          value={start}
+          min={allDates[0]}
+          max={last}
+          onChange={(e) => e.target.value && setFrom(e.target.value)}
+          className="min-w-0 rounded-lg border border-border bg-background px-2 py-1.5 text-sm"
+        />
         <button
           type="button"
           onClick={() => setFrom(addDays(start, days))}
@@ -335,8 +346,7 @@ function ClientCalendar({
         shades={shades}
         timeFormat="12h"
         locale={DATE_LOCALE[lang]}
-        minColPx={days === 3 ? 96 : 104}
-        maxHeight="60vh"
+        minColPx={days === 3 ? 96 : 72}
         onItemClick={(it) => {
           if (it.id.startsWith("mine:")) {
             setOpenMine((cur) => (cur === it.id ? null : it.id));

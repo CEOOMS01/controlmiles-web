@@ -167,6 +167,11 @@ export function SchoolAgenda({
         }
         if (cursor < endMin) out.push({ date, start: cursor, end: endMin, kind: "closed", label: wins.length === 0 ? "Closed" : undefined });
       }
+      // The school's lesson hours: nothing is booked online outside them.
+      if (data.hours.open && data.hours.close) {
+        out.push({ date, start: startMin, end: toMin(data.hours.open), kind: "closed" });
+        out.push({ date, start: toMin(data.hours.close), end: endMin, kind: "closed" });
+      }
       for (const h of data.blocked) {
         if (h.weekday !== null && h.weekday !== dow) continue;
         if (h.on_date !== null && h.on_date !== date) continue;
@@ -290,7 +295,7 @@ export function SchoolAgenda({
           shades={shades}
           today={today}
           timeFormat={timeFormat}
-          minColPx={view === "day" ? 320 : 128}
+          minColPx={view === "day" ? 320 : 84}
           onEmptyClick={(date, minute) => {
             setSelected(null);
             setBanner(null);

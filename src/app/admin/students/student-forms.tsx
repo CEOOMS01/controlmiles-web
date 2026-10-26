@@ -430,8 +430,51 @@ export function DsSettingsForm({
             <SettingRow title="Minimum notice" help="How long before a lesson it can still be booked.">
               <UnitInput name="booking_lead_hours" defaultValue={settings.booking_lead_hours} unit="hours" min={0} max={336} />
             </SettingRow>
-            <SettingRow title="Booking window" help="How far ahead students can book.">
-              <UnitInput name="booking_horizon_days" defaultValue={settings.booking_horizon_days} unit="days" min={1} max={90} />
+            <SettingRow
+              title="Lesson hours"
+              help="Lessons can only be scheduled between these hours, for example 8:00 AM to 9:00 PM. Students can still book at any time of day or night. Leave empty for no limit."
+            >
+              <div className="flex items-center gap-2 text-sm">
+                <input
+                  name="booking_open_time"
+                  type="time"
+                  defaultValue={settings.booking_open_time?.slice(0, 5) ?? ""}
+                  aria-label="First lesson can start at"
+                  className={`${field} w-32`}
+                />
+                <span className="text-muted">to</span>
+                <input
+                  name="booking_close_time"
+                  type="time"
+                  defaultValue={settings.booking_close_time?.slice(0, 5) ?? ""}
+                  aria-label="Last lesson must end by"
+                  className={`${field} w-32`}
+                />
+              </div>
+            </SettingRow>
+            <SettingRow title="Booking window" help="How far ahead students can book, for example into next January.">
+              <select name="booking_horizon_days" defaultValue={settings.booking_horizon_days} className={`${field} w-48`}>
+                {[
+                  [14, "2 weeks"],
+                  [30, "1 month"],
+                  [60, "2 months"],
+                  [90, "3 months"],
+                  [180, "6 months"],
+                  [270, "9 months"],
+                  [365, "1 year"],
+                ]
+                  .concat(
+                    [14, 30, 60, 90, 180, 270, 365].includes(settings.booking_horizon_days)
+                      ? []
+                      : [[settings.booking_horizon_days, `${settings.booking_horizon_days} days`]],
+                  )
+                  .sort((a, b) => Number(a[0]) - Number(b[0]))
+                  .map(([d, label]) => (
+                    <option key={d} value={d}>
+                      {label}
+                    </option>
+                  ))}
+              </select>
             </SettingRow>
             <SettingRow title="Upcoming lessons per student" help="Lessons a student can hold booked at once.">
               <UnitInput name="booking_max_upcoming" defaultValue={settings.booking_max_upcoming} unit="lessons" min={1} max={20} />
@@ -465,6 +508,8 @@ export function DsSettingsForm({
           <>
             {hidden("booking_lead_hours", settings.booking_lead_hours)}
             {hidden("booking_horizon_days", settings.booking_horizon_days)}
+            {settings.booking_open_time && hidden("booking_open_time", settings.booking_open_time.slice(0, 5))}
+            {settings.booking_close_time && hidden("booking_close_time", settings.booking_close_time.slice(0, 5))}
             {hidden("booking_max_upcoming", settings.booking_max_upcoming)}
             {hidden("cancel_free_hours", settings.cancel_free_hours)}
             {settings.booking_enabled && hidden("booking_enabled", "on")}

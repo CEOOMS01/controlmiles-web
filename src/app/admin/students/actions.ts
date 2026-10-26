@@ -223,6 +223,8 @@ export async function saveDsSettings(_p: ActionState, fd: FormData): Promise<Act
     booking_enabled: fd.get("booking_enabled") === "on",
     booking_lead_hours: num("booking_lead_hours", 24),
     booking_horizon_days: num("booking_horizon_days", 21),
+    booking_open_time: text(fd, "booking_open_time", 8) || null,
+    booking_close_time: text(fd, "booking_close_time", 8) || null,
     booking_max_upcoming: num("booking_max_upcoming", 2),
     cancel_free_hours: num("cancel_free_hours", 24),
     cancellation_policy: text(fd, "cancellation_policy", 1000),
@@ -230,7 +232,10 @@ export async function saveDsSettings(_p: ActionState, fd: FormData): Promise<Act
   };
   if (row.reminder_hours < 1 || row.reminder_hours > 168) return { error: "Reminder: 1 to 168 hours before.", success: false };
   if (row.booking_lead_hours < 0 || row.booking_lead_hours > 336) return { error: "Minimum notice: 0 to 336 hours.", success: false };
-  if (row.booking_horizon_days < 1 || row.booking_horizon_days > 90) return { error: "Booking window: 1 to 90 days.", success: false };
+  if (row.booking_horizon_days < 1 || row.booking_horizon_days > 365) return { error: "Booking window: 1 to 365 days.", success: false };
+  if (!row.booking_open_time !== !row.booking_close_time) return { error: "Set both the opening and closing hour, or leave both empty.", success: false };
+  if (row.booking_open_time && row.booking_close_time && row.booking_close_time <= row.booking_open_time)
+    return { error: "The closing hour must be after the opening hour.", success: false };
   if (row.booking_max_upcoming < 1 || row.booking_max_upcoming > 20) return { error: "Upcoming classes: 1 to 20.", success: false };
   if (row.cancel_free_hours < 0 || row.cancel_free_hours > 336) return { error: "Free cancellation: 0 to 336 hours.", success: false };
   const supabase = await createClient();
