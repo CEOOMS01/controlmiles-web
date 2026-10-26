@@ -63,6 +63,14 @@ function timeAgo(iso: string): string {
   return new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 }
 
+/** The box around every stop of the routes drawn on the map. */
+function routeBounds(rs: FleetRoute[]): maplibregl.LngLatBounds {
+  const b = new maplibregl.LngLatBounds();
+  for (const r of rs) for (const st of r.stops) b.extend([st.lon, st.lat]);
+  return b;
+}
+const routeSig = (rs: FleetRoute[]) => rs.map((r) => `${r.id}:${r.stops.length}`).join("|");
+
 export default function FleetMapInner({
   vehicles,
   geofences = [],
@@ -93,11 +101,17 @@ export default function FleetMapInner({
           ]
         : [-98.5795, 39.8283]; // geographic center of the US -- MapLibre wants [lon, lat], the opposite order Leaflet used
 
+    // With routes the map is BORN framed on them (MapLibre applies `bounds` once it
+    // knows the box size, which a fitBounds right after creation could not rely on).
+    const initial = routeBounds(routes);
+    const framed = !initial.isEmpty();
+    framedRef.current = framed ? routeSig(routes) : "";
     mapRef.current = new maplibregl.Map({
       container: containerRef.current,
       style: buildStyle(),
-      center,
-      zoom: vehicles.length > 0 ? 9 : 3.5,
+      ...(framed
+        ? { bounds: initial, fitBoundsOptions: { padding: 60, maxZoom: 15 } }
+        : { center, zoom: vehicles.length > 0 ? 9 : 3.5 }),
     });
     mapRef.current.addControl(new maplibregl.NavigationControl(), "top-right");
     mapRef.current.on("load", () => {
@@ -228,7 +242,6 @@ export default function FleetMapInner({
     if (!map) return;
     for (const m of routePinsRef.current) m.remove();
     routePinsRef.current = [];
-    const bounds = new maplibregl.LngLatBounds();
     for (const r of routes) {
       let n = 0; // numbers count the stops, not the school (the S pin)
       r.stops.forEach((st) => {
@@ -245,7 +258,6 @@ export default function FleetMapInner({
           .setPopup(new maplibregl.Popup({ offset: 30 }).setDOMContent(content))
           .addTo(map);
         routePinsRef.current.push(pin);
-        bounds.extend([st.lon, st.lat]);
       });
     }
     const applyPaths = () => {
@@ -263,29 +275,12 @@ export default function FleetMapInner({
     };
     if (map.isStyleLoaded()) applyPaths();
     else map.once("load", applyPaths);
-    // Frame the routes once per set of routes, so the person's own panning is left alone.
-    const sig = routes.map((r) => `${r.id}:${r.stops.length}`).join("|");
+    // A different set of routes (not the first paint, which is born framed): frame it once.
+    const sig = routeSig(routes);
+    const bounds = routeBounds(routes);
     if (sig && sig !== framedRef.current && !bounds.isEmpty()) {
       framedRef.current = sig;
-      // Once the map is loaded and its box has a size (a fit before that frames a zero-size map).
-      const fit = () => {
-        map.resize();
-        map.fitBounds(bounds, { padding: 60, maxZoom: 15, duration: 0 });
-      };
-      fit();
-      map.once("load", fit);
-      // The box can still be settling (fonts, layout) when the first fit runs:
-      // refit on every size change for the first 3 s, then leave the camera to the person.
-      const box = containerRef.current;
-      if (box && typeof ResizeObserver !== "undefined") {
-        const ro = new ResizeObserver(fit);
-        ro.observe(box);
-        const stop = setTimeout(() => ro.disconnect(), 3000);
-        return () => {
-          clearTimeout(stop);
-          ro.disconnect();
-        };
-      }
+      map.fitBounds(bounds, { padding: 60, maxZoom: 15, duration: 0 });
     }
   }, [routes]);
 
