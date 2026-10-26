@@ -18,9 +18,8 @@ function buildCsp(nonce: string, frameAncestors = "'none'") {
     `script-src ${scriptSrc} https://challenges.cloudflare.com`,
     "frame-src https://challenges.cloudflare.com",
     "style-src 'self' 'unsafe-inline'",
-    // *.tile.openstreetmap.org: still used by admin/geofences and
-    // portal/verify's Leaflet maps (not touched in the 2026-09-21 swap
-    // below -- only the fleet live map moved off it).
+    // No tile.openstreetmap.org any more (2026-10-25): every map, the report
+    // portal's included, reads our own PMTiles basemap (src/lib/map-base.ts).
     // protomaps.github.io: sprite PNG for the fleet map's self-hosted
     // MapLibre basemap (see fleet-map-inner.tsx).
     // *.supabase.co: REAL BUG FOUND AND FIXED (2026-09-22, while
@@ -31,7 +30,7 @@ function buildCsp(nonce: string, frameAncestors = "'none'") {
     // was silently blocked by CSP the entire time, with nothing in the
     // UI to explain why the tile stayed empty -- confirmed live via a
     // console CSP violation while testing this exact page.
-    "img-src 'self' data: https://*.tile.openstreetmap.org https://protomaps.github.io https://*.supabase.co",
+    "img-src 'self' data: https://protomaps.github.io https://*.supabase.co",
     "font-src 'self'",
     // MapLibre GL JS parses/renders vector tiles off the main thread via
     // a Web Worker constructed from a blob: URL internally -- without

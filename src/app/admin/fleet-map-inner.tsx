@@ -30,8 +30,7 @@
 import { useEffect, useRef } from "react";
 import * as maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { Protocol } from "pmtiles";
-import { layers, namedFlavor } from "@protomaps/basemaps";
+import { buildStyle, ensurePmtilesProtocol } from "@/lib/map-base";
 import { circlePolygon } from "@/lib/geo-circle";
 import { vehicleStatus, type FleetRoute, type FleetVehicle, type VehicleStatus } from "./fleet-map";
 
@@ -42,10 +41,6 @@ export type FleetGeofence = {
   radius_meters: number;
   is_active: boolean;
 };
-
-const PMTILES_URL =
-  process.env.NEXT_PUBLIC_FLEET_MAP_PMTILES_URL ??
-  "https://demo-bucket.protomaps.com/v4.pmtiles";
 
 const STATUS_COLOR: Record<VehicleStatus, string> = {
   on_trip: "#2c6c99",
@@ -66,34 +61,6 @@ function timeAgo(iso: string): string {
   if (mins < 60) return `${mins} min ago`;
   if (mins < 24 * 60) return `${Math.round(mins / 60)} h ago`;
   return new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
-}
-
-// Registered once per page load, not per map instance -- addProtocol is a
-// global maplibregl registration, calling it again per mount just
-// re-points the same handler at itself.
-let protocolRegistered = false;
-function ensurePmtilesProtocol() {
-  if (protocolRegistered) return;
-  const protocol = new Protocol();
-  maplibregl.addProtocol("pmtiles", protocol.tile);
-  protocolRegistered = true;
-}
-
-function buildStyle(): maplibregl.StyleSpecification {
-  return {
-    version: 8,
-    glyphs: "https://protomaps.github.io/basemaps-assets/fonts/{fontstack}/{range}.pbf",
-    sprite: "https://protomaps.github.io/basemaps-assets/sprites/v4/light",
-    sources: {
-      protomaps: {
-        type: "vector",
-        url: `pmtiles://${PMTILES_URL}`,
-        attribution:
-          '<a href="https://protomaps.com">Protomaps</a> © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-      },
-    },
-    layers: layers("protomaps", namedFlavor("light"), { lang: "en" }),
-  };
 }
 
 export default function FleetMapInner({

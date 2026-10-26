@@ -4,7 +4,7 @@
 // 2026-09-20): "que se vea... el dibujo del viaje... desde punto A...
 // hasta... punto B, y esta imagen... vivirá solo en el reporte web".
 // Mirrors admin/fleet-map.tsx's own dynamic-import pattern exactly --
-// Leaflet touches `window` at import time, so the whole map has to be
+// MapLibre touches `window` at import time, so the whole map has to be
 // client-only, dynamic-imported with ssr:false rather than just
 // "use client" alone (which still gets pre-rendered on the server once).
 

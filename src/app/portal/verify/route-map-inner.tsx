@@ -1,48 +1,77 @@
 "use client";
 
-import { MapContainer, TileLayer, Marker, Polyline } from "react-leaflet";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
+// Per-trip route map for the Report Portal: the driven path from point A
+// (green, trip start) to point B (red, trip end). Drawn with MapLibre on our own
+// basemap (src/lib/map-base.ts) like every other web map; it used to be Leaflet
+// on tile.openstreetmap.org, which OSM's tile policy does not allow at scale.
+//
+// The path is the recorded GPS points joined in order (or a 2-point A-to-B line
+// when the trip has no breadcrumbs). It is not snapped to the road.
+
+import { useEffect, useRef } from "react";
+import * as maplibregl from "maplibre-gl";
+import "maplibre-gl/dist/maplibre-gl.css";
+import { buildStyle, ensurePmtilesProtocol } from "@/lib/map-base";
 import type { PortalRoutePoint } from "./report-data";
 
-// Leaflet's default marker icon references image paths that break under
-// bundlers -- same well-known issue admin/fleet-map-inner.tsx already
-// sidesteps with an inline SVG divIcon instead of fighting asset
-// imports for three PNG files. Green for point A (trip start), red for
-// point B (trip end) -- distinct colors so the direction of travel is
-// obvious even on a route that loops back near itself.
-function endpointIcon(color: string) {
-  return L.divIcon({
-    className: "",
-    html: `<div style="width:14px;height:14px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.4)"></div>`,
-    iconSize: [14, 14],
-    iconAnchor: [7, 7],
-  });
+// Green for point A, red for point B: distinct colors so the direction of
+// travel is obvious even on a route that loops back near itself.
+function endpointEl(color: string) {
+  const el = document.createElement("div");
+  el.style.width = "14px";
+  el.style.height = "14px";
+  el.style.borderRadius = "50%";
+  el.style.background = color;
+  el.style.border = "2px solid white";
+  el.style.boxShadow = "0 1px 4px rgba(0,0,0,0.4)";
+  return el;
 }
 
 export default function RouteMapInner({ points }: { points: PortalRoutePoint[] }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!containerRef.current || points.length < 2) return;
+    ensurePmtilesProtocol();
+
+    const coords = points.map((p) => [p.lng, p.lat] as [number, number]);
+    const bounds = coords.reduce((b, c) => b.extend(c), new maplibregl.LngLatBounds(coords[0], coords[0]));
+
+    const map = new maplibregl.Map({
+      container: containerRef.current,
+      style: buildStyle(),
+      bounds,
+      fitBoundsOptions: { padding: 24, maxZoom: 16 },
+      // A report map is a picture to read, not a map to browse: no scroll-zoom
+      // hijack while the person scrolls the report page.
+      scrollZoom: false,
+    });
+    map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
+
+    map.on("load", () => {
+      map.addSource("trip-route", {
+        type: "geojson",
+        data: { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: coords } },
+      });
+      map.addLayer({
+        id: "trip-route-line",
+        type: "line",
+        source: "trip-route",
+        layout: { "line-cap": "round", "line-join": "round" },
+        paint: { "line-color": "#2c6c99", "line-width": 4 },
+      });
+    });
+
+    const start = new maplibregl.Marker({ element: endpointEl("#16a34a") }).setLngLat(coords[0]).addTo(map);
+    const end = new maplibregl.Marker({ element: endpointEl("#dc2626") }).setLngLat(coords[coords.length - 1]).addTo(map);
+
+    return () => {
+      start.remove();
+      end.remove();
+      map.remove();
+    };
+  }, [points]);
+
   if (points.length < 2) return null;
-
-  const positions: [number, number][] = points.map((p) => [p.lat, p.lng]);
-  const start = positions[0];
-  const end = positions[positions.length - 1];
-
-  const lats = positions.map((p) => p[0]);
-  const lngs = positions.map((p) => p[1]);
-  const bounds: [[number, number], [number, number]] = [
-    [Math.min(...lats), Math.min(...lngs)],
-    [Math.max(...lats), Math.max(...lngs)],
-  ];
-
-  return (
-    <MapContainer bounds={bounds} boundsOptions={{ padding: [24, 24] }} className="h-full w-full">
-      <TileLayer
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-      />
-      <Polyline positions={positions} pathOptions={{ color: "#2c6c99", weight: 4 }} />
-      <Marker position={start} icon={endpointIcon("#16a34a")} />
-      <Marker position={end} icon={endpointIcon("#dc2626")} />
-    </MapContainer>
-  );
+  return <div ref={containerRef} className="h-full w-full" />;
 }
