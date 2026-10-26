@@ -7,6 +7,8 @@ import { ShiftForm } from "./shift-form";
 import { ShiftRowActions } from "./shift-row-actions";
 import { ClassBlockForm } from "./class-block-form";
 import { ClassBlockActions } from "./class-block-actions";
+import { SchoolAgenda } from "./school-agenda";
+import { BlockedHoursForm, RemoveBlocked } from "./blocked-hours";
 import { driverLabel, fleetDriverIds } from "@/lib/driver-label";
 import { requireFeature } from "@/lib/fleet-features";
 import { WEEKDAYS } from "@/lib/driving-school";
@@ -283,19 +285,28 @@ export default async function ShiftsPage({
   const { data: studentRows } = features.has("students")
     ? await supabase
         .from("ds_students")
-        .select("id, first_name, last_name, status")
+        .select("id, first_name, last_name, status, program_id")
         .eq("organization_id", orgId)
         .order("last_name")
-    : { data: [] as { id: string; first_name: string; last_name: string; status: string }[] };
+    : { data: [] as { id: string; first_name: string; last_name: string; status: string; program_id: string | null }[] };
+  const { data: programRows } = features.has("students")
+    ? await supabase.from("ds_programs").select("id, class_minutes").eq("organization_id", orgId)
+    : { data: [] as { id: string; class_minutes: number }[] };
+  const classMinutes = new Map((programRows ?? []).map((p) => [p.id, p.class_minutes]));
   const studentNames = new Map((studentRows ?? []).map((s) => [s.id, `${s.first_name} ${s.last_name}`]));
   const studentOptions = (studentRows ?? [])
     .filter((s) => s.status === "active" || s.status === "registered")
-    .map((s) => ({ id: s.id, label: `${s.first_name} ${s.last_name}` }));
+    .map((s) => ({
+      id: s.id,
+      label: `${s.first_name} ${s.last_name}`,
+      // The school sets each program's class length; the agenda starts from it.
+      minutes: (s.program_id ? classMinutes.get(s.program_id) : null) ?? 60,
+    }));
 
   // Online booking (driving school phase 2, 2026-10-19): when each
   // instructor teaches; the portal offers only these hours.
   const hasBooking = features.has("student_booking");
-  const [{ data: availRows }, { data: offRows }] = hasBooking
+  const [{ data: availRows }, { data: offRows }, { data: blockedRows }] = hasBooking
     ? await Promise.all([
         supabase
           .from("ds_availability")
@@ -309,8 +320,13 @@ export default async function ShiftsPage({
           .eq("organization_id", orgId)
           .gte("date_to", selectedDate)
           .order("date_from"),
+        supabase
+          .from("ds_blocked_hours")
+          .select("id, instructor_id, weekday, on_date, start_time, end_time, label")
+          .eq("organization_id", orgId)
+          .order("start_time"),
       ])
-    : [{ data: [] }, { data: [] }];
+    : [{ data: [] }, { data: [] }, { data: [] }];
   const driverName = new Map(drivers.map((d) => [d.id, d.label]));
   const vehicleName = new Map(vehicleOptions.map((v) => [v.id, v.label]));
   const t5 = (t: string) => t.slice(0, 5);
@@ -332,7 +348,7 @@ export default async function ShiftsPage({
   // as tabs (day / weekly / availability) instead of one long page.
   const tabParam = (await searchParams).tab;
   const tabs = [
-    ...(hasClasses ? [{ id: "day", label: "Day" }] : []),
+    ...(hasClasses ? [{ id: "agenda", label: "Agenda" }, { id: "day", label: "Day" }] : []),
     ...(hasWeekly ? [{ id: "weekly", label: hasClasses ? "Weekly template" : "Weekly schedule" }] : []),
     ...(hasClasses && hasBooking ? [{ id: "availability", label: "Availability" }] : []),
   ];
@@ -365,7 +381,7 @@ export default async function ShiftsPage({
                 />
               </Sheet>
             )}
-            {hasClasses && tab === "day" && (
+            {hasClasses && (tab === "day" || tab === "agenda") && (
               <Sheet
                 label="Add class"
                 title="Add a class"
@@ -378,6 +394,7 @@ export default async function ShiftsPage({
                   students={studentOptions}
                   timeFormat={timeFormat}
                   defaultDate={selectedDate}
+                  today={local.date}
                   inSheet
                 />
               </Sheet>
@@ -388,6 +405,17 @@ export default async function ShiftsPage({
       {tabs.length > 1 && <PageTabs base="/admin/shifts" current={tab} tabs={tabs} keep={{ date: dayQuery }} />}
 
       <>
+        {hasClasses && tab === "agenda" && (
+          <SchoolAgenda
+            orgId={orgId}
+            drivers={drivers}
+            vehicles={vehicleOptions}
+            students={studentOptions}
+            timeFormat={timeFormat}
+            today={local.date}
+            initialDate={selectedDate}
+          />
+        )}
         {hasClasses && tab === "day" && (
           <>
             <section className="mb-10">
@@ -546,6 +574,33 @@ export default async function ShiftsPage({
                           {o.note && <span className="text-muted"> · {o.note}</span>}
                         </span>
                         <RemoveButton id={o.id} kind="time_off" />
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </section>
+            <section className="mb-10">
+              <h2 className="mb-1 text-base font-semibold">Blocked hours</h2>
+              <p className="mb-3 text-sm text-muted">
+                Hours nobody can be booked, such as lunch. For the whole school or one instructor. They show shaded in the agenda
+                and online as not available.
+              </p>
+              <div className="grid gap-4 xl:grid-cols-2">
+                <BlockedHoursForm orgId={orgId} instructors={drivers} />
+                {(blockedRows ?? []).length > 0 && (
+                  <ul className="h-fit divide-y divide-border rounded-xl border border-border bg-surface text-sm">
+                    {(blockedRows ?? []).map((h) => (
+                      <li key={h.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5">
+                        <span>
+                          <span className="font-medium">{h.label || "Blocked"}</span> · {t5(h.start_time)}–{t5(h.end_time)} ·{" "}
+                          {h.on_date ? h.on_date : h.weekday === null ? "every day" : WEEKDAYS[h.weekday]}
+                          <span className="text-muted">
+                            {" "}
+                            · {h.instructor_id ? (driverName.get(h.instructor_id) ?? "Instructor") : "whole school"}
+                          </span>
+                        </span>
+                        <RemoveBlocked id={h.id} />
                       </li>
                     ))}
                   </ul>

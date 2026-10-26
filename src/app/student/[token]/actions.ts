@@ -22,10 +22,15 @@ function message(e: { message?: string } | null, lang: Lang): string {
   return key ? STR[lang][key] : STR[lang].GENERIC;
 }
 
-export async function getSlots(token: string): Promise<{ minutes: number; language: "en" | "es" | null; slots: Slot[] } | null> {
+// Every time the calendar draws (2026-10-26): free, taken ("busy") or closed
+// ("break", e.g. lunch). Who is busy is never part of it.
+export type GridCell = Slot & { status: "free" | "busy" | "break" };
+export type SlotsResult = { minutes: number; language: "en" | "es" | null; slots: Slot[]; grid?: GridCell[] };
+
+export async function getSlots(token: string): Promise<SlotsResult | null> {
   const supabase = await createClient();
   const { data } = await supabase.rpc("ds_portal_slots", { p_token: token });
-  return (data as { minutes: number; language: "en" | "es" | null; slots: Slot[] } | null) ?? null;
+  return (data as SlotsResult | null) ?? null;
 }
 
 export async function bookSlot(token: string, slot: Slot, lang: Lang = "en"): Promise<PortalResult> {

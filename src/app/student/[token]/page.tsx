@@ -100,7 +100,7 @@ export default async function StudentPortalPage({
   }
 
   return (
-    <main className="mx-auto max-w-2xl px-5 py-10">
+    <main className="mx-auto w-full max-w-2xl px-5 py-10">
       <p className="text-sm font-semibold tracking-wide text-accent uppercase">{v.school}</p>
       <h1 className="mt-1 text-2xl font-semibold">
         {v.student.first_name} {v.student.last_name}
@@ -149,7 +149,11 @@ export default async function StudentPortalPage({
 
       {v.booking.enabled && (
         <section className="mt-6">
-          <BookLesson token={token} policy={v.booking.policy} lang={lang} noHours={v.balance !== null && v.balance.available <= 0} />
+          <BookLesson token={token} policy={v.booking.policy} lang={lang} noHours={v.balance !== null && v.balance.available <= 0}
+            mine={v.upcoming
+              .filter((u) => u.id)
+              .map((u) => ({ id: u.id, date: u.date, start: u.start, end: u.end, late: isLateToCancel(u.starts_at, v.booking.cancel_free_hours) }))}
+          />
         </section>
       )}
 

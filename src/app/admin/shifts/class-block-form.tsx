@@ -4,6 +4,7 @@ import { useRef, useState, useTransition } from "react";
 import { useSheet } from "@/components/sheet";
 import { addClassBlock } from "./actions";
 import { TimeInput } from "@/components/time-input";
+import { AgendaButton } from "./school-agenda";
 
 type Option = { id: string; label: string };
 
@@ -16,15 +17,18 @@ export function ClassBlockForm({
   students = [],
   timeFormat,
   defaultDate,
+  today,
   inSheet = false,
 }: {
   orgId: string;
   drivers: Option[];
   vehicles: Option[];
   // Driving school students (2026-10-19): empty when the plan has none.
-  students?: Option[];
+  students?: (Option & { minutes?: number })[];
   timeFormat: "12h" | "24h";
   defaultDate: string;
+  // The school's local "today", for the agenda button.
+  today?: string;
   // In the page header's slide-over panel (2026-10-20 redesign).
   inSheet?: boolean;
 }) {
@@ -71,6 +75,21 @@ export function ClassBlockForm({
       className={`flex flex-col gap-4 ${inSheet ? "" : "rounded-xl border border-border bg-surface p-5"}`}
     >
       <input type="hidden" name="org_id" value={orgId} />
+
+      {today && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-dashed border-border bg-background px-3 py-2">
+          <p className="text-xs text-muted">See every class, instructor and free time, and add several classes at once.</p>
+          <AgendaButton
+            orgId={orgId}
+            drivers={drivers}
+            vehicles={vehicles}
+            students={students.map((s) => ({ ...s, minutes: s.minutes ?? 60 }))}
+            timeFormat={timeFormat}
+            today={today}
+            initialDate={defaultDate}
+          />
+        </div>
+      )}
 
       {students.length > 0 && (
         <div>

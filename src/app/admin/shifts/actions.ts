@@ -16,6 +16,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { AppError } from "@/lib/errors";
+import { conflictMessage } from "@/lib/ds-conflicts";
 
 async function requireGrowth(orgId: string): Promise<string | null> {
   const supabase = await createClient();
@@ -130,19 +131,19 @@ export async function addClassBlock(
   } = await supabase.auth.getUser();
   if (!user) return { error: "Not authenticated.", success: false };
 
-  const { error } = await supabase.from("shift_blocks").insert({
-    student_id: features.includes("students") ? studentId : null,
-    organization_id: orgId,
-    driver_id: driverId,
-    vehicle_id: vehicleId,
-    block_date: blockDate,
-    start_time: startTime,
-    end_time: endTime,
-    note,
-    source: "one_off",
-    created_by: user.id,
+  // One conflict rule for every way of adding a class (instructor, car, blocked
+  // hours, days off); see ds_office_add_block.
+  const { error } = await supabase.rpc("ds_office_add_block", {
+    p_org: orgId,
+    p_driver: driverId,
+    p_vehicle: vehicleId,
+    p_date: blockDate,
+    p_start: startTime,
+    p_end: endTime,
+    p_student: features.includes("students") ? studentId : null,
+    p_note: note,
   });
-  if (error) return { error: AppError.from(error).display(), success: false };
+  if (error) return { error: conflictMessage(error.message), success: false };
 
   revalidatePath("/admin/shifts");
   return { error: null, success: true };

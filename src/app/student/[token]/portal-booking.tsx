@@ -3,9 +3,23 @@
 // Driving school portal: book a lesson, cancel one, text reminders
 // (2026-10-19, phase 2).
 
-import { useState, useTransition } from "react";
-import { bookSlot, cancelLesson, getSlots, setSms, type Slot } from "./actions";
+import { useMemo, useState, useTransition } from "react";
+import { AgendaGrid, type AgendaItem, type AgendaShade } from "@/components/agenda-grid";
+import { bookSlot, cancelLesson, getSlots, setSms, type GridCell, type Slot } from "./actions";
 import { DATE_LOCALE, STR, fill, type Lang } from "./strings";
+
+/** A lesson this student already has, drawn on the calendar. */
+export type MineLesson = { id: string; date: string; start: string; end: string; late: boolean };
+
+const toMin = (t: string) => {
+  const [h, m] = t.split(":").map(Number);
+  return h * 60 + m;
+};
+const addDays = (date: string, n: number) => {
+  const d = new Date(`${date}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+};
 
 const time12 = (t: string) => {
   const [h, m] = t.split(":").map(Number);
@@ -21,16 +35,20 @@ export function BookLesson({
   policy,
   lang,
   noHours = false,
+  mine = [],
 }: {
   token: string;
   policy: string | null;
   lang: Lang;
   /** The school sells hours and none are left: say so before showing times. */
   noHours?: boolean;
+  mine?: MineLesson[];
 }) {
   const S = STR[lang];
   const day = dayFor(lang);
   const [open, setOpen] = useState(false);
+  const [grid, setGrid] = useState<GridCell[]>([]);
+  const [view, setView] = useState<"list" | "calendar">("calendar");
   const [slots, setSlots] = useState<Slot[] | null>(null);
   const [minutes, setMinutes] = useState(60);
   const [language, setLanguage] = useState<"en" | "es" | null>(null);
@@ -48,6 +66,7 @@ export function BookLesson({
       setMinutes(r.minutes);
       setLanguage(r.language ?? null);
       setSlots(r.slots);
+      setGrid(r.grid ?? []);
       setOpen(true);
     });
 
@@ -59,7 +78,10 @@ export function BookLesson({
         setError(r.error);
         setChosen(null);
         const again = await getSlots(token);
-        if (again) setSlots(again.slots);
+        if (again) {
+          setSlots(again.slots);
+          setGrid(again.grid ?? []);
+        }
         return;
       }
       setDone(fill(S.booked, { day: day(chosen.date), time: time12(chosen.start) }));
@@ -98,8 +120,34 @@ export function BookLesson({
             {language ? fill(S.withInstructor, { lang: language === "es" ? S.langEs : S.langEn }) : ""}.
             {S.pickTime}
           </p>
-          {days.length === 0 && <p className="text-sm text-muted">{S.noTimes}</p>}
-          {days.length > 0 && (
+          <div className="flex overflow-hidden rounded-lg border border-border text-sm sm:w-fit" role="group">
+            {(["calendar", "list"] as const).map((v) => (
+              <button
+                key={v}
+                type="button"
+                onClick={() => setView(v)}
+                aria-pressed={view === v}
+                className={`flex-1 px-4 py-1.5 sm:flex-none ${view === v ? "bg-accent text-accent-foreground" : "bg-surface hover:bg-background"}`}
+              >
+                {v === "calendar" ? S.viewCalendar : S.viewList}
+              </button>
+            ))}
+          </div>
+          {view === "calendar" && (
+            <ClientCalendar
+              token={token}
+              lang={lang}
+              grid={grid}
+              mine={mine}
+              chosen={chosen}
+              onPick={(s) => {
+                setChosen(s);
+                setError(null);
+              }}
+            />
+          )}
+          {view === "list" && days.length === 0 && <p className="text-sm text-muted">{S.noTimes}</p>}
+          {view === "list" && days.length > 0 && (
             <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1" role="tablist" aria-label={S.daysAria}>
               {days.map((d) => {
                 const on = d === shownDay;
@@ -127,13 +175,13 @@ export function BookLesson({
               })}
             </div>
           )}
-          {shownDay && (
+          {view === "list" && shownDay && (
             <div key={shownDay}>
               <div className="flex flex-wrap gap-2">
                 {slots
                   .filter((s) => s.date === shownDay)
                   .map((s) => {
-                    const sel = chosen === s;
+                    const sel = chosen?.date === s.date && chosen?.start === s.start;
                     return (
                       <button
                         key={`${s.date}-${s.start}`}
@@ -175,6 +223,140 @@ export function BookLesson({
           <button type="button" onClick={() => setOpen(false)} className="text-sm text-muted hover:text-foreground">
             {S.close}
           </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * The client's calendar: green = free (tap to choose), gray = taken or closed
+ * (lunch and other hours the school blocks). It never says who is busy.
+ * The student's own lessons show in the accent color and can be cancelled.
+ */
+function ClientCalendar({
+  token,
+  lang,
+  grid,
+  mine,
+  chosen,
+  onPick,
+}: {
+  token: string;
+  lang: Lang;
+  grid: GridCell[];
+  mine: MineLesson[];
+  chosen: Slot | null;
+  onPick: (s: Slot) => void;
+}) {
+  const S = STR[lang];
+  // The calendar only mounts after a tap (client side), so reading the width here is safe.
+  const [days] = useState(() => (window.innerWidth < 640 ? 3 : 7));
+
+  const allDates = useMemo(() => [...new Set(grid.map((g) => g.date))].sort(), [grid]);
+  const firstFree = grid.find((g) => g.status === "free")?.date ?? allDates[0];
+  const [from, setFrom] = useState<string | null>(null);
+  const start = from ?? firstFree;
+  const [openMine, setOpenMine] = useState<string | null>(null);
+
+  const { startMin, endMin } = useMemo(() => {
+    let lo = 8 * 60;
+    let hi = 17 * 60;
+    for (const g of grid) {
+      lo = Math.min(lo, toMin(g.start));
+      hi = Math.max(hi, toMin(g.end));
+    }
+    return { startMin: Math.floor(lo / 60) * 60, endMin: Math.ceil(hi / 60) * 60 };
+  }, [grid]);
+
+  if (!start) return <p className="text-sm text-muted">{S.noTimes}</p>;
+  const dates = Array.from({ length: days }, (_, i) => addDays(start, i));
+  const last = allDates[allDates.length - 1];
+
+  const mineItems: AgendaItem[] = mine.map((m) => ({
+    id: `mine:${m.id}`,
+    date: m.date,
+    start: toMin(m.start),
+    end: toMin(m.end),
+    title: S.yourLesson,
+    tone: "mine",
+    clickable: true,
+  }));
+  const overlapsMine = (g: GridCell) =>
+    mine.some((m) => m.date === g.date && toMin(m.start) < toMin(g.end) && toMin(m.end) > toMin(g.start));
+  const cellItems: AgendaItem[] = grid
+    .filter((g) => !overlapsMine(g))
+    .map((g) => {
+      const selected = chosen?.date === g.date && chosen?.start === g.start;
+      return {
+        id: `${g.status}:${g.date}|${g.start}|${g.end}`,
+        date: g.date,
+        start: toMin(g.start),
+        end: toMin(g.end),
+        title:
+          g.status === "free"
+            ? `${time12(g.start)}${selected ? " ✓" : ""}`
+            : g.status === "break"
+              ? S.closedLabel
+              : S.notAvailable,
+        tone: g.status === "free" ? "free" : g.status === "break" ? "break" : "busy",
+        clickable: g.status === "free",
+      } satisfies AgendaItem;
+    });
+
+  const shades: AgendaShade[] = [];
+  const picked = mine.find((m) => `mine:${m.id}` === openMine);
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between gap-2 text-sm">
+        <button
+          type="button"
+          onClick={() => setFrom(addDays(start, -days))}
+          disabled={start <= (allDates[0] ?? start)}
+          className="rounded-lg border border-border px-3 py-1.5 hover:border-accent disabled:opacity-40"
+        >
+          ← {S.prevDays}
+        </button>
+        <button
+          type="button"
+          onClick={() => setFrom(addDays(start, days))}
+          disabled={!last || addDays(start, days) > last}
+          className="rounded-lg border border-border px-3 py-1.5 hover:border-accent disabled:opacity-40"
+        >
+          {S.nextDays} →
+        </button>
+      </div>
+      <AgendaGrid
+        dates={dates}
+        startMin={startMin}
+        endMin={endMin}
+        items={[...cellItems, ...mineItems]}
+        shades={shades}
+        timeFormat="12h"
+        locale={DATE_LOCALE[lang]}
+        minColPx={days === 3 ? 96 : 104}
+        maxHeight="60vh"
+        onItemClick={(it) => {
+          if (it.id.startsWith("mine:")) {
+            setOpenMine((cur) => (cur === it.id ? null : it.id));
+            return;
+          }
+          const [, key] = it.id.split(/:(.+)/);
+          const [date, s, e] = key.split("|");
+          setOpenMine(null);
+          onPick({ date, start: s, end: e });
+        }}
+      />
+      <p className="text-xs text-muted">{S.calendarHint}</p>
+      {picked && (
+        <div className="rounded-lg border border-border bg-background p-3 text-sm">
+          <p className="font-medium">
+            {S.yourLesson} · {dayFor(lang)(picked.date)} · {time12(picked.start)}–{time12(picked.end)}
+          </p>
+          <div className="mt-2">
+            <CancelLesson token={token} blockId={picked.id} late={picked.late} lang={lang} />
+          </div>
         </div>
       )}
     </div>
