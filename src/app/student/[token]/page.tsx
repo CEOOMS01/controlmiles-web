@@ -149,7 +149,7 @@ export default async function StudentPortalPage({
 
       {v.booking.enabled && (
         <section className="mt-6">
-          <BookLesson token={token} policy={v.booking.policy} lang={lang} />
+          <BookLesson token={token} policy={v.booking.policy} lang={lang} noHours={v.balance !== null && v.balance.available <= 0} />
         </section>
       )}
 

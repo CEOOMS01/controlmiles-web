@@ -16,7 +16,18 @@ const dayFor = (lang: Lang) => (d: string) =>
 const btn = "rounded-lg border border-border px-3 py-1.5 text-sm transition hover:border-accent disabled:opacity-50";
 const primary = "rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground hover:opacity-90 disabled:opacity-50";
 
-export function BookLesson({ token, policy, lang }: { token: string; policy: string | null; lang: Lang }) {
+export function BookLesson({
+  token,
+  policy,
+  lang,
+  noHours = false,
+}: {
+  token: string;
+  policy: string | null;
+  lang: Lang;
+  /** The school sells hours and none are left: say so before showing times. */
+  noHours?: boolean;
+}) {
   const S = STR[lang];
   const day = dayFor(lang);
   const [open, setOpen] = useState(false);
@@ -66,12 +77,13 @@ export function BookLesson({ token, policy, lang }: { token: string; policy: str
     <div className="rounded-xl border border-border bg-surface p-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-lg font-semibold">{S.bookTitle}</h2>
-        {!open && (
+        {!open && !noHours && (
           <button type="button" onClick={load} disabled={pending} className={primary}>
             {pending ? S.loading : S.seeTimes}
           </button>
         )}
       </div>
+      {noHours && <p className="mt-2 text-sm text-muted">{S.noHoursLeft}</p>}
       {done && <p className="mt-2 text-sm text-success">{done}</p>}
       {error && (
         <p role="alert" className="mt-2 text-sm text-danger">
