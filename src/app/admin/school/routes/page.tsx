@@ -45,7 +45,7 @@ export default async function SchoolRoutesPage({ searchParams }: { searchParams:
     supabase.from("school_sites").select("id, name, address").eq("organization_id", orgId).order("name"),
     loadCrewOptions(supabase, orgId),
     supabase.from("route_stops").select("route_id").eq("organization_id", orgId),
-    supabase.from("student_stop_assignments").select("route_id, action").eq("organization_id", orgId),
+    supabase.from("student_stop_assignments").select("route_id, student_id").eq("organization_id", orgId),
     supabase.from("profiles").select("time_format").eq("id", user.id).maybeSingle(),
     fleetDriverIds(supabase, orgId),
   ]);
@@ -54,8 +54,10 @@ export default async function SchoolRoutesPage({ searchParams }: { searchParams:
   const schoolName = new Map((schools ?? []).map((s) => [s.id, s.name]));
   const stopCount = new Map<string, number>();
   for (const s of stops ?? []) stopCount.set(s.route_id, (stopCount.get(s.route_id) ?? 0) + 1);
-  const riderCount = new Map<string, number>();
-  for (const r of riders ?? []) if (r.action === "board") riderCount.set(r.route_id, (riderCount.get(r.route_id) ?? 0) + 1);
+  // Distinct children per route (an afternoon route only stores each child's drop-off).
+  const ridersOf = new Map<string, Set<string>>();
+  for (const r of riders ?? []) ridersOf.set(r.route_id, (ridersOf.get(r.route_id) ?? new Set()).add(r.student_id));
+  const riderCount = new Map([...ridersOf].map(([id, set]) => [id, set.size]));
 
   return (
     <main className="space-y-6 mx-auto w-full max-w-6xl px-5 py-7 sm:px-8 lg:py-8">

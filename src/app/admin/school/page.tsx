@@ -126,7 +126,9 @@ export default async function SchoolLivePage() {
     const run = runByRoute.get(r.id);
     const routeStops = (stops ?? []).filter((s) => s.route_id === r.id);
     const visited = new Set((events ?? []).filter((e) => run && e.run_id === run.id).map((e) => e.stop_id));
-    const riders = (assignments ?? []).filter((a) => a.route_id === r.id && a.action === "board").length;
+    // Distinct children on the route: an afternoon route only stores their drop-off
+    // stop (the pickup at school is implicit), a morning one their pickup.
+    const riders = new Set((assignments ?? []).filter((a) => a.route_id === r.id).map((a) => a.student_id)).size;
     const rides = (ridership ?? []).filter((e) => run && e.run_id === run.id);
     // Per student: a drop-off recorded for a child never marked on must not
     // hide another child who is still on the bus.
