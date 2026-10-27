@@ -18,14 +18,10 @@ export default async function InviteSuccessPage() {
 
   let displayId: string | null = null;
   if (user) {
-    const { data } = await supabase
-      .from("fleet_driver_slots")
-      .select("display_id")
-      .eq("claimed_by", user.id)
-      .order("claimed_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    displayId = data?.display_id ?? null;
+    // Drivers cannot read fleet_driver_slots (admin-only), so a function returns
+    // only their own ID.
+    const { data } = await supabase.rpc("my_fleet_driver_id");
+    displayId = (data as string | null) ?? null;
   }
 
   return (

@@ -48,6 +48,40 @@ export async function acceptInviteAlreadySignedIn(
   return finishAccept(token);
 }
 
+// One-step account creation (2026-10-27): the invite email is also the confirmation, so
+// the account is created already confirmed by the accept-invite-account edge function
+// (see its header for the guard rails) and the invited person is signed in and joined
+// in the same click: no second email.
+type AccountResult = { status: string; email?: string };
+
+async function createConfirmedAccount(token: string, password: string): Promise<AccountResult> {
+  try {
+    const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!;
+    const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/accept-invite-account`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", apikey: key, Authorization: `Bearer ${key}` },
+      body: JSON.stringify({ token, password }),
+      cache: "no-store",
+    });
+    return (await res.json()) as AccountResult;
+  } catch {
+    return { status: "error" };
+  }
+}
+
+function accountError(status: string): string {
+  switch (status) {
+    case "weak_password":
+      return "Password must be at least 8 characters, with a letter and a number.";
+    case "invalid_invite":
+      return "This invite link no longer works. Ask your fleet admin to send a new one.";
+    case "rate_limited":
+      return "Too many attempts. Try again in a few minutes.";
+    default:
+      return "Could not create your account. Try again in a moment.";
+  }
+}
+
 // The invite email already has a ControlMiles account -- sign in with
 // their existing password, then accept.
 export async function acceptInviteExistingAccount(
@@ -64,15 +98,15 @@ export async function acceptInviteExistingAccount(
   const supabase = await createClient();
   const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
   if (signInError) {
-    // The account exists but its email was never confirmed (the invitee created it
-    // earlier and did not open the confirmation email). That is not a wrong
-    // password: say so, and send the confirmation email again.
+    // The account exists but its email was never confirmed (an earlier sign-up that was
+    // never finished). Opening this invite is the confirmation, so finish it here with
+    // the password they just typed: the half-made account is replaced by a confirmed one.
     if (signInError.code === "email_not_confirmed" || /email not confirmed/i.test(signInError.message)) {
-      await supabase.auth.resend({ type: "signup", email });
-      return {
-        error:
-          "Your email isn't confirmed yet. We just sent you a confirmation email (check your spam folder). Open its link, then come back to this invite and enter your password again.",
-      };
+      const made = await createConfirmedAccount(token, password);
+      if (made.status !== "created" || !made.email) return { error: accountError(made.status) };
+      const { error: again } = await supabase.auth.signInWithPassword({ email: made.email, password });
+      if (again) return { error: accountError("error") };
+      return finishAccept(token);
     }
     return { error: AppError.invalidCredentials.display() };
   }
@@ -80,18 +114,14 @@ export async function acceptInviteExistingAccount(
   return finishAccept(token);
 }
 
-// The invite email has no ControlMiles account yet -- create one (no
-// pending_org_name metadata, unlike signup/actions.ts's signUp, so
-// handle_new_user leaves account_type at its 'gig' default instead of
-// creating a whole new organization and promoting to fleet_admin --
-// accept_driver_invite is what turns this into a fleet_driver, right
-// after).
+// The invite email has no ControlMiles account yet -- create one, already confirmed
+// (no pending_org_name metadata, so handle_new_user leaves account_type at its 'gig'
+// default; accept_driver_invite turns it into a fleet driver right after).
 export async function acceptInviteNewAccount(
   _prevState: InviteActionState,
   formData: FormData,
 ): Promise<InviteActionState> {
   const token = String(formData.get("token") ?? "");
-  const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
 
   if (!token) return { error: "Invalid invite link." };
@@ -102,21 +132,17 @@ export async function acceptInviteNewAccount(
     return { error: "Password must include at least one letter and one number." };
   }
 
-  const supabase = await createClient();
-  const { data, error: signUpError } = await supabase.auth.signUp({ email, password });
-  if (signUpError) {
-    return { error: AppError.from(signUpError).display() };
-  }
-  if (!data.session) {
-    // Email confirmation is required before a session exists -- accepting
-    // the invite has to wait until they confirm and come back. Rare in
-    // practice (this project's driver accounts don't normally require
-    // confirmation), but handled rather than silently failing the accept.
+  const made = await createConfirmedAccount(token, password);
+  if (made.status === "exists") {
     return {
-      error:
-        "Account created. Open the confirmation email we just sent you (check your spam folder), then open this invite link again and enter your password to finish joining.",
+      error: "You already have a ControlMiles account with this email. Reload this page and sign in with your password.",
     };
   }
+  if (made.status !== "created" || !made.email) return { error: accountError(made.status) };
+
+  const supabase = await createClient();
+  const { error: signInError } = await supabase.auth.signInWithPassword({ email: made.email, password });
+  if (signInError) return { error: accountError("error") };
 
   return finishAccept(token);
 }
