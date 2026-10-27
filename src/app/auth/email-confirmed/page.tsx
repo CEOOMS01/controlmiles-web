@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { AuthShell } from "@/components/auth-shell";
+import { createClient } from "@/lib/supabase/server";
+import { AcceptPendingInvite } from "./accept-pending-invite";
 
 // Landing page for the "Confirm your signup" email (2026-10-01): the link
 // used to fall back to the Supabase Site URL (localhost). The template now
@@ -33,6 +35,27 @@ export default async function EmailConfirmedPage({
             </a>
             .
           </p>
+        </div>
+      </AuthShell>
+    );
+  }
+
+  // Invited to a fleet and not accepted yet (the invite page could not finish because
+  // the email had to be confirmed first): offer the last step here. If the database
+  // function is not there or nobody is signed in, this page is exactly as before.
+  const supabase = await createClient();
+  const { data: auth } = await supabase.auth.getUser();
+  let invite: { organization_name: string; intended_role: string } | null = null;
+  if (auth.user) {
+    const { data } = await supabase.rpc("my_pending_invite").maybeSingle();
+    invite = (data as { organization_name: string; intended_role: string } | null) ?? null;
+  }
+
+  if (invite) {
+    return (
+      <AuthShell title="Email confirmed" subtitle="Your ControlMiles account is ready.">
+        <div className="space-y-4 text-sm">
+          <AcceptPendingInvite organizationName={invite.organization_name} role={invite.intended_role} />
         </div>
       </AuthShell>
     );

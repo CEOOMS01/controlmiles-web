@@ -28,6 +28,16 @@ async function finishAccept(token: string) {
   redirect(`/invite/${token}/success`);
 }
 
+// After confirming the email (the "Email confirmed" page): finish joining the fleet
+// the user was invited to. The database finds the invite by the user's own confirmed
+// email (accept_my_pending_invite), so no link token is needed here.
+export async function acceptMyPendingInvite(): Promise<InviteActionState> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("accept_my_pending_invite");
+  if (error) return { error: AppError.from(error).display() };
+  redirect("/invite/done/success");
+}
+
 // Already authenticated, and the caller's own email already matches the
 // invite (checked again here server-side, not just trusted from what the
 // page rendered -- accept_driver_invite itself also re-checks this, so
@@ -54,6 +64,16 @@ export async function acceptInviteExistingAccount(
   const supabase = await createClient();
   const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
   if (signInError) {
+    // The account exists but its email was never confirmed (the invitee created it
+    // earlier and did not open the confirmation email). That is not a wrong
+    // password: say so, and send the confirmation email again.
+    if (signInError.code === "email_not_confirmed" || /email not confirmed/i.test(signInError.message)) {
+      await supabase.auth.resend({ type: "signup", email });
+      return {
+        error:
+          "Your email isn't confirmed yet. We just sent you a confirmation email (check your spam folder). Open its link, then come back to this invite and enter your password again.",
+      };
+    }
     return { error: AppError.invalidCredentials.display() };
   }
 
@@ -94,7 +114,7 @@ export async function acceptInviteNewAccount(
     // confirmation), but handled rather than silently failing the accept.
     return {
       error:
-        "Account created — check your email to confirm it, then open this invite link again to finish joining.",
+        "Account created. Open the confirmation email we just sent you (check your spam folder), then open this invite link again and enter your password to finish joining.",
     };
   }
 
