@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { AppError } from "@/lib/errors";
 
@@ -12,6 +13,10 @@ export async function switchOrganization(orgId: string) {
   if (error) {
     return { error: AppError.from(error).display() };
   }
+  // The admin layout (menu, org selector, features) is kept between pages, so
+  // after a switch it still showed the previous org's menu -- a cargo fleet
+  // saw the school bus menu (2026-10-30). Re-render it for the new org.
+  revalidatePath("/admin", "layout");
   redirect("/admin");
 }
 

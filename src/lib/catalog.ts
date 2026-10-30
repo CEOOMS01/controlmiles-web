@@ -13,7 +13,7 @@ export const GIG_APP_LABELS: Record<string, string> = {
   doordash: "DoorDash",
   instacart: "Instacart",
   roadie: "Roadie",
-  custom: "Custom/Truck",
+  custom: "General",
 };
 
 export const IRS_PURPOSE_LABELS: Record<string, string> = {
