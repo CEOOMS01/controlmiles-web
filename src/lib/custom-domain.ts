@@ -115,5 +115,5 @@ export async function removeCustomDomain(host: string): Promise<void> {
   if (!vercelConfigured() || !host) return;
   await vercelApi(`/v9/projects/${encodeURIComponent(vercel.project)}/domains/${encodeURIComponent(host)}`, {
     method: "DELETE",
-  }).catch(() => undefined);
+  }).catch((e) => console.warn("[custom-domain] could not remove", host, e));
 }
