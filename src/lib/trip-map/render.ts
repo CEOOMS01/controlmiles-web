@@ -81,14 +81,24 @@ type Layer = { d: string[] };
 // from 2 MB to tens of KB with this + the off-frame skip below).
 const MIN_STEP_PX = 1.5;
 const MARGIN = 8;
+const CLIP = 24; // px kept beyond the frame so a road never ends short of its edge
+
+// "Lite" drawing (2026-11-04, for the PDF report and the phone): the same
+// picture with a coarser outline, no tiny roads and no tiny patches of park or
+// water -- what a 640x360 thumbnail cannot show anyway. Cuts the file by a
+// large factor, which matters when a report carries dozens of trips.
+type Detail = { step: number; minPath: number; minArea: number };
+const FULL: Detail = { step: 1, minPath: 0, minArea: 40 };
+const LITE: Detail = { step: 3, minPath: 22, minArea: 160 };
 
 function pathFromRings(
   rings: { x: number; y: number }[][],
   toPx: (x: number, y: number) => [number, number],
   closed: boolean,
+  detail: Detail,
 ): string {
   // Filled areas (water, parks) tolerate a coarser outline than roads.
-  const step = closed ? MIN_STEP_PX * 2 : MIN_STEP_PX;
+  const step = (closed ? MIN_STEP_PX * 2 : MIN_STEP_PX) * detail.step;
   let d = "";
   for (const ring of rings) {
     if (ring.length < 2) continue;
@@ -104,16 +114,37 @@ function pathFromRings(
     }
     if (x1 < -MARGIN || y1 < -MARGIN || x0 > WIDTH + MARGIN || y0 > HEIGHT + MARGIN) continue;
     // Polygons smaller than a few pixels aren't worth drawing.
-    if (closed && (x1 - x0) * (y1 - y0) < 40) continue;
+    if (closed && (x1 - x0) * (y1 - y0) < detail.minArea) continue;
+    // Short stretches of road are not worth a line in the lite drawing.
+    if (!closed && (x1 - x0) + (y1 - y0) < detail.minPath) continue;
 
     let part = "";
     let kept = 0;
     let lx = 0, ly = 0;
+    // A road keeps only the stretch that can show in the frame (2026-11-04):
+    // a long highway used to bring every vertex it has across the whole state
+    // -- most of the file -- for the few pixels that are visible. A vertex is
+    // kept when either segment touching it reaches the frame (plus a margin);
+    // a dropped run restarts the line with "M" so nothing is drawn across it.
+    const reaches = (a: [number, number], b: [number, number]) =>
+      Math.max(a[0], b[0]) > -CLIP && Math.min(a[0], b[0]) < WIDTH + CLIP &&
+      Math.max(a[1], b[1]) > -CLIP && Math.min(a[1], b[1]) < HEIGHT + CLIP;
+    let gap = false;
     pts.forEach(([x, y], i) => {
+      if (!closed) {
+        const near =
+          (i > 0 && reaches(pts[i - 1], pts[i])) ||
+          (i < pts.length - 1 && reaches(pts[i], pts[i + 1]));
+        if (!near) {
+          gap = true;
+          return;
+        }
+      }
       const isLast = i === pts.length - 1;
-      if (i > 0 && !isLast && Math.abs(x - lx) < step && Math.abs(y - ly) < step) return;
-      part += `${kept === 0 ? "M" : "L"}${Math.round(x)} ${Math.round(y)}`;
+      if (!gap && i > 0 && !isLast && Math.abs(x - lx) < step && Math.abs(y - ly) < step) return;
+      part += `${kept === 0 || gap ? "M" : "L"}${Math.round(x)} ${Math.round(y)}`;
       kept++;
+      gap = false;
       lx = x;
       ly = y;
     });
@@ -123,7 +154,11 @@ function pathFromRings(
   return d;
 }
 
-export async function renderTripMapSvg(segments: RouteSegment[]): Promise<string> {
+export async function renderTripMapSvg(
+  segments: RouteSegment[],
+  opts: { lite?: boolean } = {},
+): Promise<string> {
+  const level = opts.lite ? LITE : FULL;
   // Frame the focused segments only (all of them for a whole-trip image).
   const all = segments.filter((s) => !s.muted).flatMap((s) => s.points);
   if (all.length === 0) throw new Error("NO_ROUTE");
@@ -186,12 +221,12 @@ export async function renderTripMapSvg(segments: RouteSegment[]): Promise<string
           };
 
           each("water", (f) => {
-            if (f.type === 3) layers.water.d.push(pathFromRings(f.loadGeometry(), toPx(f.extent), true));
+            if (f.type === 3) layers.water.d.push(pathFromRings(f.loadGeometry(), toPx(f.extent), true, level));
           });
           each("landuse", (f) => {
             const kind = String(f.properties.kind ?? "");
             if (f.type === 3 && ["park", "forest", "wood", "grass", "golf_course", "nature_reserve", "cemetery"].includes(kind)) {
-              layers.park.d.push(pathFromRings(f.loadGeometry(), toPx(f.extent), true));
+              layers.park.d.push(pathFromRings(f.loadGeometry(), toPx(f.extent), true, level));
             }
           });
           each("roads", (f) => {
@@ -200,10 +235,15 @@ export async function renderTripMapSvg(segments: RouteSegment[]): Promise<string
             const detail = String(f.properties.kind_detail ?? "");
             const target =
               kind === "highway" ? layers.highway
-              : kind === "major_road" ? layers.major
+              : kind === "major_road"
+                ? // Lite: only the roads that matter at this scale (trunk and
+                  // primary always, secondary once the map is zoomed in).
+                  opts.lite && !(["trunk", "primary"].includes(detail) || (detail === "secondary" && z >= 11))
+                  ? null
+                  : layers.major
               : kind === "minor_road" && detail !== "service" && z >= 12 ? layers.minor
               : null;
-            if (target) target.d.push(pathFromRings(f.loadGeometry(), toPx(f.extent), false));
+            if (target) target.d.push(pathFromRings(f.loadGeometry(), toPx(f.extent), false, level));
           });
         }).catch(() => {
           // A missing/failed tile just leaves that area blank; the route still draws.

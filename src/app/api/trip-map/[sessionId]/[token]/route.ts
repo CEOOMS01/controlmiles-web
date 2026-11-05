@@ -49,7 +49,11 @@ export async function GET(
   if (error || !data) return new Response("Not found", { status: 404 });
 
   const trip = data as { closed: boolean; sections: MapSection[] };
-  const focus = new URL(request.url).searchParams.get("section");
+  const query = new URL(request.url).searchParams;
+  const focus = query.get("section");
+  // ?lite=1: the same map with less detail (a fraction of the bytes), used by
+  // the app's PDF report and its History list.
+  const lite = query.get("lite") === "1";
   if (focus && !trip.sections.some((s) => s.id === focus)) {
     return new Response("Not found", { status: 404 });
   }
@@ -66,7 +70,7 @@ export async function GET(
 
   let svg: string;
   try {
-    svg = await renderTripMapSvg(segments);
+    svg = await renderTripMapSvg(segments, { lite });
   } catch (e) {
     console.error("[trip-map] render failed", e);
     return new Response("Could not draw this route", { status: 500 });
