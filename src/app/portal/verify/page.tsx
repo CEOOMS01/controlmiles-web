@@ -230,6 +230,7 @@ function ReportView({ report, onReset }: { report: PortalReport; onReset: () => 
                     <tr className="text-left text-muted">
                       <th className="pb-1.5 font-medium">Date</th>
                       <th className="pb-1.5 font-medium">Gig app(s)</th>
+                      <th className="pb-1.5 font-medium">From / To</th>
                       <th className="pb-1.5 text-right font-medium">Distance</th>
                       <th className="pb-1.5 text-right font-medium">Duration</th>
                       <th className="pb-1.5 text-right font-medium">Odo start</th>
@@ -241,6 +242,16 @@ function ReportView({ report, onReset }: { report: PortalReport; onReset: () => 
                       <tr key={i} className="border-t border-border">
                         <td className="py-1.5">{formatTripDate(trip.date_key)}</td>
                         <td className="py-1.5 text-muted">{trip.apps_label || "—"}</td>
+                        <td className="py-1.5 pr-3 text-muted">
+                          {trip.from_address || trip.to_address ? (
+                            <>
+                              <span className="block">{trip.from_address || "—"}</span>
+                              <span className="block">→ {trip.to_address || "—"}</span>
+                            </>
+                          ) : (
+                            "—"
+                          )}
+                        </td>
                         <td className="py-1.5 text-right tabular-nums">
                           {trip.total_miles.toFixed(2)} mi
                         </td>

@@ -63,6 +63,12 @@ export type PortalTrip = {
   duration_seconds: number;
   start_odometer_value: number | null;
   end_odometer_value: number | null;
+  // Street addresses of where the trip started and ended (2026-11-04): the
+  // first segment's start and the last segment's end, as the driver's phone
+  // looked them up (or as the driver corrected them). Absent or null on a
+  // report generated before the addresses existed.
+  from_address?: string | null;
+  to_address?: string | null;
 };
 
 export type PortalReport = {
