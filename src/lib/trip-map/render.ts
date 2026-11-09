@@ -12,6 +12,7 @@ import { PMTiles } from "pmtiles";
 import { VectorTile, type VectorTileFeature } from "@mapbox/vector-tile";
 import Pbf from "pbf";
 import type { LatLng } from "./polyline";
+import { END_MARKER, START_MARKER, placeMarker } from "./markers";
 
 // `muted`: drawn in gray for context and left out of the framing, legend
 // and start/end markers (a single segment's image shows the rest of the
@@ -21,6 +22,7 @@ export type RouteSegment = { gigApp: string; label: string; points: LatLng[]; mu
 const WIDTH = 640;
 const HEIGHT = 360;
 const PADDING = 36;
+const MARKER_SIZE = 30; // start and end icons; PADDING keeps them inside the frame
 const TILE = 256;
 const MIN_ZOOM = 3;
 const MAX_ZOOM = 16;
@@ -286,8 +288,16 @@ export async function renderTripMapSvg(
   const first = routePaths[0].points[0];
   const lastPts = routePaths[routePaths.length - 1].points;
   const last = lastPts[lastPts.length - 1];
-  const [sx, sy] = toXY(first);
-  const [ex, ey] = toXY(last);
+  let [sx, sy] = toXY(first);
+  let [ex, ey] = toXY(last);
+  // A round trip ends where it began: set the two icons side by side, or the
+  // end icon would hide the start.
+  if (Math.hypot(ex - sx, ey - sy) < MARKER_SIZE + 2) {
+    const midX = (sx + ex) / 2;
+    const midY = (sy + ey) / 2;
+    [sx, sy] = [midX - (MARKER_SIZE + 2) / 2, midY];
+    [ex, ey] = [midX + (MARKER_SIZE + 2) / 2, midY];
+  }
   // Where the driver switched gig app: a dot in the new segment's color.
   const switchDots = routePaths.slice(1).map((p) => {
     const [x, y] = toXY(p.points[0]);
@@ -321,8 +331,8 @@ export async function renderTripMapSvg(
     routePaths.map((p, i) => `<use href="#rt${i}" stroke="${p.color}" stroke-width="4"/>`).join("") +
     `</g>` +
     switchDots +
-    `<circle cx="${r(sx)}" cy="${r(sy)}" r="6" fill="#16a34a" stroke="#ffffff" stroke-width="2.5"/>` +
-    `<rect x="${r(ex - 6)}" y="${r(ey - 6)}" width="12" height="12" rx="2" fill="#dc2626" stroke="#ffffff" stroke-width="2.5"/>` +
+    placeMarker(START_MARKER, sx, sy, MARKER_SIZE) +
+    placeMarker(END_MARKER, ex, ey, MARKER_SIZE) +
     legend +
     `<rect x="${WIDTH - 136}" y="${HEIGHT - 17}" width="132" height="13" rx="3" fill="#ffffff" fill-opacity="0.85"/>` +
     `<text x="${WIDTH - 8}" y="${HEIGHT - 7.5}" text-anchor="end" font-size="9" font-family="Arial,Helvetica,sans-serif" fill="#4b5563">© OpenStreetMap contributors</text>` +

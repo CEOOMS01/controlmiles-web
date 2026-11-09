@@ -1,7 +1,7 @@
 "use client";
 
-// Per-trip route map for the Report Portal: the driven path from point A
-// (green, trip start) to point B (red, trip end). Drawn with MapLibre on our own
+// Per-trip route map for the Report Portal: the driven path from the trip's
+// start (blue arrow) to its end (gold tile). Drawn with MapLibre on our own
 // basemap (src/lib/map-base.ts) like every other web map; it used to be Leaflet
 // on tile.openstreetmap.org, which OSM's tile policy does not allow at scale.
 //
@@ -12,18 +12,16 @@ import { useEffect, useRef } from "react";
 import * as maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { buildStyle, ensurePmtilesProtocol } from "@/lib/map-base";
+import { END_MARKER, START_MARKER } from "@/lib/trip-map/markers";
 import type { PortalRoutePoint } from "./report-data";
 
-// Green for point A, red for point B: distinct colors so the direction of
-// travel is obvious even on a route that loops back near itself.
-function endpointEl(color: string) {
+// `marker` is one of our own constant drawings, never data from a trip.
+function endpointEl(marker: string) {
   const el = document.createElement("div");
-  el.style.width = "14px";
-  el.style.height = "14px";
-  el.style.borderRadius = "50%";
-  el.style.background = color;
-  el.style.border = "2px solid white";
-  el.style.boxShadow = "0 1px 4px rgba(0,0,0,0.4)";
+  el.style.width = "26px";
+  el.style.height = "26px";
+  el.style.filter = "drop-shadow(0 1px 3px rgba(0,0,0,0.4))";
+  el.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="26" height="26">${marker}</svg>`;
   return el;
 }
 
@@ -62,8 +60,8 @@ export default function RouteMapInner({ points }: { points: PortalRoutePoint[] }
       });
     });
 
-    const start = new maplibregl.Marker({ element: endpointEl("#16a34a") }).setLngLat(coords[0]).addTo(map);
-    const end = new maplibregl.Marker({ element: endpointEl("#dc2626") }).setLngLat(coords[coords.length - 1]).addTo(map);
+    const start = new maplibregl.Marker({ element: endpointEl(START_MARKER) }).setLngLat(coords[0]).addTo(map);
+    const end = new maplibregl.Marker({ element: endpointEl(END_MARKER) }).setLngLat(coords[coords.length - 1]).addTo(map);
 
     return () => {
       start.remove();
