@@ -192,7 +192,7 @@ export function EnrollForm({ slug, page, embed }: { slug: string; page: Page; em
               </label>
             )}
             <label>
-              <span className={label}>Lesson language</span>
+              <span className={label}>Language for messages</span>
               <select name="preferred_language" className={input} defaultValue="">
                 <option value="">No preference</option>
                 <option value="en">English</option>

@@ -51,7 +51,6 @@ export function BookLesson({
   const [view, setView] = useState<"list" | "calendar">("calendar");
   const [slots, setSlots] = useState<Slot[] | null>(null);
   const [minutes, setMinutes] = useState(60);
-  const [language, setLanguage] = useState<"en" | "es" | null>(null);
   const [chosen, setChosen] = useState<Slot | null>(null);
   const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -64,7 +63,6 @@ export function BookLesson({
       const r = await getSlots(token);
       if (!r) return setError(S.unavailable);
       setMinutes(r.minutes);
-      setLanguage(r.language ?? null);
       setSlots(r.slots);
       setGrid(r.grid ?? []);
       setOpen(true);
@@ -117,8 +115,7 @@ export function BookLesson({
         <div className="mt-4 space-y-4">
           <p className="text-sm text-muted">
             {fill(S.minuteLessons, { n: minutes })}
-            {language ? fill(S.withInstructor, { lang: language === "es" ? S.langEs : S.langEn }) : ""}.
-            {S.pickTime}
+            .{S.pickTime}
           </p>
           <div className="flex overflow-hidden rounded-lg border border-border text-sm sm:w-fit" role="group">
             {(["calendar", "list"] as const).map((v) => (
