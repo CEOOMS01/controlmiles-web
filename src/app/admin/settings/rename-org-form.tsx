@@ -7,14 +7,15 @@ import { renameOrganization, type RenameOrgState } from "./actions";
 
 const initialState: RenameOrgState = { error: null, success: false };
 
-export function RenameOrgForm({ orgId, currentName }: { orgId: string; currentName: string }) {
+export function RenameOrgForm({ orgId, currentName, noun = "fleet" }: { orgId: string; currentName: string; noun?: string }) {
   const [state, formAction, pending] = useActionState(renameOrganization, initialState);
+  const title = `${noun.charAt(0).toUpperCase()}${noun.slice(1)} name`;
 
   return (
-    <SettingRow title="Fleet name" help="Shown across the app and on your reports.">
+    <SettingRow title={title} help="Shown across the app and on your reports.">
       <form action={formAction} className="flex flex-wrap items-center gap-2">
         <input type="hidden" name="org_id" value={orgId} />
-        <input name="name" type="text" required aria-label="Fleet name" defaultValue={currentName} className={`${settingsField} sm:w-64`} />
+        <input name="name" type="text" required aria-label={title} defaultValue={currentName} className={`${settingsField} sm:w-64`} />
         <button
           type="submit"
           disabled={pending}

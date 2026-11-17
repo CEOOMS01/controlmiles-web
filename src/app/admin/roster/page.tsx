@@ -19,6 +19,7 @@ import { getBranchScope } from "@/lib/branch-scope";
 import { VehicleBranchSelect } from "../branch-controls";
 import { BranchMove } from "../branch-move";
 import { getOrgFeatures } from "@/lib/fleet-features";
+import { serviceProfile } from "@/lib/service-profile";
 
 // Team+Vehicles unification (explicit user request, 2026-09-23): this
 // used to be two separate pages/nav items -- "who's on the team" and
@@ -146,6 +147,8 @@ export default async function RosterPage({ searchParams }: { searchParams: Promi
 
   const rosterFeatures = await getOrgFeatures(orgId);
   const schoolFleet = rosterFeatures.has("school");
+  const { data: orgRow } = await supabase.from("organizations").select("industry_template").eq("id", orgId).maybeSingle();
+  const sp = serviceProfile(orgRow?.industry_template);
   // Driving schools: which languages each instructor teaches in (2026-10-20).
   const showLanguages = rosterFeatures.has("classes");
   const role = callerRole === "owner" || callerRole === "admin" || callerRole === "operator" ? callerRole : "operator";
@@ -155,17 +158,17 @@ export default async function RosterPage({ searchParams }: { searchParams: Promi
       {/* Redesign (2026-10-20): the add forms open from the header in a
           slide-over panel, and drivers / vehicles are tabs. */}
       <PageHeader
-        title="Team"
+        title={sp.teamNav}
         meta={scope.current ? `Branch: ${scope.current.name}` : undefined}
-        description="Drivers and instructors, their vehicles and their access."
+        description={sp.teamHelp}
         actions={
           <>
-            <Sheet label="Add vehicle" title="Add a vehicle" variant="secondary">
+            <Sheet label={`Add ${sp.vehicle.toLowerCase()}`} title={`Add a ${sp.vehicle.toLowerCase()}`} variant="secondary">
               <AddVehicleForm orgId={orgId} inSheet />
             </Sheet>
             <Sheet
-              label="Add driver"
-              title="Add a driver"
+              label={`Add ${sp.person.toLowerCase()}`}
+              title={`Add a ${sp.person.toLowerCase()}`}
               description="We email them an invitation, or give you a one-time code."
             >
               <AddDriverForm orgId={orgId} schoolFleet={schoolFleet} callerRole={role} inSheet />
@@ -177,8 +180,8 @@ export default async function RosterPage({ searchParams }: { searchParams: Promi
         base="/admin/roster"
         current={tab}
         tabs={[
-          { id: "drivers", label: "Drivers", count: shownMembers.length + slots.length },
-          { id: "vehicles", label: "Vehicles", count: shownVehicles.length },
+          { id: "drivers", label: sp.people, count: shownMembers.length + slots.length },
+          { id: "vehicles", label: sp.vehicles, count: shownVehicles.length },
         ]}
       />
 

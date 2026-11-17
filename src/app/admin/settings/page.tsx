@@ -14,6 +14,7 @@ import { SettingsSection, SettingsTabs } from "@/components/settings-ui";
 import { DeleteOrgForm } from "./delete-org-form";
 import { BillingSection } from "./billing-section";
 import { TimeFormatForm } from "./time-format-form";
+import { serviceProfile } from "@/lib/service-profile";
 
 const TABS = [
   { id: "general", label: "General" },
@@ -91,10 +92,11 @@ export default async function SettingsPage({
         <div className="min-w-0 flex-1 space-y-8">
           {tab === "general" && (
             <>
-              <SettingsSection title="General" help="Your fleet's name and type.">
+              <SettingsSection title="General" help={`Your ${serviceProfile(org.industry_template).orgNoun}'s name and type.`}>
                 <div className="divide-y divide-border border-y border-border">
-                  <RenameOrgForm orgId={orgId} currentName={org.name} />
+                  <RenameOrgForm orgId={orgId} currentName={org.name} noun={serviceProfile(org.industry_template).orgNoun} />
                   <FleetTypeRow
+                    noun={serviceProfile(org.industry_template).orgNoun}
                     orgName={org.name}
                     confirmedAt={org.fleet_type_confirmed_at ?? null}
                     current={isFleetProfile(org.industry_template) ? org.industry_template : "general"}

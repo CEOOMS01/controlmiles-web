@@ -20,21 +20,23 @@ export function FleetTypeRow({
   orgName,
   confirmedAt,
   current,
+  noun = "fleet",
 }: {
   orgName: string;
   confirmedAt: string | null;
   current: FleetProfile;
+  noun?: string;
 }) {
   const since = confirmedAt
     ? `Set ${new Date(confirmedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} at sign-up. `
     : "Set at sign-up. ";
   return (
-    <SettingRow title="Fleet type" help={`${since}It decides what your fleet includes.`}>
+    <SettingRow title="Service" help={`${since}It decides what your ${noun} includes.`}>
       <div className="flex items-center gap-3">
         <span className="rounded-full bg-accent/10 px-3 py-1 text-sm font-medium text-accent">{profileTitle(current)}</span>
         <a
           href={`mailto:support@controlmiles.com?subject=${encodeURIComponent("Change fleet type")}&body=${encodeURIComponent(
-            `Fleet: ${orgName}\nCurrent type: ${profileTitle(current)}\nNew type:\nReason:\n`,
+            `Organization: ${orgName}\nCurrent service: ${profileTitle(current)}\nNew service:\nReason:\n`,
           )}`}
           className="text-sm text-muted hover:text-accent"
         >

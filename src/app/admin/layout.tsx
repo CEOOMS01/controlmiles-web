@@ -14,6 +14,7 @@ import { LEGAL_TERMS_VERSION } from "@/lib/legal-version";
 import { ThemeToggle, type ThemeChoice } from "@/components/theme-toggle";
 import { AdminNav, type NavGroup, type NavItem } from "./admin-nav";
 import { ScheduleBell } from "./schedule-bell";
+import { serviceProfile } from "@/lib/service-profile";
 
 export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   const supabase = await createClient();
@@ -73,7 +74,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
       .maybeSingle(),
     supabase
       .from("organizations")
-      .select("id, name, compliance_mode, fleet_type_confirmed_at, use_shift_schedules")
+      .select("id, name, compliance_mode, fleet_type_confirmed_at, use_shift_schedules, industry_template")
       .eq("id", profile.default_org_id)
       .maybeSingle(),
     supabase
@@ -145,8 +146,10 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
 
   // Menu (2026-10-20 redesign): grouped by area, icons, current page
   // highlighted; the same gating as before (plan features, operator role).
+  // Each service has its own words (src/lib/service-profile.ts).
+  const sp = serviceProfile(org.industry_template);
   const operations: NavItem[] = [
-    { href: "/admin/roster", label: "Team", icon: "team" },
+    { href: "/admin/roster", label: sp.teamNav, icon: "team" },
     ...(has("school")
       ? [
           { href: "/admin/school/routes", label: "Routes", icon: "route" as const },
@@ -174,8 +177,8 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
           badge: has("fuel_alerts") ? (openFuelAlerts ?? 0) : 0,
         },
         ...(has("ifta") ? [{ href: "/admin/ifta", label: "IFTA", icon: "ifta" as const }] : []),
-        { href: "/admin/maintenance", label: "Maintenance", icon: "maintenance" },
-        { href: "/admin/reviews", label: "Reviews", icon: "reviews" },
+        { href: "/admin/maintenance", label: sp.maintenanceNav, icon: "maintenance" },
+        { href: "/admin/reviews", label: sp.reviewsNav, icon: "reviews" },
         ...(has("safety_scores") ? [{ href: "/admin/safety", label: "Safety", icon: "safety" as const }] : []),
       ];
   const admin: NavItem[] = [
@@ -189,7 +192,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
     // the dashboard (one map, not two); other plans keep the fleet dashboard.
     { items: [{ href: has("school_live") ? "/admin/school" : "/admin", label: "Dashboard", icon: "dashboard" }] },
     ...(operations.length ? [{ title: "Operations", items: operations }] : []),
-    ...(fleet.length ? [{ title: "Fleet", items: fleet }] : []),
+    ...(fleet.length ? [{ title: sp.groupTitle, items: fleet }] : []),
     { title: "Admin", items: admin },
   ];
   const themeCookie = (await cookies()).get("cm_theme")?.value;

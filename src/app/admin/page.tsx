@@ -9,6 +9,8 @@ import { RouteEfficiencyChart, type RouteStatusCount } from "./route-efficiency-
 import { DriverStartTimesChart, type DriverStartSeries } from "./driver-start-times-chart";
 import { driverLabel, fleetDriverIds } from "@/lib/driver-label";
 import { SchoolDashboard } from "./school-dashboard";
+import Link from "next/link";
+import { nextIftaDeadline, serviceProfile, type KpiKey } from "@/lib/service-profile";
 
 export default async function AdminDashboardPage() {
   const supabase = await createClient();
@@ -104,6 +106,56 @@ export default async function AdminDashboardPage() {
   // Branch filter (sidebar, 2026-09-30).
   const scope = await getBranchScope(orgId);
 
+  // What each service puts first (src/lib/service-profile.ts): miles, today's trips, geofence alerts, open fuel
+  // alerts, trips waiting for approval. Only fetched for the services that show them.
+  const sp = serviceProfile(org?.industry_template);
+  const wants = new Set(sp.kpis);
+  const tz = org?.timezone ?? "America/New_York";
+  const todayKey = new Date().toLocaleDateString("en-CA", { timeZone: tz });
+  const [{ data: tripRows }, { count: geofence7 }, { count: fuelOpen }, { data: approvalRows }] = await Promise.all([
+    wants.has("miles30") || wants.has("tripsToday") || wants.has("approvals")
+      ? supabase
+          .from("sessions")
+          .select("id, user_id, date_key, total_miles, is_closed, profiles!sessions_user_id_fkey(first_name, last_name)")
+          .eq("organization_id", orgId)
+          .gte("start_time", thirtyDaysAgo)
+          .limit(3000)
+      : Promise.resolve({ data: null }),
+    wants.has("geofence7") && features.has("geofences")
+      ? supabase
+          .from("vehicle_geofence_alerts")
+          .select("id", { count: "exact", head: true })
+          .eq("organization_id", orgId)
+          .gte("created_at", daysAgoIso(7))
+      : Promise.resolve({ count: null }),
+    wants.has("fuelOpen") && features.has("fuel_alerts")
+      ? supabase
+          .from("fuel_anomalies")
+          .select("id", { count: "exact", head: true })
+          .eq("organization_id", orgId)
+          .eq("status", "open")
+      : Promise.resolve({ count: null }),
+    wants.has("approvals") && features.has("trip_approval")
+      ? supabase.from("trip_approvals").select("session_id").eq("organization_id", orgId)
+      : Promise.resolve({ data: null }),
+  ]);
+  const trips = (tripRows ?? []).filter((t) => scope.driverIn(t.user_id));
+  const miles30 = trips.reduce((sum, t) => sum + (Number(t.total_miles) || 0), 0);
+  const tripsToday = trips.filter((t) => t.date_key === todayKey).length;
+  const decided = new Set((approvalRows ?? []).map((a) => a.session_id));
+  const awaitingApproval = trips.filter((t) => t.is_closed && Number(t.total_miles) > 0 && !decided.has(t.id)).length;
+  const milesByPerson = new Map<string, { name: string; miles: number }>();
+  for (const t of trips) {
+    const p = Array.isArray(t.profiles) ? t.profiles[0] : t.profiles;
+    const cur = milesByPerson.get(t.user_id) ?? {
+      name: driverLabel(p, fleetIds.get(t.user_id), sp.person),
+      miles: 0,
+    };
+    cur.miles += Number(t.total_miles) || 0;
+    milesByPerson.set(t.user_id, cur);
+  }
+  const topPeople = Array.from(milesByPerson.values()).sort((a, b) => b.miles - a.miles).slice(0, 5);
+
   const pendingCount = (pendingInviteCount ?? 0) + (unclaimedSlotCount ?? 0);
   const reviewCount = (failedInspectionCount ?? 0) + (incidentCount ?? 0);
   const safetyCount = safetyEventCount ?? 0;
@@ -173,34 +225,98 @@ export default async function AdminDashboardPage() {
     );
   }
 
+  const onRoadNow = vehicles.filter((v) => v.onTrip).length;
+  const ifta = nextIftaDeadline();
+  const dueLabel = ifta.due.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+
+  type Card = { label: string; value: number | string; hint?: string; accent?: boolean; href?: string };
+  const lower = (t: string) => t.toLowerCase();
+  const cardFor: Record<KpiKey, Card | null> = {
+    people: { label: scope.current ? `${sp.people} in branch` : `Active ${lower(sp.people)}`, value: scope.driverIds?.size ?? memberCount ?? 0, href: "/admin/roster" },
+    vehicles: { label: sp.vehicles, value: scope.vehicleIds?.size ?? vehicleCount ?? 0, href: "/admin/roster?tab=vehicles" },
+    pending: { label: `Pending ${lower(sp.people)}`, value: pendingCount, href: "/admin/roster" },
+    review: { label: "Needs review", value: reviewCount, accent: reviewCount > 0, href: "/admin/reviews" },
+    safety: features.has("safety_scores") ? { label: "Safety events · 30 days", value: safetyCount, accent: safetyCount > 0, href: "/admin/safety" } : null,
+    miles30: { label: "Miles · 30 days", value: Math.round(miles30).toLocaleString("en-US") },
+    tripsToday: { label: "Trips today", value: tripsToday },
+    onRoad: { label: "On the road now", value: onRoadNow, hint: `of ${vehicles.length} with a location` },
+    geofence7: features.has("geofences") ? { label: "Geofence alerts · 7 days", value: geofence7 ?? 0, accent: (geofence7 ?? 0) > 0, href: "/admin/geofences" } : null,
+    fuelOpen: features.has("fuel_alerts") ? { label: "Open fuel alerts", value: fuelOpen ?? 0, accent: (fuelOpen ?? 0) > 0, href: "/admin/fuel" } : null,
+    approvals: features.has("trip_approval") ? { label: "Trips awaiting approval", value: awaitingApproval, accent: awaitingApproval > 0, href: "/admin/approvals" } : null,
+    ifta: features.has("ifta") ? { label: "Next IFTA filing", value: `${ifta.days} days`, hint: `${ifta.quarter} · due ${dueLabel}`, accent: ifta.days <= 14, href: "/admin/ifta" } : null,
+  };
+  const cards = sp.kpis.map((k) => cardFor[k]).filter((c): c is Card => c !== null);
+
+  // What needs a look, with a link to where it is fixed: only what this service has and only when there is something.
+  const attention: { text: string; href: string }[] = [];
+  if (reviewCount > 0) attention.push({ text: `${reviewCount} failed ${reviewCount === 1 ? "inspection or incident" : "inspections and incidents"} to review`, href: "/admin/reviews" });
+  if ((fuelOpen ?? 0) > 0) attention.push({ text: `${fuelOpen} fuel alert${fuelOpen === 1 ? "" : "s"} to check`, href: "/admin/fuel" });
+  if (awaitingApproval > 0) attention.push({ text: `${awaitingApproval} trip${awaitingApproval === 1 ? "" : "s"} waiting for your approval`, href: "/admin/approvals" });
+  if ((geofence7 ?? 0) > 0) attention.push({ text: `${geofence7} geofence alert${geofence7 === 1 ? "" : "s"} this week`, href: "/admin/geofences" });
+  if (pendingCount > 0) attention.push({ text: `${pendingCount} ${lower(sp.person)}${pendingCount === 1 ? "" : "s"} not joined yet`, href: "/admin/roster" });
+  if (features.has("ifta") && ifta.days <= 30) attention.push({ text: `IFTA ${ifta.quarter} return is due ${dueLabel} (${ifta.days} days)`, href: "/admin/ifta" });
+
+  const showTopPeople = topPeople.length > 0 && (wants.has("miles30") || wants.has("tripsToday"));
+  const maxMiles = Math.max(1, ...topPeople.map((p) => p.miles));
+
   return (
     <main className="mx-auto w-full max-w-6xl px-5 py-7 sm:px-8 lg:py-8">
       <div className="mb-6">
-        <p className="text-xs font-medium text-muted">
-          {org?.name}
-        </p>
+        <p className="text-xs font-medium text-muted">{org?.name}</p>
         <h1 className="text-xl font-semibold tracking-tight">
-          Fleet dashboard{scope.current && <span className="text-muted"> · {scope.current.name}</span>}
+          {sp.dashboardTitle}
+          {scope.current && <span className="text-muted"> · {scope.current.name}</span>}
         </h1>
+        <p className="mt-1 text-sm text-muted">{sp.dashboardHelp}</p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-4">
-        <StatCard label={scope.current ? "Drivers in branch" : "Active drivers"} value={scope.driverIds?.size ?? memberCount ?? 0} />
-        <StatCard label="Vehicles" value={scope.vehicleIds?.size ?? vehicleCount ?? 0} />
-        <StatCard label="Pending drivers" value={pendingCount} />
-        <StatCard label="Needs review" value={reviewCount} accent={reviewCount > 0} />
-        {features.has("safety_scores") && (
-          <StatCard label="Safety events (30d)" value={safetyCount} accent={safetyCount > 0} />
-        )}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {cards.map((c) => (
+          <StatCard key={c.label} {...c} />
+        ))}
       </div>
+
+      {attention.length > 0 && (
+        <div className="mt-6 rounded-xl border border-border bg-surface p-5">
+          <p className="text-sm font-semibold">Needs your attention</p>
+          <ul className="mt-3 divide-y divide-border">
+            {attention.map((a) => (
+              <li key={a.text}>
+                <Link href={a.href} className="flex items-center justify-between gap-3 py-2 text-sm hover:text-accent">
+                  <span>{a.text}</span>
+                  <span aria-hidden="true" className="text-muted">→</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {features.has("live_map") && (
-        <div className="mt-10">
+        <div className="mt-8">
           <FleetMap orgId={orgId} initialVehicles={vehicles} geofences={mapGeofences ?? []} />
         </div>
       )}
 
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
+        {showTopPeople && (
+          <div className="rounded-xl border border-border bg-surface p-5">
+            <p className="text-sm font-semibold">Miles by {lower(sp.person)} · 30 days</p>
+            <ul className="mt-4 space-y-3">
+              {topPeople.map((p) => (
+                <li key={p.name}>
+                  <div className="flex items-baseline justify-between text-sm">
+                    <span className="truncate">{p.name}</span>
+                    <span className="tabular-nums text-muted">{Math.round(p.miles).toLocaleString("en-US")} mi</span>
+                  </div>
+                  <div className="mt-1 h-1.5 rounded-full bg-border">
+                    <div className="h-1.5 rounded-full bg-accent" style={{ width: `${Math.max(3, (p.miles / maxMiles) * 100)}%` }} />
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         {(features.has("routes") || features.has("school")) && (
           <RouteEfficiencyChart statusCounts={statusCounts} avgCycleHours={avgCycleHours} />
         )}
@@ -210,11 +326,25 @@ export default async function AdminDashboardPage() {
   );
 }
 
-function StatCard({ label, value, accent }: { label: string; value: number; accent?: boolean }) {
-  return (
-    <div className={`rounded-xl border p-5 ${accent ? "border-danger/40 bg-danger/5" : "border-border bg-surface"}`}>
+function StatCard({
+  label,
+  value,
+  hint,
+  accent,
+  href,
+}: {
+  label: string;
+  value: number | string;
+  hint?: string;
+  accent?: boolean;
+  href?: string;
+}) {
+  const body = (
+    <div className={`h-full rounded-xl border p-5 ${accent ? "border-danger/40 bg-danger/5" : "border-border bg-surface"} ${href ? "transition hover:border-accent" : ""}`}>
       <p className="text-xs text-muted">{label}</p>
       <p className={`mt-1 text-3xl font-semibold tabular-nums ${accent ? "text-danger" : ""}`}>{value}</p>
+      {hint && <p className="mt-1 text-xs text-muted">{hint}</p>}
     </div>
   );
+  return href ? <Link href={href} className="block">{body}</Link> : body;
 }
