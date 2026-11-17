@@ -134,7 +134,7 @@ export function ScheduleBell({ orgId }: { orgId: string }) {
       const token = await getRealtimeAccessTokenAnyTier();
       if (cancelled) return;
       if (token) supabase.realtime.setAuth(token);
-      let ch = supabase.channel(`schedule-live-${orgId}`);
+      let ch = supabase.channel(`schedule-live-${orgId}-${Math.random().toString(36).slice(2, 8)}`);
       for (const table of WATCHED) {
         ch = ch.on("postgres_changes", { event: "*", schema: "public", table, filter: `organization_id=eq.${orgId}` }, onChange);
       }
@@ -192,7 +192,7 @@ export function ScheduleBell({ orgId }: { orgId: string }) {
         <div
           role="dialog"
           aria-label="Schedule changes"
-          className="absolute left-0 top-full z-50 mt-2 w-80 max-w-[85vw] rounded-xl border border-border bg-surface p-2 text-foreground shadow-xl"
+          className="fixed left-3 right-3 top-14 z-50 max-h-[80vh] overflow-hidden rounded-xl sm:right-auto sm:w-96 border border-border bg-surface p-2 text-foreground shadow-xl"
         >
           <p className="px-2 pb-1 pt-1 text-sm font-semibold">Schedule changes</p>
           {events.length === 0 ? (
