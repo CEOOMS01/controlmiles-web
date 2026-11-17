@@ -60,7 +60,7 @@ export function describe(e: ScheduleEvent): string {
     case "class_booked_portal":
       return `A client booked ${slot}${e.instructor_name ? ` with ${instr}` : ""}.`;
     case "class_changed":
-      return `${who(e)} changed the class now on ${slot}.`;
+      return `${who(e)} changed the class on ${slot}.`;
     case "class_cancelled":
       return `${who(e)} cancelled the class on ${slot}.`;
     case "class_deleted":
