@@ -1,19 +1,18 @@
 import { createHmac } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
-import { createClient } from "@supabase/supabase-js";
 import { AppError } from "@/lib/errors";
+import { anonClient, publicProjects } from "@/lib/supabase/projects";
 
 // Uses the plain supabase-js client (no cookies) with the publishable
 // key -- this endpoint is anonymous by design, and `anon` is the only
 // role granted EXECUTE on redeem_report_access_code (verified live
 // after the migration, see project memory). No service-role key
 // anywhere in this file.
-function anonClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
-  );
-}
+//
+// Two databases (2026-11-16): a report code was issued by the gig app (gig project) or by a fleet admin
+// (Fleet project). The code does not say which, so each project is asked in turn; the first that
+// recognises it answers. Each project keeps its own attempt counter (report_access_attempts).
+const GENERIC = "Invalid or expired code.";
 
 function hashIp(ip: string): string {
   const pepper = process.env.IP_HASH_PEPPER;
@@ -70,30 +69,36 @@ export async function POST(request: NextRequest) {
   // that, it just stops it from crashing silently.
   try {
     const ipHash = hashIp(requesterIp(request));
-    const supabase = anonClient();
+    const normalized = code.trim().toUpperCase();
 
-    const { data, error } = await supabase.rpc("redeem_report_access_code", {
-      p_code: code.trim().toUpperCase(),
-      p_ip_hash: ipHash,
-    });
+    let failure: string = GENERIC;
+    let lastError: unknown = null;
+    let answered = false;
+    for (const project of publicProjects()) {
+      const { data, error } = await anonClient(project).rpc("redeem_report_access_code", {
+        p_code: normalized,
+        p_ip_hash: ipHash,
+      });
+      if (error) {
+        lastError = error;
+        continue; // the other project may still know this code
+      }
+      answered = true;
+      const row = data?.[0];
+      if (row?.success) {
+        return NextResponse.json({ success: true, message: "ok", report: row.report });
+      }
+      // Keep the most specific reason (expired, locked out...) over the generic one.
+      if (row?.message && (failure === GENERIC || row.message !== GENERIC)) failure = row.message;
+    }
 
-    if (error) {
+    if (!answered && lastError) {
       return NextResponse.json(
-        { success: false, message: AppError.from(error, { critical: true }).display() },
+        { success: false, message: AppError.from(lastError, { critical: true }).display() },
         { status: 500 },
       );
     }
-
-    const row = data?.[0];
-    if (!row) {
-      return NextResponse.json({ success: false, message: "Invalid or expired code." });
-    }
-
-    return NextResponse.json({
-      success: row.success,
-      message: row.success ? "ok" : row.message,
-      report: row.success ? row.report : null,
-    });
+    return NextResponse.json({ success: false, message: failure, report: null });
   } catch (e) {
     return NextResponse.json(
       { success: false, message: AppError.from(e, { critical: true }).display() },

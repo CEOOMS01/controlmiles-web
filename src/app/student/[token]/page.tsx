@@ -11,7 +11,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { SCORE_CLASS, formatMinutes, percentOf } from "@/lib/driving-school";
-import { BookLesson, CancelLesson, SmsOptIn } from "./portal-booking";
+import { BookLesson, SmsOptIn } from "./portal-booking";
 import { DATE_LOCALE, STR, fill, pickLang, type Lang } from "./strings";
 
 /** Inside the free-cancellation window? (module level: reads the clock) */
@@ -169,13 +169,12 @@ export default async function StudentPortalPage({
                   <span className="font-medium">{day(u.date)}</span> · {time12(u.start)}–{time12(u.end)}
                   {u.instructor && <span className="text-muted"> · {u.instructor.trim()}</span>}
                 </span>
-                {v.booking.enabled && u.id && (
-                  <CancelLesson token={token} blockId={u.id} late={isLateToCancel(u.starts_at, v.booking.cancel_free_hours)} lang={lang} />
-                )}
               </li>
             ))}
           </ul>
         )}
+        {/* Clients can book but not edit a class (2026-11-16): only school staff change it. */}
+        {v.booking.enabled && v.upcoming.length > 0 && <p className="mt-2 text-xs text-muted">{S.changeViaSchool}</p>}
       </section>
 
       <section className="mt-6">

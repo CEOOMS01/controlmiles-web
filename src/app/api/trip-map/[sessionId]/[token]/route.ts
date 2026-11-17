@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+import { anonClient, publicProjects } from "@/lib/supabase/projects";
 import { decodePolyline, type LatLng } from "@/lib/trip-map/polyline";
 import { renderTripMapSvg, type RouteSegment } from "@/lib/trip-map/render";
 import { gigAppLabel } from "@/lib/catalog";
@@ -38,15 +38,20 @@ export async function GET(
     return new Response("Not found", { status: 404 });
   }
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
-  );
-  const { data, error } = await supabase.rpc("get_trip_map", {
-    p_session_id: sessionId,
-    p_token: cleanToken,
-  });
-  if (error || !data) return new Response("Not found", { status: 404 });
+  // Two databases (2026-11-16): the trip belongs to the gig project or to Fleet's. The session id plus the
+  // random map token only match in one of them, so each project is asked in turn (gig first).
+  let data: unknown = null;
+  for (const project of publicProjects()) {
+    const res = await anonClient(project).rpc("get_trip_map", {
+      p_session_id: sessionId,
+      p_token: cleanToken,
+    });
+    if (!res.error && res.data) {
+      data = res.data;
+      break;
+    }
+  }
+  if (!data) return new Response("Not found", { status: 404 });
 
   const trip = data as { closed: boolean; sections: MapSection[] };
   const query = new URL(request.url).searchParams;

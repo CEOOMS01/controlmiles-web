@@ -13,6 +13,7 @@ import { BranchSelector } from "./branch-controls";
 import { LEGAL_TERMS_VERSION } from "@/lib/legal-version";
 import { ThemeToggle, type ThemeChoice } from "@/components/theme-toggle";
 import { AdminNav, type NavGroup, type NavItem } from "./admin-nav";
+import { ScheduleBell } from "./schedule-bell";
 
 export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   const supabase = await createClient();
@@ -199,6 +200,12 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
       <div className="flex items-center gap-2.5 px-1.5">
         <Image src="/logo_controlmiles.png" alt="" width={26} height={26} className="rounded-md" />
         <p className="text-sm font-semibold tracking-tight text-sidebar-strong">ControlMiles</p>
+        {/* Every schedule change by any role, live (2026-11-16); only schools with classes. */}
+        {has("classes") && (
+          <div className="ml-auto">
+            <ScheduleBell orgId={org.id} />
+          </div>
+        )}
       </div>
       <div className="hidden lg:block">
         <OrgSwitcher currentOrgId={org.id} orgs={eligibleOrgs} />

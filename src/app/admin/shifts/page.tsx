@@ -157,7 +157,8 @@ function shiftDate(date: string, days: number) {
 
 type ClassBlock = {
   id: string;
-  driver_id: string;
+  /** null = an open class: no instructor yet, an instructor can take it from the app. */
+  driver_id: string | null;
   vehicle_id: string | null;
   block_date: string;
   start_time: string;
@@ -469,18 +470,23 @@ export default async function ShiftsPage({
                 }
                 const driverNames = new Map(drivers.map((d) => [d.id, d.label]));
                 const vehicleNames = new Map(vehicleOptions.map((v) => [v.id, v.label]));
+                // "" groups the open classes (no instructor yet).
                 const byClassDriver = new Map<string, ClassBlock[]>();
                 for (const b of blocks) {
-                  if (!scope.driverIn(b.driver_id)) continue;
-                  if (!byClassDriver.has(b.driver_id)) byClassDriver.set(b.driver_id, []);
-                  byClassDriver.get(b.driver_id)!.push(b);
+                  const inScope = b.driver_id ? scope.driverIn(b.driver_id) : !b.vehicle_id || scope.vehicleIn(b.vehicle_id);
+                  if (!inScope) continue;
+                  const key = b.driver_id ?? "";
+                  if (!byClassDriver.has(key)) byClassDriver.set(key, []);
+                  byClassDriver.get(key)!.push(b);
                 }
                 return (
                   <div className="space-y-4">
                     {Array.from(byClassDriver.entries()).map(([driverId, rows]) => (
                       <div key={driverId} className="overflow-hidden rounded-xl border border-border bg-surface">
                         <div className="border-b border-border px-4 py-3">
-                          <p className="font-medium">{driverNames.get(driverId) ?? "Driver"}</p>
+                          <p className="font-medium">
+                            {driverId === "" ? "No instructor yet (open classes)" : (driverNames.get(driverId) ?? "Driver")}
+                          </p>
                         </div>
                         <table className="w-full text-sm">
                           <tbody>

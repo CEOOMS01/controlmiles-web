@@ -16,7 +16,8 @@ import { conflictMessage } from "@/lib/ds-conflicts";
 
 export type AgendaBlock = {
   id: string;
-  driver_id: string;
+  /** null = an open class: no instructor yet. */
+  driver_id: string | null;
   vehicle_id: string | null;
   student_id: string | null;
   block_date: string;
@@ -82,7 +83,8 @@ export async function getAgendaWeek(orgId: string, from: string, days: number): 
 
 export async function addAgendaClass(input: {
   orgId: string;
-  driverId: string;
+  /** null = an open class (no instructor yet; any instructor of the location can take it). */
+  driverId: string | null;
   vehicleId: string | null;
   date: string;
   start: string; // HH:MM
@@ -90,7 +92,7 @@ export async function addAgendaClass(input: {
   studentId: string | null;
   note?: string | null;
 }): Promise<{ error: string | null }> {
-  if (!DATE.test(input.date) || !input.driverId) return { error: "Pick an instructor and a date." };
+  if (!DATE.test(input.date)) return { error: "Pick a date." };
   const supabase = await createClient();
   const { error } = await supabase.rpc("ds_office_add_block", {
     p_org: input.orgId,
@@ -111,7 +113,7 @@ export async function moveAgendaClass(input: {
   blockId: string;
   date: string;
   start: string;
-  driverId: string;
+  driverId: string | null;
   vehicleId: string | null;
 }): Promise<{ error: string | null }> {
   if (!DATE.test(input.date)) return { error: "Pick a date." };

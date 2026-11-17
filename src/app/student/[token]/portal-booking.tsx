@@ -135,7 +135,6 @@ export function BookLesson({
           </div>
           {view === "calendar" && (
             <ClientCalendar
-              token={token}
               lang={lang}
               grid={grid}
               mine={mine}
@@ -232,17 +231,15 @@ export function BookLesson({
 /**
  * The client's calendar: green = free (tap to choose), gray = taken or closed
  * (lunch and other hours the school blocks). It never says who is busy.
- * The student's own lessons show in the accent color and can be cancelled.
+ * The student's own lessons show in the accent color; changing or cancelling one is up to the school.
  */
 function ClientCalendar({
-  token,
   lang,
   grid,
   mine,
   chosen,
   onPick,
 }: {
-  token: string;
   lang: Lang;
   grid: GridCell[];
   mine: MineLesson[];
@@ -364,9 +361,8 @@ function ClientCalendar({
           <p className="font-medium">
             {S.yourLesson} · {dayFor(lang)(picked.date)} · {time12(picked.start)}–{time12(picked.end)}
           </p>
-          <div className="mt-2">
-            <CancelLesson token={token} blockId={picked.id} late={picked.late} lang={lang} />
-          </div>
+          {/* Clients can book but not edit a class (2026-11-16): only school staff change it. */}
+          <p className="mt-1 text-xs text-muted">{S.changeViaSchool}</p>
         </div>
       )}
     </div>

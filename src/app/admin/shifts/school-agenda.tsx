@@ -132,7 +132,10 @@ export function SchoolAgenda({
     () =>
       blocks.map((b) => {
         const who = b.student_id ? (studentName.get(b.student_id) ?? "Student") : b.note || "Class";
-        const parts = [driverName.get(b.driver_id) ?? "Instructor", b.vehicle_id ? carName.get(b.vehicle_id) : null].filter(Boolean);
+        const parts = [
+          b.driver_id ? (driverName.get(b.driver_id) ?? "Instructor") : "No instructor (open)",
+          b.vehicle_id ? carName.get(b.vehicle_id) : null,
+        ].filter(Boolean);
         return {
           id: b.id,
           date: b.block_date,
@@ -359,12 +362,11 @@ function NewClassCard({
 
   async function save() {
     setError(null);
-    if (!driverId) return setError("Pick an instructor.");
     if (end > 24 * 60 - 1) return setError("The class must end the same day.");
     setBusy(true);
     const r = await addAgendaClass({
       orgId,
-      driverId,
+      driverId: driverId || null,
       vehicleId: vehicleId || null,
       date,
       start,
@@ -410,6 +412,7 @@ function NewClassCard({
         <label className="text-xs text-muted">
           Instructor
           <select value={driverId} onChange={(e) => setDriverId(e.target.value)} className={`${field} mt-1`}>
+            <option value="">No instructor (open: an instructor can take it)</option>
             {drivers.map((d) => (
               <option key={d.id} value={d.id}>
                 {d.label}
@@ -490,19 +493,19 @@ function BlockCard({
   const [moving, setMoving] = useState(false);
   const [date, setDate] = useState(block.block_date);
   const [start, setStart] = useState(block.start_time.slice(0, 5));
-  const [driverId, setDriverId] = useState(block.driver_id);
+  const [driverId, setDriverId] = useState(block.driver_id ?? "");
   const [vehicleId, setVehicleId] = useState(block.vehicle_id ?? "");
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const scheduled = block.status === "scheduled";
-  const driver = drivers.find((d) => d.id === block.driver_id)?.label ?? "Instructor";
+  const driver = block.driver_id ? (drivers.find((d) => d.id === block.driver_id)?.label ?? "Instructor") : "No instructor (open)";
   const car = vehicles.find((v) => v.id === block.vehicle_id)?.label;
 
   async function move() {
     setBusy(true);
     setError(null);
-    const r = await moveAgendaClass({ blockId: block.id, date, start, driverId, vehicleId: vehicleId || null });
+    const r = await moveAgendaClass({ blockId: block.id, date, start, driverId: driverId || null, vehicleId: vehicleId || null });
     setBusy(false);
     if (r.error) return setError(r.error);
     await onChanged("Class moved.");
@@ -572,6 +575,7 @@ function BlockCard({
             <label className="text-xs text-muted">
               Instructor
               <select value={driverId} onChange={(e) => setDriverId(e.target.value)} className={`${field} mt-1`}>
+                <option value="">No instructor (open)</option>
                 {drivers.map((d) => (
                   <option key={d.id} value={d.id}>
                     {d.label}
