@@ -160,10 +160,11 @@ const PROFILES: Record<FleetProfile, ServiceProfile> = {
     ...FLEET,
     orgNoun: "school",
     person: "Instructor",
-    people: "Instructors",
+    // The team page lists everyone in the school (owner, admins, instructors), so the menu and the tab say "Team".
+    people: "Team",
     vehicle: "Car",
     vehicles: "Cars",
-    teamNav: "Instructors",
+    teamNav: "Team",
     groupTitle: "Cars",
     maintenanceNav: "Car maintenance",
     reviewsNav: "Car checks",
