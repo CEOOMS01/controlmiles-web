@@ -106,8 +106,21 @@ export function ScheduleBell({ orgId }: { orgId: string }) {
   const reload = useCallback(async () => {
     const r = await getScheduleEvents(orgId);
     setEvents(r.events);
-    setUnread(r.unread);
+    // Looking at the list = reading it: a change that arrives while the list is open is marked read
+    // right away (it keeps its dot until the list is closed), so the red badge never comes back.
+    if (openRef.current && r.unread > 0) {
+      setUnread(0);
+      await markScheduleEventsRead(orgId);
+    } else {
+      setUnread(r.unread);
+    }
   }, [orgId]);
+
+  async function markAllRead() {
+    setUnread(0);
+    setEvents((prev) => prev.map((e) => ({ ...e, is_new: false })));
+    await markScheduleEventsRead(orgId);
+  }
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -194,7 +207,14 @@ export function ScheduleBell({ orgId }: { orgId: string }) {
           aria-label="Schedule changes"
           className="fixed left-3 right-3 top-14 z-50 max-h-[80vh] overflow-hidden rounded-xl sm:right-auto sm:w-96 border border-border bg-surface p-2 text-foreground shadow-xl"
         >
-          <p className="px-2 pb-1 pt-1 text-sm font-semibold">Schedule changes</p>
+          <div className="flex items-center justify-between px-2 pb-1 pt-1">
+            <p className="text-sm font-semibold">Schedule changes</p>
+            {events.some((e) => e.is_new) && (
+              <button type="button" onClick={markAllRead} className="text-xs font-medium text-accent hover:underline">
+                Mark all as read
+              </button>
+            )}
+          </div>
           {events.length === 0 ? (
             <p className="px-2 py-4 text-sm text-muted">No changes yet.</p>
           ) : (

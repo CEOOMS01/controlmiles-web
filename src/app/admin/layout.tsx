@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
 import Link from "next/link";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
@@ -11,7 +10,6 @@ import { getOrgFeatures } from "@/lib/fleet-features";
 import { getBranchScope } from "@/lib/branch-scope";
 import { BranchSelector } from "./branch-controls";
 import { LEGAL_TERMS_VERSION } from "@/lib/legal-version";
-import { ThemeToggle, type ThemeChoice } from "@/components/theme-toggle";
 import { AdminNav, type NavGroup, type NavItem } from "./admin-nav";
 import { ScheduleBell } from "./schedule-bell";
 import { serviceProfile } from "@/lib/service-profile";
@@ -195,8 +193,6 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
     ...(fleet.length ? [{ title: sp.groupTitle, items: fleet }] : []),
     { title: "Admin", items: admin },
   ];
-  const themeCookie = (await cookies()).get("cm_theme")?.value;
-  const theme: ThemeChoice = themeCookie === "light" || themeCookie === "dark" ? themeCookie : "system";
 
   const header = (
     <div className="space-y-3">
@@ -228,7 +224,6 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
           current={branchScope.current?.id ?? null}
         />
       </div>
-      <ThemeToggle initial={theme} />
       <div className="flex items-center justify-between gap-2">
         <p className="min-w-0 truncate text-xs text-sidebar-muted">{profile.first_name || user.email}</p>
         <SignOutButton />

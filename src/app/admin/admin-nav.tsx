@@ -74,7 +74,7 @@ function NavList({ groups, onNavigate }: { groups: NavGroup[]; onNavigate?: () =
     .sort((a, b) => b.href.length - a.href.length)[0]?.href;
 
   return (
-    <nav aria-label="Panel" className="space-y-5">
+    <nav aria-label="Panel" className="space-y-[clamp(0.5rem,1.6vh,1.25rem)]">
       {groups.map((g, gi) => (
         <div key={g.title ?? gi}>
           {g.title && (
@@ -89,7 +89,7 @@ function NavList({ groups, onNavigate }: { groups: NavGroup[]; onNavigate?: () =
                     href={i.href}
                     onClick={onNavigate}
                     aria-current={on ? "page" : undefined}
-                    className={`flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm transition ${
+                    className={`flex items-center gap-2.5 rounded-lg px-2.5 py-[clamp(0.125rem,0.6vh,0.375rem)] text-sm transition ${
                       on
                         ? "bg-sidebar-active font-medium text-sidebar-strong shadow-[0_1px_2px_rgba(16,24,40,0.06)]"
                         : "text-sidebar-foreground hover:bg-sidebar-active/60 hover:text-sidebar-strong"
@@ -139,12 +139,12 @@ export function AdminNav({ groups, header, footer }: { groups: NavGroup[]; heade
       )}
 
       {/* Laptops and wider: a fixed sidebar. */}
-      <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col overflow-y-auto border-r border-sidebar-border bg-sidebar px-3 py-5 lg:flex">
+      <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col overflow-y-auto border-r border-sidebar-border bg-sidebar px-3 py-4 [scrollbar-width:none] lg:flex [&::-webkit-scrollbar]:hidden">
         <div className="px-1">{header}</div>
-        <div className="mt-6 flex-1">
+        <div className="mt-[clamp(0.5rem,2vh,1.5rem)] flex-1">
           <NavList groups={groups} />
         </div>
-        <div className="mt-6 border-t border-sidebar-border pt-4">{footer}</div>
+        <div className="mt-3 border-t border-sidebar-border pt-3">{footer}</div>
       </aside>
     </>
   );
