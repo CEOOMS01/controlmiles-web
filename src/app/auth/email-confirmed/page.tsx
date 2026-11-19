@@ -29,7 +29,7 @@ export default async function EmailConfirmedPage({
             Go to sign in
           </Link>
           <p className="text-muted">
-            Signed up in the mobile app? Open ControlMiles on your phone and sign in there. Need help? Write to{" "}
+            Signed up in the mobile app? Open CM Fleet on your phone and sign in there. Need help? Write to{" "}
             <a href="mailto:support@controlmiles.com" className="text-accent hover:underline">
               support@controlmiles.com
             </a>
@@ -53,7 +53,7 @@ export default async function EmailConfirmedPage({
 
   if (invite) {
     return (
-      <AuthShell title="Email confirmed" subtitle="Your ControlMiles account is ready.">
+      <AuthShell title="Email confirmed" subtitle="Your CM Fleet account is ready.">
         <div className="space-y-4 text-sm">
           <AcceptPendingInvite organizationName={invite.organization_name} role={invite.intended_role} />
         </div>
@@ -62,10 +62,10 @@ export default async function EmailConfirmedPage({
   }
 
   return (
-    <AuthShell title="Email confirmed" subtitle="Your ControlMiles account is ready.">
+    <AuthShell title="Email confirmed" subtitle="Your CM Fleet account is ready.">
       <div className="space-y-4 text-sm">
         <p className="rounded-lg border border-border px-4 py-3">
-          <strong>Signed up in the mobile app?</strong> Go back to ControlMiles on your phone and sign in with
+          <strong>Signed up in the mobile app?</strong> Go back to CM Fleet on your phone and sign in with
           your email and password.
         </p>
         <Link

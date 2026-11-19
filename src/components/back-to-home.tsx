@@ -20,7 +20,7 @@ import Link from "next/link";
 export function BackToHome({
   href = "/",
   label = "Back",
-  ariaLabel = "Back to ControlMiles",
+  ariaLabel = "Back to CM Fleet",
 }: { href?: string; label?: string; ariaLabel?: string } = {}) {
   return (
     <Link

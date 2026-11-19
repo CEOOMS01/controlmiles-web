@@ -66,7 +66,7 @@ export function AddDriverForm({
       <div className={inSheet ? "" : "rounded-xl border border-border bg-surface p-5"}>
         <p className="text-sm font-medium">Driver added: {shown.displayId}</p>
         <p className="mt-1 text-sm text-muted">
-          Give them this one-time code to link their ControlMiles account. It
+          Give them this one-time code to link their CM Fleet account. It
           won&apos;t be shown again.
         </p>
         <div className="mt-3 flex items-center gap-2">

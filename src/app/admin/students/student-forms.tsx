@@ -811,7 +811,7 @@ export function PaymentForm({
           <span>
             <span className="font-medium">My own payment page</span>
             <span className="block text-muted">
-              The client is sent to your page (any provider). ControlMiles never handles the money.
+              The client is sent to your page (any provider). CM Fleet never handles the money.
             </span>
           </span>
         </label>

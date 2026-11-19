@@ -82,7 +82,7 @@ export async function checkCustomDomain(host: string, token: string): Promise<Do
   if (!vercelConfigured()) {
     return {
       status: "pending",
-      message: "Ownership confirmed. ControlMiles will finish connecting the address; no action needed from you.",
+      message: "Ownership confirmed. CM Fleet will finish connecting the address; no action needed from you.",
     };
   }
 

@@ -16,7 +16,7 @@ export function pickLang(param: string | string[] | undefined, acceptLanguage: s
 export const DATE_LOCALE: Record<Lang, string> = { en: "en-US", es: "es-US" };
 
 const en = {
-  metaTitle: "Your driving lessons · ControlMiles",
+  metaTitle: "Your driving lessons · CM Fleet",
   inactiveTitle: "This link isn't active",
   inactiveBody: "Ask your driving school for a new link.",
   behindWheel: "Behind the wheel",
@@ -34,7 +34,7 @@ const en = {
   noFinished: "No finished classes yet.",
   night: "night",
   mi: "mi",
-  private: "ControlMiles · This page is private to you; don't share the link.",
+  private: "CM Fleet · This page is private to you; don't share the link.",
   score1: "Needs work",
   score2: "Developing",
   score3: "Good",
@@ -89,7 +89,7 @@ const en = {
 };
 
 const es: typeof en = {
-  metaTitle: "Tus clases de manejo · ControlMiles",
+  metaTitle: "Tus clases de manejo · CM Fleet",
   inactiveTitle: "Este enlace no está activo",
   inactiveBody: "Pídele a tu escuela de manejo un enlace nuevo.",
   behindWheel: "Al volante",
@@ -107,7 +107,7 @@ const es: typeof en = {
   noFinished: "Aún no hay clases terminadas.",
   night: "noche",
   mi: "mi",
-  private: "ControlMiles · Esta página es privada para ti; no compartas el enlace.",
+  private: "CM Fleet · Esta página es privada para ti; no compartas el enlace.",
   score1: "Por mejorar",
   score2: "En desarrollo",
   score3: "Bien",

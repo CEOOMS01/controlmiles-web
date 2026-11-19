@@ -56,7 +56,7 @@ export function AuthShell({
           </ul>
           </div>
         </div>
-        <p className="relative text-xs text-white/50">© {new Date().getFullYear()} ControlMiles · Powered by Olimsys</p>
+        <p className="relative text-xs text-white/50">© {new Date().getFullYear()} CM Fleet · Powered by Olimsys</p>
       </aside>
 
       <section className="relative flex items-center justify-center px-4 py-16 sm:px-8">
@@ -70,7 +70,7 @@ export function AuthShell({
           <div className="mb-8">
             <Image
               src="/logo_controlmiles.png"
-              alt="ControlMiles"
+              alt="CM Fleet"
               width={48}
               height={48}
               className="mb-6 rounded-xl lg:hidden"

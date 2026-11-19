@@ -5,7 +5,7 @@ export default function CheckEmailPage() {
     <main className="flex flex-1 items-center justify-center px-4 py-16">
       <div className="w-full max-w-sm text-center">
         <p className="text-sm font-semibold tracking-wide text-accent uppercase">
-          ControlMiles
+          CM Fleet
         </p>
         <h1 className="mt-1 text-2xl font-semibold">Check your email</h1>
         <p className="mt-3 text-sm text-muted">

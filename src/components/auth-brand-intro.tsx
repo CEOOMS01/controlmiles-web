@@ -24,7 +24,7 @@ export function AuthBrandLogo() {
         />
       </span>
       <span className="auth-brand-name text-lg font-semibold tracking-tight">
-        <span className="auth-brand-name-sheen">ControlMiles</span>
+        <span className="auth-brand-name-sheen">CM Fleet</span>
       </span>
     </div>
   );

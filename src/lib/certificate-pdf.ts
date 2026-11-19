@@ -53,7 +53,7 @@ export async function buildCertificatePdf(data: CertificateData, sha256: string)
   const text = (t: string, x: number, size = 10, f: PDFFont = font, color = ink) =>
     page.drawText(safe(t), { x, y, size, font: f, color });
 
-  text("ControlMiles", M, 11, bold, accent);
+  text("CM Fleet", M, 11, bold, accent);
   y -= 30;
   text("Certificate of Behind-the-Wheel Training", M, 20, bold);
   y -= 22;

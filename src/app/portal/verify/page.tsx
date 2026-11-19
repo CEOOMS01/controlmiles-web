@@ -57,7 +57,7 @@ export default function VerifyPage() {
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
           <p className="text-sm font-semibold tracking-wide text-accent uppercase">
-            ControlMiles Report Portal
+            CM Fleet Report Portal
           </p>
           <h1 className="mt-1 text-2xl font-semibold">Enter access code</h1>
           <p className="mt-2 text-sm text-muted">
@@ -164,7 +164,7 @@ function ReportView({ report, onReset }: { report: PortalReport; onReset: () => 
         <div className="mb-6 flex items-start justify-between gap-4">
           <div>
             <p className="text-sm font-semibold tracking-wide text-accent uppercase">
-              ControlMiles Report Portal
+              CM Fleet Report Portal
             </p>
             <h1 className="mt-1 text-2xl font-semibold">
               {report.driver_display_name || "Driver"}
@@ -394,7 +394,7 @@ function ReportView({ report, onReset }: { report: PortalReport; onReset: () => 
         <p className="mt-4 text-xs text-muted">
           Estimated using the IRS 2026 standard mileage rates ($0.725/mile Jan 1 – Jun 30,
           $0.76/mile Jul 1 – Dec 31 — each trip priced at the rate in effect on its own date).
-          ControlMiles is not affiliated with or endorsed by the IRS or any official agency.
+          CM Fleet is not affiliated with or endorsed by the IRS or any official agency.
           This is an informational estimate only, not a guaranteed deduction — consult a tax
           professional.
         </p>

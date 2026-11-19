@@ -37,7 +37,7 @@ export default async function CreateOrganizationPage() {
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
           <p className="text-sm font-semibold tracking-wide text-accent uppercase">
-            ControlMiles
+            CM Fleet
           </p>
           <h1 className="mt-1 text-2xl font-semibold">Set up your fleet</h1>
           <p className="mt-2 text-sm text-muted">

@@ -117,7 +117,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
           <h1 className="text-xl font-semibold">Admin access required</h1>
           <p className="mt-2 max-w-sm text-sm text-muted">
             You&apos;re a member of {org.name}, but not an admin. Use the
-            ControlMiles app to track trips — fleet management stays with
+            CM Fleet app to track trips — fleet management stays with
             your admin.
           </p>
         </div>
@@ -198,7 +198,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
     <div className="space-y-3">
       <div className="flex items-center gap-2.5 px-1.5">
         <Image src="/logo_controlmiles.png" alt="" width={26} height={26} className="rounded-md" />
-        <p className="text-sm font-semibold tracking-tight text-sidebar-strong">ControlMiles</p>
+        <p className="text-sm font-semibold tracking-tight text-sidebar-strong">CM Fleet</p>
         {/* Every schedule change by any role, live (2026-11-16); only schools with classes. */}
         {has("classes") && (
           <div className="ml-auto">

@@ -263,7 +263,7 @@ function DriverResultsTable({ results }: { results: DriverImportResult[] }) {
       </div>
       <p className="mb-2 text-xs text-muted">
         Claim codes are shown only once. Download them now and hand each one to its driver so they can link
-        their ControlMiles account.
+        their CM Fleet account.
       </p>
       <div className="max-h-72 overflow-auto rounded-lg border border-border">
         <table className="w-full text-sm">

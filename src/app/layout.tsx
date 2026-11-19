@@ -16,9 +16,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ControlMiles — Mileage tracking for gig drivers & fleets",
+  title: "CM Fleet — Fleet and driving school management",
   description:
-    "GPS trip tracking, odometer verification, and automatic gig-app detection for gig drivers and the fleets managing them.",
+    "GPS trip tracking, odometer verification, schedules and payments for fleets, school buses and driving schools.",
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {

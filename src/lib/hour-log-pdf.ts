@@ -142,7 +142,7 @@ export async function buildHourLogPdf(d: HourLogData): Promise<Uint8Array> {
   text("School official signature", M, 8, font, muted);
   text("Date", M + 300, 8, font, muted);
   y -= 22;
-  text(`Printed ${d.printed_at} · ControlMiles`, M, 7, font, muted);
+  text(`Printed ${d.printed_at} · CM Fleet`, M, 7, font, muted);
 
   return doc.save();
 }

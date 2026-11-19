@@ -88,7 +88,7 @@ export default function LoginPage() {
   return (
     <AuthShell
       title="Welcome back"
-      subtitle="Sign in to your fleet dashboard. Drivers sign in from the ControlMiles app."
+      subtitle="Sign in to your fleet dashboard. Drivers sign in from the CM Fleet app."
     >
 
         <Suspense fallback={null}>

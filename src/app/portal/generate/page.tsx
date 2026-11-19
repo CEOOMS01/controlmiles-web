@@ -22,7 +22,7 @@ export default async function GenerateReportCodePage() {
       <div className="w-full max-w-md">
         <div className="mb-8">
           <p className="text-sm font-semibold tracking-wide text-accent uppercase">
-            ControlMiles Report Portal
+            CM Fleet Report Portal
           </p>
           <h1 className="mt-1 text-2xl font-semibold">Generate a report code</h1>
           <p className="mt-2 text-sm text-muted">

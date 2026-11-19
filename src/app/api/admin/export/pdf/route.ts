@@ -26,7 +26,7 @@ async function buildPdf(result: FleetExportResult): Promise<Uint8Array> {
   let y = PAGE_HEIGHT - MARGIN;
 
   const drawHeader = () => {
-    page.drawText("ControlMiles — Fleet Mileage Export", {
+    page.drawText("CM Fleet — Fleet Mileage Export", {
       x: MARGIN,
       y,
       size: 16,

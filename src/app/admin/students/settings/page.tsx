@@ -223,13 +223,13 @@ export default async function StudentSettingsPage({ searchParams }: { searchPara
               </SettingsSection>
               <SettingsSection
                 title="How you get paid"
-                help="You collect your own payments. ControlMiles only shows the price and sends the client to your payment page."
+                help="You collect your own payments. CM Fleet only shows the price and sends the client to your payment page."
               >
                 <PaymentForm mode={pay.mode} link={pay.link} instructions={pay.instructions} banquestConnected={!!banquest} />
               </SettingsSection>
               <SettingsSection
                 title="Automatic payments (Banquest)"
-                help="Connect your own Banquest account and each order is marked paid the moment the client pays. The money goes straight to you; ControlMiles never holds it and takes no fee."
+                help="Connect your own Banquest account and each order is marked paid the moment the client pays. The money goes straight to you; CM Fleet never holds it and takes no fee."
               >
                 <BanquestConnect state={banquest} />
               </SettingsSection>
