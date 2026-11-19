@@ -29,7 +29,7 @@ export default async function InviteSuccessPage() {
       <div className="w-full max-w-sm text-center">
         <Image
           src="/logo_controlmiles.png"
-          alt="ControlMiles"
+          alt="CM Fleet"
           width={64}
           height={64}
           className="mx-auto rounded-xl"
@@ -37,14 +37,14 @@ export default async function InviteSuccessPage() {
         />
         <h1 className="mt-4 text-2xl font-semibold">You&apos;re in</h1>
         <p className="mt-2 text-sm text-muted">
-          Open the ControlMiles app on your phone and sign in to start tracking trips.
+          Open the CM Fleet app on your phone and sign in to start tracking trips.
         </p>
         {displayId && (
           <div className="mt-6 rounded-xl border border-border bg-surface p-4">
             <p className="text-xs font-medium text-muted">Your user ID</p>
             <p className="mt-1 font-mono text-xl tracking-wider">{displayId}</p>
             <p className="mt-2 text-xs text-muted">
-              In the ControlMiles Fleet app, choose Team fleet and sign in with this ID and the
+              In the CM Fleet app, choose Team fleet and sign in with this ID and the
               password you just chose (admins choose Admin and use their email). Write it down
               or take a screenshot.
             </p>

@@ -135,7 +135,7 @@ export async function acceptInviteNewAccount(
   const made = await createConfirmedAccount(token, password);
   if (made.status === "exists") {
     return {
-      error: "You already have a ControlMiles account with this email. Reload this page and sign in with your password.",
+      error: "You already have a CM Fleet account with this email. Reload this page and sign in with your password.",
     };
   }
   if (made.status !== "created" || !made.email) return { error: accountError(made.status) };

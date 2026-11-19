@@ -117,7 +117,7 @@ function ExistingAccountForm({ token, email }: { token: string; email: string })
       <input type="hidden" name="token" value={token} />
       <input type="hidden" name="email" value={email} />
       <p className="text-sm text-muted">
-        You already have a ControlMiles account with this email — sign in to accept.
+        You already have a CM Fleet account with this email — sign in to accept.
       </p>
       <div>
         <label htmlFor="password" className="mb-1.5 block text-sm font-medium">
@@ -156,7 +156,7 @@ function NewAccountForm({ token, email }: { token: string; email: string }) {
       <input type="hidden" name="token" value={token} />
       <input type="hidden" name="email" value={email} />
       <p className="text-sm text-muted">
-        Set a password to create your ControlMiles account and join the fleet.
+        Set a password to create your CM Fleet account and join the fleet.
       </p>
       <div>
         <label htmlFor="password" className="mb-1.5 block text-sm font-medium">

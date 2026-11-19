@@ -30,7 +30,7 @@ export default async function InvitePage({
         <div className="mb-8 text-center">
           <Image
             src="/logo_controlmiles.png"
-            alt="ControlMiles"
+            alt="CM Fleet"
             width={64}
             height={64}
             className="mx-auto rounded-xl"
