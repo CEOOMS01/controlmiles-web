@@ -5,6 +5,7 @@ import { Page, PageHeader, PageTabs } from "@/components/page-ui";
 import { Sheet } from "@/components/sheet";
 import { RemoveButton } from "./remove-button";
 import { ResendInviteButton } from "./resend-invite-button";
+import { ToastHost } from "./toast-host";
 import { describeInvite, latestInviteBySlot, type InviteRow } from "@/lib/invites";
 import { RemoveSlotButton } from "./remove-slot-button";
 import { GenerateReportButton } from "./generate-report-button";
@@ -152,6 +153,7 @@ export default async function RosterPage({ searchParams }: { searchParams: Promi
 
   return (
     <Page>
+      <ToastHost />
       {/* Redesign (2026-10-20): the add forms open from the header in a
           slide-over panel, and drivers / vehicles are tabs. */}
       <PageHeader
@@ -286,7 +288,7 @@ export default async function RosterPage({ searchParams }: { searchParams: Promi
                     </td>
                     <td className="px-4 py-3 text-right">
                       <RowActionsMenu>
-                        {invite && <ResendInviteButton inviteId={invite.inviteId} />}
+                        {invite && <ResendInviteButton inviteId={invite.inviteId} email={invite.email} />}
                         <RemoveSlotButton
                           slotId={s.id}
                           label={invite ? "Cancel invitation" : "Remove"}

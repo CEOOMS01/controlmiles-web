@@ -2,21 +2,28 @@
 
 import { useState, useTransition } from "react";
 import { resendDriverInvite } from "./actions";
+import { showToast } from "./toast-host";
 
 // Row action for a driver who was invited but has not accepted yet (or whose
 // link expired). Issues a fresh link for the same driver row and emails it.
-export function ResendInviteButton({ inviteId }: { inviteId: string }) {
+//
+// The result is shown twice: a short line inside the menu, and a floating
+// notice (2026-11-19) that names the address and stays a few seconds, so it is
+// still there after the menu closes.
+export function ResendInviteButton({ inviteId, email }: { inviteId: string; email?: string }) {
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
 
   function handleResend() {
     startTransition(async () => {
       const result = await resendDriverInvite(inviteId);
-      setMessage(
-        result.error
-          ? { text: result.error, ok: false }
-          : { text: "Invitation sent again.", ok: true },
-      );
+      if (result.error) {
+        setMessage({ text: result.error, ok: false });
+        showToast({ text: result.error, ok: false });
+      } else {
+        setMessage({ text: "Invitation sent again.", ok: true });
+        showToast({ text: email ? `Invitation sent again to ${email}.` : "Invitation sent again.", ok: true });
+      }
     });
   }
 
