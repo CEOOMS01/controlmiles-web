@@ -138,9 +138,9 @@ export function ClassBlockForm({
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
-          <label className="mb-1.5 block text-sm font-medium">Vehicle (optional)</label>
+          <label className="mb-1.5 block text-sm font-medium">Vehicle</label>
           <select name="vehicle_id" defaultValue="" className={field}>
-            <option value="">Unassigned</option>
+            <option value="">Automatic (first free car)</option>
             {vehicles.map((v) => (
               <option key={v.id} value={v.id}>
                 {v.label}

@@ -24,6 +24,10 @@ export type Student = {
   last_name: string;
   phone: string | null;
   email: string | null;
+  address_line: string | null;
+  city: string | null;
+  state: string | null;
+  postal_code: string | null;
   guardian_name: string | null;
   guardian_phone: string | null;
   guardian_email: string | null;
@@ -38,7 +42,7 @@ export type Student = {
   preferred_language: "en" | "es" | null;
 };
 export const STUDENT_COLUMNS =
-  "id, first_name, last_name, phone, email, guardian_name, guardian_phone, guardian_email, status, notes, branch_id, program_id, state_cert_type, state_cert_number, sms_consent_at, sms_consent_phone, preferred_language";
+  "id, first_name, last_name, phone, email, address_line, city, state, postal_code, guardian_name, guardian_phone, guardian_email, status, notes, branch_id, program_id, state_cert_type, state_cert_number, sms_consent_at, sms_consent_phone, preferred_language";
 
 /** "Angel" for "Angel " -- first name plus last initial, trimmed. */
 export function shortName(s: string | null | undefined): string {

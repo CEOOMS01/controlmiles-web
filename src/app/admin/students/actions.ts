@@ -33,6 +33,11 @@ function studentFields(fd: FormData) {
     last_name: text(fd, "last_name", 60),
     phone: text(fd, "phone", 30),
     email: text(fd, "email", 120)?.toLowerCase() ?? null,
+    // Pickup address: the instructor sees it on the class and navigates to it from the app.
+    address_line: text(fd, "address_line", 160),
+    city: text(fd, "city", 80),
+    state: text(fd, "state", 40),
+    postal_code: text(fd, "postal_code", 12),
     guardian_name: text(fd, "guardian_name", 120),
     guardian_phone: text(fd, "guardian_phone", 30),
     guardian_email: text(fd, "guardian_email", 120)?.toLowerCase() ?? null,

@@ -378,6 +378,52 @@ export async function SchoolDashboard({
         </div>
       </div>
 
+      {classes && (
+        <section className="mb-6 rounded-xl border border-border bg-surface p-5">
+          <div className="mb-3 flex items-center justify-between">
+            <p className="font-semibold">School schedule · today</p>
+            <Link href="/admin/shifts" className="text-sm text-accent hover:underline">
+              Full schedule
+            </Link>
+          </div>
+          {todays.length === 0 ? (
+            <p className="py-10 text-center text-sm text-muted">No lessons today.</p>
+          ) : (
+            <ol className="divide-y divide-border">
+              {todays.map((b) => {
+                const s = b.student_id ? studentById.get(b.student_id) : undefined;
+                return (
+                  <li key={b.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 py-3 text-sm">
+                    <span className="w-36 shrink-0 font-medium tabular-nums">
+                      {time12(b.start_time)}–{time12(b.end_time)}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      {s ? (
+                        <Link href={`/admin/students/${s.id}`} className="font-medium hover:text-accent">
+                          {studentName(s)}
+                        </Link>
+                      ) : (
+                        <span className="text-muted">Open lesson</span>
+                      )}
+                      <span className="block text-xs text-muted">
+                        {[
+                          b.driver_id ? (names.get(b.driver_id) ?? "Instructor") : "No instructor yet",
+                          b.vehicle_id ? vehicleName.get(b.vehicle_id) : "Waiting for a car",
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
+                        {b.booked_via === "portal" && " · Booked online"}
+                      </span>
+                    </span>
+                    <StatusPill block={b} nowMinutes={now.minutes} />
+                  </li>
+                );
+              })}
+            </ol>
+          )}
+        </section>
+      )}
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {classes ? (
           <Kpi
@@ -433,51 +479,9 @@ export async function SchoolDashboard({
         )}
       </div>
 
-      {(classes || attention.length > 0 || has("dvir")) && (
+      {(attention.length > 0 || has("dvir") || classes) && (
         <div className="mt-6 grid gap-4 lg:grid-cols-3">
-          {classes && (
-            <section className="rounded-xl border border-border bg-surface p-5 lg:col-span-2">
-              <div className="mb-3 flex items-center justify-between">
-                <p className="font-semibold">Today&apos;s lessons</p>
-                <Link href="/admin/shifts" className="text-sm text-accent hover:underline">
-                  Full schedule
-                </Link>
-              </div>
-              {todays.length === 0 ? (
-                <p className="py-10 text-center text-sm text-muted">No lessons today.</p>
-              ) : (
-                <ol className="divide-y divide-border">
-                  {todays.map((b) => {
-                    const s = b.student_id ? studentById.get(b.student_id) : undefined;
-                    return (
-                      <li key={b.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 py-3 text-sm">
-                        <span className="w-36 shrink-0 font-medium tabular-nums">
-                          {time12(b.start_time)}–{time12(b.end_time)}
-                        </span>
-                        <span className="min-w-0 flex-1">
-                          {s ? (
-                            <Link href={`/admin/students/${s.id}`} className="font-medium hover:text-accent">
-                              {studentName(s)}
-                            </Link>
-                          ) : (
-                            <span className="text-muted">Open lesson</span>
-                          )}
-                          <span className="block text-xs text-muted">
-                            {[names.get(b.driver_id) ?? "Instructor", b.vehicle_id ? vehicleName.get(b.vehicle_id) : "No car"]
-                              .filter(Boolean)
-                              .join(" · ")}
-                            {b.booked_via === "portal" && " · Booked online"}
-                          </span>
-                        </span>
-                        <StatusPill block={b} nowMinutes={now.minutes} />
-                      </li>
-                    );
-                  })}
-                </ol>
-              )}
-            </section>
-          )}
-          <section className={`rounded-xl border border-border bg-surface p-5 ${classes ? "" : "lg:col-span-3"}`}>
+          <section className="rounded-xl border border-border bg-surface p-5 lg:col-span-3">
             <p className="mb-3 font-semibold">Needs attention</p>
             {attention.length === 0 ? (
               <div className="py-8 text-center">

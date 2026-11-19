@@ -147,6 +147,17 @@ export function StudentForm({
         </select>
       </div>
 
+      <div>
+        <p className="mb-2 text-sm font-semibold">Pickup address (optional)</p>
+        <p className="mb-2 text-xs text-muted">The instructor sees it on the class and can navigate to it from the app.</p>
+        <div className="grid gap-3 sm:grid-cols-6">
+          <input name="address_line" placeholder="Street and number" maxLength={160} defaultValue={student?.address_line ?? ""} className={`${field} sm:col-span-6`} />
+          <input name="city" placeholder="City" maxLength={80} defaultValue={student?.city ?? ""} className={`${field} sm:col-span-3`} />
+          <input name="state" placeholder="State" maxLength={40} defaultValue={student?.state ?? ""} className={`${field} sm:col-span-1`} />
+          <input name="postal_code" placeholder="ZIP" maxLength={12} defaultValue={student?.postal_code ?? ""} className={`${field} sm:col-span-2`} />
+        </div>
+      </div>
+
       {askGuardian && (
       <div>
         <p className="mb-2 text-sm font-semibold">Parent or guardian (optional)</p>
