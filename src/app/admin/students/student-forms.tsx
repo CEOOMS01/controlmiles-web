@@ -9,6 +9,7 @@ import { GroupTitle, SettingRow, Switch, UnitInput } from "@/components/settings
 import {
   addAvailability,
   addPackage,
+  addService,
   addSkill,
   addTimeOff,
   addStudentPackage,
@@ -20,8 +21,12 @@ import {
   removeTimeOff,
   revokePortalLink,
   saveDsSettings,
+  savePaymentSettings,
+  connectBanquest,
+  disconnectBanquest,
   saveProgram,
   setPackageActive,
+  setServiceActive,
   setSkillActive,
   updateStudent,
   type ActionState,
@@ -744,13 +749,244 @@ export function AddSkillForm() {
   );
 }
 
-export function ToggleButton({ id, active, kind }: { id: string; active: boolean; kind: "skill" | "package" }) {
+export function AddServiceForm({ branches }: { branches: { id: string; name: string }[] }) {
+  const [state, action, pending] = useActionState(addService, initial);
+  return (
+    <form action={action} className="flex flex-wrap items-center gap-2 pt-4">
+      <input name="name" placeholder="Service (e.g. 36-hour course)" maxLength={80} className={`${field} sm:w-64`} />
+      <input name="price" type="number" min="0" step="0.01" placeholder="Price $" className={`${field} w-28`} />
+      <select name="kind" defaultValue="product" className={`${field} w-44`} aria-label="Type">
+        <option value="product">Fixed service</option>
+        <option value="lesson">Driving lesson</option>
+        <option value="group_class">Group class</option>
+      </select>
+      <input name="hours" type="number" min="0" step="0.5" placeholder="Hours (optional)" className={`${field} w-36`} />
+      {branches.length > 0 && (
+        <select name="branch_id" defaultValue="" className={`${field} w-44`} aria-label="Location">
+          <option value="">All locations</option>
+          {branches.map((b) => (
+            <option key={b.id} value={b.id}>
+              {b.name}
+            </option>
+          ))}
+        </select>
+      )}
+      <input name="description" placeholder="Short description (optional)" maxLength={300} className={`${field} sm:w-80`} />
+      <button type="submit" disabled={pending} className={secondaryBtn}>
+        Add service
+      </button>
+      <Feedback state={state} />
+    </form>
+  );
+}
+
+export function PaymentForm({
+  mode,
+  link,
+  instructions,
+  banquestConnected = false,
+}: {
+  mode: "at_school" | "link" | "banquest";
+  link: string | null;
+  instructions: string | null;
+  banquestConnected?: boolean;
+}) {
+  const [state, action, pending] = useActionState(savePaymentSettings, initial);
+  const [m, setM] = useState(mode);
+  // Controlled: React clears uncontrolled fields after the action, which would lose what was typed on an error.
+  const [lk, setLk] = useState(link ?? "");
+  const [ins, setIns] = useState(instructions ?? "");
+  return (
+    <form action={action} className="space-y-4">
+      <fieldset className="space-y-2">
+        <label className="flex items-start gap-2 text-sm">
+          <input type="radio" name="payment_mode" value="at_school" checked={m === "at_school"} onChange={() => setM("at_school")} className="mt-1" />
+          <span>
+            <span className="font-medium">Pay at the school</span>
+            <span className="block text-muted">The client pays in person. You mark it as paid on the student.</span>
+          </span>
+        </label>
+        <label className="flex items-start gap-2 text-sm">
+          <input type="radio" name="payment_mode" value="link" checked={m === "link"} onChange={() => setM("link")} className="mt-1" />
+          <span>
+            <span className="font-medium">My own payment page</span>
+            <span className="block text-muted">
+              The client is sent to your page (any provider). ControlMiles never handles the money.
+            </span>
+          </span>
+        </label>
+        {banquestConnected && (
+          <label className="flex items-start gap-2 text-sm">
+            <input type="radio" name="payment_mode" value="banquest" checked={m === "banquest"} onChange={() => setM("banquest")} className="mt-1" />
+            <span>
+              <span className="font-medium">Automatic with Banquest</span>
+              <span className="block text-muted">
+                The client pays on your Banquest page and the order is marked paid by itself.
+              </span>
+            </span>
+          </label>
+        )}
+      </fieldset>
+      {m === "link" && (
+        <div>
+          <label className={label} htmlFor="payment_link">
+            Payment page address
+          </label>
+          <input id="payment_link" name="payment_link" type="url" value={lk} onChange={(e) => setLk(e.target.value)} placeholder="https://pay.example.com/your-school" maxLength={300} className={field} />
+        </div>
+      )}
+      <div>
+        <label className={label} htmlFor="payment_instructions">
+          What the client sees next to the price (optional)
+        </label>
+        <textarea
+          id="payment_instructions"
+          name="payment_instructions"
+          value={ins}
+          onChange={(e) => setIns(e.target.value)}
+          rows={3}
+          maxLength={500}
+          placeholder="e.g. Type the service name in the description box and the amount shown."
+          className={field}
+        />
+      </div>
+      <div className="flex items-center gap-3">
+        <button type="submit" disabled={pending} className={primaryBtn}>
+          {pending ? "Saving…" : "Save"}
+        </button>
+        <Feedback state={state} ok="Saved." />
+      </div>
+    </form>
+  );
+}
+
+export type BanquestState = {
+  status: "connected" | "error";
+  environment: "sandbox" | "production";
+  page_slug: string;
+  last_error: string | null;
+} | null;
+
+// Connect the school's own Banquest account (2026-11-19). The key is sent to the server and kept in a vault:
+// it is never shown again, and the field is empty every time.
+export function BanquestConnect({ state: current }: { state: BanquestState }) {
+  const [state, setState] = useState<ActionState>(initial);
+  const [pending, start] = useTransition();
+  const [slug, setSlug] = useState(current?.page_slug ?? "");
+  const [key, setKey] = useState("");
+  const [pin, setPin] = useState("");
+  const [sandbox, setSandbox] = useState(current?.environment === "sandbox");
+  const [editing, setEditing] = useState(false);
+  const [off, startOff] = useTransition();
+  const [offError, setOffError] = useState<string | null>(null);
+  const showForm = !current || editing || current.status === "error";
+
+  return (
+    <div className="space-y-3">
+      {current && (
+        <div className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm">
+          <p className="font-medium">
+            {current.status === "connected" ? "Connected to Banquest" : "Banquest needs attention"}
+            {current.environment === "sandbox" && <span className="ml-2 rounded-full bg-border px-2 py-0.5 text-xs">Sandbox (testing)</span>}
+          </p>
+          <p className="text-muted">Payment page: {current.page_slug}</p>
+          {current.status === "error" && current.last_error && <p className="mt-1 text-danger">{current.last_error}</p>}
+          <div className="mt-2 flex gap-4">
+            {!editing && current.status === "connected" && (
+              <button type="button" onClick={() => setEditing(true)} className="text-sm text-accent hover:underline">
+                Change key or page
+              </button>
+            )}
+            <button
+              type="button"
+              disabled={off}
+              onClick={() =>
+                startOff(async () => {
+                  const r = await disconnectBanquest();
+                  setOffError(r.error);
+                })
+              }
+              className="text-sm text-muted hover:text-foreground disabled:opacity-60"
+            >
+              {off ? "Disconnecting…" : "Disconnect"}
+            </button>
+          </div>
+          {offError && <p className="mt-1 text-danger">{offError}</p>}
+        </div>
+      )}
+      {showForm && (
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            const fd = new FormData(e.currentTarget);
+            // The key is only cleared once the connection worked; after an error the school can fix the page name and retry.
+            start(async () => {
+              const r = await connectBanquest(initial, fd);
+              setState(r);
+              if (r.success) {
+                setKey("");
+                setPin("");
+                setEditing(false);
+              }
+            });
+          }}
+          className="space-y-3"
+        >
+          <div>
+            <label className={label} htmlFor="page_slug">
+              Payment page name
+            </label>
+            <input id="page_slug" name="page_slug" value={slug} onChange={(e) => setSlug(e.target.value)} required maxLength={80} placeholder="the last part of your payment page address" className={field} />
+            <p className="mt-1 text-xs text-muted">For pay.banquest.com/your-school, type your-school.</p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label className={label} htmlFor="source_key">
+                Source key
+              </label>
+              <input id="source_key" name="source_key" type="password" autoComplete="off" value={key} onChange={(e) => setKey(e.target.value)} required maxLength={200} className={field} />
+            </div>
+            <div>
+              <label className={label} htmlFor="pin">
+                PIN (only if your key has one)
+              </label>
+              <input id="pin" name="pin" type="password" autoComplete="off" value={pin} onChange={(e) => setPin(e.target.value)} maxLength={60} className={field} />
+            </div>
+          </div>
+          <p className="text-xs text-muted">
+            Create the key in your Banquest Control Panel: Source Management, Create Key. Give it only the permissions it needs. It is stored encrypted and never shown again.
+          </p>
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" name="sandbox" checked={sandbox} onChange={(e) => setSandbox(e.target.checked)} />
+            This is a Banquest sandbox (testing) key
+          </label>
+          <div className="flex items-center gap-3">
+            <button type="submit" disabled={pending} className={primaryBtn}>
+              {pending ? "Connecting…" : current ? "Reconnect" : "Connect Banquest"}
+            </button>
+            <Feedback state={state} ok="Connected." />
+          </div>
+        </form>
+      )}
+    </div>
+  );
+}
+
+export function ToggleButton({ id, active, kind }: { id: string; active: boolean; kind: "skill" | "package" | "service" }) {
   const [pending, start] = useTransition();
   return (
     <button
       type="button"
       disabled={pending}
-      onClick={() => start(async () => void (kind === "skill" ? await setSkillActive(id, !active) : await setPackageActive(id, !active)))}
+      onClick={() =>
+        start(async () =>
+          void (kind === "skill"
+            ? await setSkillActive(id, !active)
+            : kind === "service"
+              ? await setServiceActive(id, !active)
+              : await setPackageActive(id, !active)),
+        )
+      }
       className="text-xs text-accent hover:underline disabled:opacity-60"
     >
       {active ? "Turn off" : "Turn on"}

@@ -24,7 +24,18 @@ import {
   type Program,
 } from "@/lib/driving-school";
 import { SettingsSection, SettingsTabs } from "@/components/settings-ui";
-import { AddPackageForm, AddProgram, AddSkillForm, DsSettingsForm, ProgramRow, ToggleButton } from "../student-forms";
+import {
+  AddPackageForm,
+  AddProgram,
+  AddServiceForm,
+  AddSkillForm,
+  BanquestConnect,
+  DsSettingsForm,
+  PaymentForm,
+  ProgramRow,
+  ToggleButton,
+  type BanquestState,
+} from "../student-forms";
 import { WebsiteForm, type PublicPageSettings } from "../website-forms";
 
 
@@ -64,6 +75,34 @@ export default async function StudentSettingsPage({ searchParams }: { searchPara
   // Website integration (2026-10-20): the public enrollment page, Enterprise.
   const showWebsite = features.has("student_portal");
   let publicPage: PublicPageSettings | null = null;
+  // Services the school sells and how it collects (2026-11-18): shown on its embedded page.
+  type ServiceRow = { id: string; name: string; description: string | null; kind: string; price_cents: number; minutes: number | null; branch_id: string | null; is_active: boolean };
+  let services: ServiceRow[] = [];
+  let branchList: { id: string; name: string }[] = [];
+  let pay = { mode: "at_school" as "at_school" | "link" | "banquest", link: null as string | null, instructions: null as string | null };
+  let banquest: BanquestState = null;
+  if (showWebsite) {
+    const { data: bq } = await supabase
+      .from("ds_payment_providers")
+      .select("status, environment, page_slug, last_error")
+      .eq("organization_id", orgId)
+      .maybeSingle();
+    banquest = (bq as BanquestState) ?? null;
+    const [{ data: sv }, { data: br }, { data: ps }] = await Promise.all([
+      supabase.from("ds_services").select("id, name, description, kind, price_cents, minutes, branch_id, is_active").eq("organization_id", orgId).order("sort").order("name"),
+      supabase.from("branches").select("id, name").eq("organization_id", orgId).eq("is_archived", false).order("name"),
+      supabase.from("ds_settings").select("payment_mode, payment_link, payment_instructions").eq("organization_id", orgId).maybeSingle(),
+    ]);
+    services = (sv ?? []) as ServiceRow[];
+    branchList = (br ?? []) as { id: string; name: string }[];
+    if (ps) {
+      pay = {
+        mode: ps.payment_mode === "link" ? "link" : ps.payment_mode === "banquest" && banquest ? "banquest" : "at_school",
+        link: ps.payment_link,
+        instructions: ps.payment_instructions,
+      };
+    }
+  }
   let suggestedSlug = "";
   let siteUrl = "https://controlmiles.com";
   if (showWebsite) {
@@ -101,6 +140,7 @@ export default async function StudentSettingsPage({ searchParams }: { searchPara
     ...(showReminder && !showBooking ? [{ id: "booking", label: "Reminders" }] : []),
     ...(hasEval ? [{ id: "skills", label: "Report card" }] : []),
     ...(hasPkg ? [{ id: "packages", label: "Packages" }] : []),
+    ...(showWebsite ? [{ id: "services", label: "Services & payment" }] : []),
     ...(showWebsite ? [{ id: "website", label: "Website" }] : []),
   ];
   const tab = tabs.some((t) => t.id === sp.tab) ? sp.tab! : "programs";
@@ -142,6 +182,58 @@ export default async function StudentSettingsPage({ searchParams }: { searchPara
             >
               <DsSettingsForm settings={settings} showBooking={showBooking} showReminder={showReminder} />
             </SettingsSection>
+          )}
+
+          {tab === "services" && (
+            <>
+              <SettingsSection
+                title="Services"
+                help="What you sell and its price. Clients see this list on the page inside your website."
+              >
+                {services.length === 0 ? (
+                  <p className="text-sm text-muted">No services yet.</p>
+                ) : (
+                  <table className="w-full text-sm">
+                    <thead className="text-left text-xs text-muted">
+                      <tr>
+                        <th className="py-2 pr-3 font-medium">Service</th>
+                        <th className="px-3 py-2 font-medium">Where</th>
+                        <th className="px-3 py-2 font-medium">Price</th>
+                        <th className="py-2 pl-3" />
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border border-y border-border">
+                      {services.map((s) => (
+                        <tr key={s.id} className={s.is_active ? "" : "text-muted"}>
+                          <td className="py-2.5 pr-3">
+                            {s.name}
+                            {s.minutes ? <span className="text-muted"> · {formatMinutes(s.minutes)}</span> : null}
+                          </td>
+                          <td className="px-3 py-2.5">{branchList.find((b) => b.id === s.branch_id)?.name ?? "All locations"}</td>
+                          <td className="px-3 py-2.5">{money(s.price_cents)}</td>
+                          <td className="py-2.5 pl-3 text-right">
+                            <ToggleButton id={s.id} active={s.is_active} kind="service" />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+                <AddServiceForm branches={branchList} />
+              </SettingsSection>
+              <SettingsSection
+                title="How you get paid"
+                help="You collect your own payments. ControlMiles only shows the price and sends the client to your payment page."
+              >
+                <PaymentForm mode={pay.mode} link={pay.link} instructions={pay.instructions} banquestConnected={!!banquest} />
+              </SettingsSection>
+              <SettingsSection
+                title="Automatic payments (Banquest)"
+                help="Connect your own Banquest account and each order is marked paid the moment the client pays. The money goes straight to you; ControlMiles never holds it and takes no fee."
+              >
+                <BanquestConnect state={banquest} />
+              </SettingsSection>
+            </>
           )}
 
           {tab === "website" && (

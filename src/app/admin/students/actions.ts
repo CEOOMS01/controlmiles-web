@@ -378,6 +378,71 @@ export async function addPackage(_p: ActionState, fd: FormData): Promise<ActionS
   return { error: null, success: true };
 }
 
+// ---------------- services (what the school sells) and how the school gets paid ----------------
+// 2026-11-18: ControlMiles never takes the student's payment; the school lists its services with prices
+// and says how it collects (at the school, or its own payment link). See the plan, phase 1.
+export async function addService(_p: ActionState, fd: FormData): Promise<ActionState> {
+  const org = await orgId();
+  const name = text(fd, "name", 80);
+  const price = Number(text(fd, "price", 10) ?? "0");
+  const hours = Number(text(fd, "hours", 8) ?? "0");
+  const kind = ["lesson", "group_class", "product"].includes(String(fd.get("kind"))) ? String(fd.get("kind")) : "product";
+  if (!org || !name) return { error: "Enter the service name.", success: false };
+  if (!(price >= 0 && price <= 100000)) return { error: "Enter a price.", success: false };
+  if (!(hours >= 0 && hours <= 1000)) return { error: "Hours: 0 to 1000.", success: false };
+  const supabase = await createClient();
+  const { error } = await supabase.from("ds_services").insert({
+    organization_id: org,
+    name,
+    description: text(fd, "description", 300),
+    kind,
+    price_cents: Math.round(price * 100),
+    minutes: hours > 0 ? Math.round(hours * 60) : null,
+    branch_id: text(fd, "branch_id", 40),
+  });
+  if (error) return { error: AppError.from(error).display(), success: false };
+  revalidatePath("/admin/students/settings");
+  return { error: null, success: true };
+}
+
+export async function setServiceActive(id: string, active: boolean): Promise<ActionState> {
+  const supabase = await createClient();
+  const { error } = await supabase.from("ds_services").update({ is_active: active }).eq("id", id);
+  if (error) return { error: AppError.from(error).display(), success: false };
+  revalidatePath("/admin/students/settings");
+  return { error: null, success: true };
+}
+
+export async function savePaymentSettings(_p: ActionState, fd: FormData): Promise<ActionState> {
+  const org = await orgId();
+  if (!org) return { error: "No fleet.", success: false };
+  const asked = String(fd.get("payment_mode") ?? "");
+  const mode = asked === "link" ? "link" : asked === "banquest" ? "banquest" : "at_school";
+  const link = text(fd, "payment_link", 300);
+  if (mode === "link" && !(link && /^https:\/\/[^\s]+$/.test(link))) {
+    return { error: "Enter your payment page address, starting with https://", success: false };
+  }
+  const supabase = await createClient();
+  if (mode === "banquest") {
+    const { data: connected } = await supabase.from("ds_payment_providers").select("status").eq("organization_id", org).maybeSingle();
+    if (!connected) return { error: "Connect your Banquest account first.", success: false };
+  }
+  // Only the payment columns: the rest of the settings stay as they are (the row is created if it is missing).
+  const { error } = await supabase.from("ds_settings").upsert(
+    {
+      organization_id: org,
+      payment_mode: mode,
+      payment_link: mode === "link" ? link : null,
+      payment_instructions: text(fd, "payment_instructions", 500),
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "organization_id" },
+  );
+  if (error) return { error: AppError.from(error).display(), success: false };
+  revalidatePath("/admin/students", "layout");
+  return { error: null, success: true };
+}
+
 export async function setPackageActive(id: string, active: boolean): Promise<ActionState> {
   const supabase = await createClient();
   const { error } = await supabase.from("ds_packages").update({ is_active: active }).eq("id", id);
@@ -505,5 +570,87 @@ export async function clearCustomDomain(): Promise<ActionState> {
   if (error) return { error: AppError.from(error).display(), success: false };
   if (old) await removeCustomDomain(String(old));
   revalidatePath("/admin/students/settings");
+  return { error: null, success: true };
+}
+
+// A client's order from the school's portal: the school marks it paid (or cancels it).
+export async function setOrderStatus(id: string, status: "paid" | "cancelled" | "pending_payment"): Promise<ActionState> {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("ds_service_orders")
+    .update({
+      status,
+      decided_at: status === "pending_payment" ? null : new Date().toISOString(),
+      paid_via: status === "paid" ? "manual" : null,
+    })
+    .eq("id", id);
+  if (error) return { error: AppError.from(error).display(), success: false };
+  revalidatePath("/admin/students");
+  return { error: null, success: true };
+}
+
+// Automatic payments with the school's own Banquest account (2026-11-19). The key goes to the ds-banquest
+// Edge Function, which stores it in Supabase Vault; it is never kept or returned here.
+const BANQUEST_ERRORS: Record<string, string> = {
+  KEY_REJECTED: "Banquest didn't accept that key. Check the source key and the PIN.",
+  PAGE_NOT_FOUND: "Banquest has no payment page with that name. Use the last part of your payment page address.",
+  PAGE_FIELDS: "Banquest couldn't prepare a payment link for that page.",
+  PROVIDER_ERROR: "Banquest answered with an error. Try again in a minute.",
+  PROVIDER_UNREACHABLE: "Couldn't reach Banquest. Try again in a minute.",
+  WEBHOOK_LIMIT: "Your Banquest account already has 10 notification addresses, the maximum. Remove one in your Banquest Control Panel and try again.",
+  WEBHOOK_FAILED: "Banquest wouldn't register the payment notification.",
+  SERVICE_DOWN: "Automatic payments aren't available right now. Try again later.",
+  FORBIDDEN: "Only the school's owner or an admin can connect payments.",
+  INVALID: "Check the payment page name and the key.",
+};
+
+async function banquestCall(path: "connect" | "disconnect", body: Record<string, unknown>): Promise<{ ok: boolean; error?: string; detail?: string }> {
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  if (!token) return { ok: false, error: "FORBIDDEN" };
+  try {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/ds-banquest/${path}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        apikey: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? "",
+      },
+      body: JSON.stringify(body),
+    });
+    const r = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string; detail?: string };
+    if (res.ok && r.ok) return { ok: true };
+    // 404 with no answer from our function: the payments service is not deployed in this environment.
+    return { ok: false, error: r.error ?? (res.status === 404 ? "SERVICE_DOWN" : "PROVIDER_ERROR"), detail: r.detail };
+  } catch {
+    return { ok: false, error: "PROVIDER_UNREACHABLE" };
+  }
+}
+
+export async function connectBanquest(_p: ActionState, fd: FormData): Promise<ActionState> {
+  const org = await orgId();
+  if (!org) return { error: "No fleet.", success: false };
+  const r = await banquestCall("connect", {
+    org,
+    page_slug: text(fd, "page_slug", 80) ?? "",
+    source_key: text(fd, "source_key", 200) ?? "",
+    pin: text(fd, "pin", 60) ?? "",
+    environment: fd.get("sandbox") === "on" ? "sandbox" : "production",
+  });
+  if (!r.ok) {
+    const base = BANQUEST_ERRORS[r.error ?? ""] ?? "Couldn't connect Banquest. Try again.";
+    return { error: r.detail ? `${base} (${r.detail.slice(0, 160)})` : base, success: false };
+  }
+  revalidatePath("/admin/students", "layout");
+  return { error: null, success: true };
+}
+
+export async function disconnectBanquest(): Promise<ActionState> {
+  const org = await orgId();
+  if (!org) return { error: "No fleet.", success: false };
+  const r = await banquestCall("disconnect", { org });
+  if (!r.ok) return { error: BANQUEST_ERRORS[r.error ?? ""] ?? "Couldn't disconnect. Try again.", success: false };
+  revalidatePath("/admin/students", "layout");
   return { error: null, success: true };
 }

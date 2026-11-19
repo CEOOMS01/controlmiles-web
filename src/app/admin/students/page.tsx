@@ -26,6 +26,7 @@ import { StudentForm } from "./student-forms";
 import { Page, PageHeader } from "@/components/page-ui";
 import { Sheet } from "@/components/sheet";
 import { EnrollmentRequests, type EnrollmentRequest } from "./website-forms";
+import { ServiceOrders, type ServiceOrder } from "./service-orders";
 
 export default async function StudentsPage({
   searchParams,
@@ -62,6 +63,16 @@ export default async function StudentsPage({
         .order("created_at", { ascending: false })
     : { data: null };
 
+  // Orders from the portal's services page (2026-11-18).
+  const { data: orderRows } = features.has("student_portal")
+    ? await supabase
+        .from("ds_service_orders")
+        .select("id, service_name, price_cents, client_name, client_email, client_phone, note, status, created_at, branch_id, paid_via, review_note")
+        .eq("organization_id", orgId)
+        .order("created_at", { ascending: false })
+        .limit(200)
+    : { data: null };
+
   const programs = (programRows ?? []) as Program[];
   const programOf = (s: Student) => programs.find((p) => p.id === s.program_id) ?? NO_PROGRAM;
   const progress = new Map(((progressRows ?? []) as StudentProgress[]).map((p) => [p.student_id, p]));
@@ -78,6 +89,10 @@ export default async function StudentsPage({
       program: r.program_id ? (programName.get(r.program_id) ?? null) : null,
       branch: r.branch_id ? (branchName.get(r.branch_id) ?? null) : null,
     }));
+
+  const orders: ServiceOrder[] = ((orderRows ?? []) as (Omit<ServiceOrder, "branch"> & { branch_id: string | null })[])
+    .filter((o) => !scope.current || !o.branch_id || o.branch_id === scope.current.id)
+    .map((o) => ({ ...o, branch: o.branch_id ? (branchName.get(o.branch_id) ?? null) : null }));
 
   const rows = ((students ?? []) as Student[])
     .filter((s) => !scope.current || s.branch_id === scope.current.id)
@@ -137,6 +152,7 @@ export default async function StudentsPage({
       />
 
       <EnrollmentRequests requests={requests} />
+      <ServiceOrders orders={orders} />
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
         {tab("current", "Current")}
