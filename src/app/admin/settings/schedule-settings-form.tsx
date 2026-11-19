@@ -22,11 +22,13 @@ export function ScheduleSettingsForm({
   orgId,
   timezone,
   windowMinutes,
+  pickupLeadMinutes,
   showClassWindow,
 }: {
   orgId: string;
   timezone: string;
   windowMinutes: number;
+  pickupLeadMinutes: number;
   // The class start window only exists for the Driving school template.
   showClassWindow: boolean;
 }) {
@@ -59,6 +61,16 @@ export function ScheduleSettingsForm({
         </SettingRow>
       ) : (
         <input type="hidden" name="shift_start_window_minutes" value={windowMinutes} />
+      )}
+      {showClassWindow ? (
+        <SettingRow
+          title="Pickup trip"
+          help="How early before a class the instructor can start the drive to the student's home (only for students with a pickup address). Those miles are recorded as business miles of the class. 0 turns it off."
+        >
+          <UnitInput name="pickup_lead_minutes" defaultValue={pickupLeadMinutes} unit="minutes" min={0} max={180} />
+        </SettingRow>
+      ) : (
+        <input type="hidden" name="pickup_lead_minutes" value={pickupLeadMinutes} />
       )}
       <div className="flex items-center justify-end gap-3 py-3">
         <SaveStatus pending={false} success={!pending && state.success} error={state.error} />

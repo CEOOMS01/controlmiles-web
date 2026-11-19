@@ -181,16 +181,21 @@ export async function setScheduleSettings(
   const orgId = String(formData.get("org_id") ?? "");
   const timezone = String(formData.get("timezone") ?? "").trim();
   const windowMin = Number(formData.get("shift_start_window_minutes"));
+  // Pickup trip (2026-11-19): how early the drive to the student's home may start; 0 = off.
+  const pickupLead = Number(formData.get("pickup_lead_minutes") ?? 60);
 
   if (!orgId || !timezone) return { error: "Pick a timezone.", success: false };
   if (!Number.isInteger(windowMin) || windowMin < 0 || windowMin > 120) {
     return { error: "The start window must be between 0 and 120 minutes.", success: false };
   }
+  if (!Number.isInteger(pickupLead) || pickupLead < 0 || pickupLead > 180) {
+    return { error: "The pickup trip must start between 0 and 180 minutes before the class.", success: false };
+  }
 
   const supabase = await createClient();
   const { error } = await supabase
     .from("organizations")
-    .update({ timezone, shift_start_window_minutes: windowMin })
+    .update({ timezone, shift_start_window_minutes: windowMin, pickup_lead_minutes: pickupLead })
     .eq("id", orgId);
   if (error) return { error: AppError.from(error).display(), success: false };
 
