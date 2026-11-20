@@ -30,6 +30,8 @@ export type ScheduleEvent = {
     late_cancel?: boolean | null;
     label?: string | null;
     note?: string | null;
+    late_minutes?: number;
+    minutes_left?: number;
   };
 };
 

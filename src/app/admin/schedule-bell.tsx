@@ -65,6 +65,12 @@ export function describe(e: ScheduleEvent): string {
       return `${who(e)} cancelled the class on ${slot}.`;
     case "class_deleted":
       return `${who(e)} deleted the class on ${slot}.`;
+    case "class_late_start":
+      return `${instr} started the class on ${slot} ${p.late_minutes ?? "?"} min late.`;
+    case "class_unclaimed_soon": {
+      const left = typeof p.minutes_left === "number" ? p.minutes_left : null;
+      return `No instructor yet for the class on ${slot}${left === null ? "" : left <= 0 ? " — it should be starting now" : ` — starts in ${left} min`}.`;
+    }
     case "time_off_added":
       return `${instr} is off ${p.from === p.to ? day(p.from) : `${day(p.from)} – ${day(p.to)}`}${p.note ? ` (${p.note})` : ""}${e.actor_role && e.actor_role !== "driver" ? ` — set by ${who(e)}` : ""}.`;
     case "time_off_removed":
