@@ -9,6 +9,7 @@
 // school's plan includes it (fn_org_features); RLS enforces the same.
 
 import Link from "next/link";
+import { InstructorNoticeCard } from "./instructor-notice-card";
 import { createClient } from "@/lib/supabase/server";
 import type { BranchScope } from "@/lib/branch-scope";
 import type { FeatureSet, FleetFeature } from "@/lib/fleet-features";
@@ -105,6 +106,14 @@ export async function SchoolDashboard({
   const packages = has("student_packages");
   const certificates = has("student_certificates");
   const availability = has("student_booking");
+
+  const { data: noticeRows } = classes
+    ? await supabase
+        .from("instructor_notices")
+        .select("id, body, is_active, ends_on")
+        .eq("organization_id", orgId)
+        .order("created_at", { ascending: true })
+    : { data: null };
 
   const now = localNow(timeZone);
   const today = now.date;
@@ -423,6 +432,8 @@ export async function SchoolDashboard({
           )}
         </section>
       )}
+
+      {classes && <InstructorNoticeCard orgId={orgId} notices={noticeRows ?? []} />}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {classes ? (

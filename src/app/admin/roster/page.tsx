@@ -239,6 +239,7 @@ export default async function RosterPage({ searchParams }: { searchParams: Promi
                             subjectName={name}
                             current={m.any_branch ? "any" : (m.branch_id ?? "")}
                             branches={branchOptions}
+                            allowAny={isOwner && (m.member_role === "admin" || m.member_role === "operator")}
                           />
                         ) : (
                           <span className="text-muted">

@@ -15,6 +15,7 @@ export function BranchMove({
   subjectName,
   current,
   branches,
+  allowAny = false,
 }: {
   subjectType: "member" | "student";
   subjectId: string;
@@ -22,6 +23,8 @@ export function BranchMove({
   /** branch id, "any" (instructor works at any branch) or "" (none) */
   current: string;
   branches: Option[];
+  /** Only the owner may let an admin or operator move between branches (the database enforces it too). */
+  allowAny?: boolean;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [to, setTo] = useState(current);
@@ -83,7 +86,7 @@ export function BranchMove({
                   {b.name}
                 </option>
               ))}
-              {subjectType === "member" && <option value="any">Any branch</option>}
+              {subjectType === "member" && allowAny && <option value="any">Any branch</option>}
             </select>
           </label>
           <label className="block">
