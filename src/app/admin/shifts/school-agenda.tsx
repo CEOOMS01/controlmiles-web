@@ -15,8 +15,13 @@ import { AgendaGrid, fmtMinutes, type AgendaItem, type AgendaShade } from "@/com
 import {
   addAgendaClass,
   cancelAgendaClass,
+  deleteAvailability,
+  deleteBlockedHours,
   getAgendaWeek,
   moveAgendaClass,
+  updateAvailability,
+  updateBlockedHours,
+  type AgendaAvailability,
   type AgendaBlock,
   type AgendaWeek,
 } from "./agenda-actions";
@@ -78,6 +83,8 @@ export function SchoolAgenda({
   const [banner, setBanner] = useState<{ kind: "error" | "ok"; text: string } | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [draft, setDraft] = useState<{ date: string; start: number } | null>(null);
+  // A click on a shaded spot (lunch / closed hours): opens a card to change or remove it.
+  const [shadeSel, setShadeSel] = useState<{ shade: AgendaShade; minute: number } | null>(null);
 
   const dates = useMemo(() => {
     if (view === "day") return [anchor];
@@ -165,22 +172,23 @@ export function SchoolAgenda({
           .sort((x, y) => x[0] - y[0]);
         let cursor = startMin;
         for (const [s, e] of wins) {
-          if (s > cursor) out.push({ date, start: cursor, end: s, kind: "closed" });
+          if (s > cursor) out.push({ date, start: cursor, end: s, kind: "closed", source: { type: "availability" } });
           cursor = Math.max(cursor, e);
         }
-        if (cursor < endMin) out.push({ date, start: cursor, end: endMin, kind: "closed", label: wins.length === 0 ? "Closed" : undefined });
+        if (cursor < endMin)
+          out.push({ date, start: cursor, end: endMin, kind: "closed", label: wins.length === 0 ? "Closed" : undefined, source: { type: "availability" } });
       }
       // The school's lesson hours: nothing is booked online outside them.
       if (data.hours.open && data.hours.close) {
-        out.push({ date, start: startMin, end: toMin(data.hours.open), kind: "closed" });
-        out.push({ date, start: toMin(data.hours.close), end: endMin, kind: "closed" });
+        out.push({ date, start: startMin, end: toMin(data.hours.open), kind: "closed", source: { type: "hours" } });
+        out.push({ date, start: toMin(data.hours.close), end: endMin, kind: "closed", source: { type: "hours" } });
       }
       for (const h of data.blocked) {
         if (h.weekday !== null && h.weekday !== dow) continue;
         if (h.on_date !== null && h.on_date !== date) continue;
         if (filter && h.instructor_id && h.instructor_id !== filter) continue;
         const who = h.instructor_id && !filter ? ` · ${driverName.get(h.instructor_id) ?? ""}` : "";
-        out.push({ date, start: toMin(h.start_time), end: toMin(h.end_time), kind: "break", label: `${h.label || "Blocked"}${who}` });
+        out.push({ date, start: toMin(h.start_time), end: toMin(h.end_time), kind: "break", label: `${h.label || "Blocked"}${who}`, source: { type: "blocked", id: h.id } });
       }
     }
     return out;
@@ -271,6 +279,28 @@ export function SchoolAgenda({
         />
       )}
 
+      {shadeSel && data && (
+        <ShadeCard
+          key={`${shadeSel.shade.date}-${shadeSel.minute}-${shadeSel.shade.source?.type}`}
+          shade={shadeSel.shade}
+          minute={shadeSel.minute}
+          data={data}
+          filter={filter}
+          driverName={driverName}
+          timeFormat={timeFormat}
+          onClose={() => setShadeSel(null)}
+          onAddClass={() => {
+            setDraft({ date: shadeSel.shade.date, start: shadeSel.minute });
+            setShadeSel(null);
+          }}
+          onChanged={async (text) => {
+            setBanner({ kind: "ok", text });
+            setShadeSel(null);
+            await load();
+          }}
+        />
+      )}
+
       {sel && (
         <BlockCard
           key={sel.id}
@@ -299,13 +329,21 @@ export function SchoolAgenda({
           today={today}
           timeFormat={timeFormat}
           minColPx={view === "day" ? 320 : 84}
+          onShadeClick={(shade, minute) => {
+            setSelected(null);
+            setDraft(null);
+            setBanner(null);
+            setShadeSel({ shade, minute });
+          }}
           onEmptyClick={(date, minute) => {
+            setShadeSel(null);
             setSelected(null);
             setBanner(null);
             setDraft({ date, start: minute });
             onPick?.({ date, start: toHHMM(minute) });
           }}
           onItemClick={(it) => {
+            setShadeSel(null);
             setDraft(null);
             setBanner(null);
             setSelected(it.id);
@@ -315,7 +353,7 @@ export function SchoolAgenda({
       </div>
 
       <p className="text-xs text-muted">
-        Click an empty time to add a class. Drag a class to move it. Shaded: no instructor teaches, or the hours are blocked.{" "}
+        Click an empty time to add a class, or a shaded spot to change or remove it. Drag a class to move it. Shaded: no instructor teaches, or the hours are blocked.{" "}
         <Link href="/admin/shifts?tab=availability" className="text-accent hover:underline">
           Manage availability and blocked hours
         </Link>
@@ -473,6 +511,212 @@ function NewClassCard({
   );
 }
 
+// Card for a shaded spot: lunch / blocked hours can be edited or removed, and the
+// closed hours outside an instructor's availability can be changed or removed.
+function ShadeCard({
+  shade,
+  minute,
+  data,
+  filter,
+  driverName,
+  timeFormat,
+  onClose,
+  onAddClass,
+  onChanged,
+}: {
+  shade: AgendaShade;
+  minute: number;
+  data: AgendaWeek;
+  filter: string;
+  driverName: Map<string, string>;
+  timeFormat: "12h" | "24h";
+  onClose: () => void;
+  onAddClass: () => void;
+  onChanged: (text: string) => Promise<void>;
+}) {
+  const src = shade.source;
+  const blocked = src?.type === "blocked" ? (data.blocked.find((b) => b.id === src.id) ?? null) : null;
+  const [label, setLabel] = useState(blocked?.label ?? "");
+  const [start, setStart] = useState(blocked?.start_time.slice(0, 5) ?? "");
+  const [end, setEnd] = useState(blocked?.end_time.slice(0, 5) ?? "");
+  const [confirmRemove, setConfirmRemove] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const dow = weekdayOf(shade.date);
+  const windows = data.availability
+    .filter((a) => a.weekday === dow && (!filter || a.instructor_id === filter))
+    .sort((a, b) => a.start_time.localeCompare(b.start_time));
+
+  async function run(fn: () => Promise<{ error: string | null }>, done: string) {
+    setBusy(true);
+    setError(null);
+    const r = await fn();
+    setBusy(false);
+    if (r.error) return setError(r.error);
+    await onChanged(done);
+  }
+
+  const range = `${fmtMinutes(shade.start, timeFormat)}–${fmtMinutes(shade.end, timeFormat)}`;
+  const title = blocked ? blocked.label || "Blocked hours" : src?.type === "hours" ? "Outside the school's lesson hours" : "Closed: no instructor teaches";
+
+  return (
+    <div className="rounded-xl border border-border bg-surface p-4">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <h3 className="text-sm font-semibold">{title}</h3>
+          <p className="text-sm text-muted">
+            {shade.date} · {range}
+            {blocked?.instructor_id ? ` · ${driverName.get(blocked.instructor_id) ?? "Instructor"}` : blocked ? " · whole school" : ""}
+          </p>
+          {blocked && (
+            <p className="mt-0.5 text-xs text-muted">
+              {blocked.on_date ? "Only this date." : blocked.weekday === null ? "Every day." : "Every week on this weekday."} Changes apply to all of its days.
+            </p>
+          )}
+        </div>
+        <button type="button" onClick={onClose} className="text-sm text-muted hover:text-foreground">
+          Close
+        </button>
+      </div>
+
+      {blocked && (
+        <div className="mt-3 space-y-3">
+          <div className="grid gap-3 sm:grid-cols-3">
+            <label className="text-xs text-muted">
+              Name
+              <input value={label} onChange={(e) => setLabel(e.target.value)} maxLength={60} className={`${field} mt-1`} />
+            </label>
+            <label className="text-xs text-muted">
+              From
+              <input type="time" value={start} onChange={(e) => setStart(e.target.value)} className={`${field} mt-1`} />
+            </label>
+            <label className="text-xs text-muted">
+              To
+              <input type="time" value={end} onChange={(e) => setEnd(e.target.value)} className={`${field} mt-1`} />
+            </label>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              disabled={busy}
+              className={primary}
+              onClick={() => run(() => updateBlockedHours({ id: blocked.id, start, end, label }), "Blocked hours updated.")}
+            >
+              {busy ? "Saving…" : "Save"}
+            </button>
+            {!confirmRemove ? (
+              <button type="button" className={`${btn} text-danger`} onClick={() => setConfirmRemove(true)}>
+                Remove
+              </button>
+            ) : (
+              <span className="flex items-center gap-2 text-sm">
+                Remove these blocked hours?
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => run(() => deleteBlockedHours(blocked.id), "Blocked hours removed.")}
+                  className="rounded-lg border border-danger px-3 py-1.5 text-danger"
+                >
+                  Yes, remove
+                </button>
+                <button type="button" onClick={() => setConfirmRemove(false)} className={btn}>
+                  Keep
+                </button>
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
+      {src?.type === "availability" && (
+        <div className="mt-3 space-y-2">
+          <p className="text-xs text-muted">
+            Students book only inside an instructor&apos;s hours. Change or remove a window to move this closed time
+            {windows.length === 0 ? "; none is set for this weekday." : "."}
+          </p>
+          {windows.map((a) => (
+            <AvailabilityRow key={a.id} a={a} name={driverName.get(a.instructor_id) ?? "Instructor"} busy={busy} run={run} />
+          ))}
+          <Link href="/admin/shifts?tab=availability" className="inline-block text-sm text-accent hover:underline">
+            Add availability
+          </Link>
+        </div>
+      )}
+
+      {src?.type === "hours" && (
+        <p className="mt-3 text-sm text-muted">
+          These are the school&apos;s lesson hours.{" "}
+          <Link href="/admin/students" className="text-accent hover:underline">
+            Change the school hours
+          </Link>
+        </p>
+      )}
+
+      {error && (
+        <p role="alert" className="mt-2 text-sm text-danger">
+          {error}
+        </p>
+      )}
+      <div className="mt-3">
+        <button type="button" className={btn} onClick={onAddClass}>
+          Add a class at {fmtMinutes(minute, timeFormat)} anyway
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function AvailabilityRow({
+  a,
+  name,
+  busy,
+  run,
+}: {
+  a: AgendaAvailability;
+  name: string;
+  busy: boolean;
+  run: (fn: () => Promise<{ error: string | null }>, done: string) => Promise<void>;
+}) {
+  const [start, setStart] = useState(a.start_time.slice(0, 5));
+  const [end, setEnd] = useState(a.end_time.slice(0, 5));
+  const [confirm, setConfirm] = useState(false);
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-sm">
+      <span className="min-w-24 font-medium">{name}</span>
+      <input type="time" value={start} onChange={(e) => setStart(e.target.value)} className={`${field} w-auto`} aria-label="From" />
+      <span className="text-muted">–</span>
+      <input type="time" value={end} onChange={(e) => setEnd(e.target.value)} className={`${field} w-auto`} aria-label="To" />
+      <button
+        type="button"
+        disabled={busy}
+        className={btn}
+        onClick={() => run(() => updateAvailability({ id: a.id, start, end }), "Availability updated.")}
+      >
+        Save
+      </button>
+      {!confirm ? (
+        <button type="button" className={`${btn} text-danger`} onClick={() => setConfirm(true)}>
+          Remove
+        </button>
+      ) : (
+        <span className="flex items-center gap-2">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => run(() => deleteAvailability(a.id), "Availability removed.")}
+            className="rounded-lg border border-danger px-3 py-1.5 text-danger"
+          >
+            Yes, remove
+          </button>
+          <button type="button" onClick={() => setConfirm(false)} className={btn}>
+            Keep
+          </button>
+        </span>
+      )}
+    </div>
+  );
+}
+
 function BlockCard({
   block,
   drivers,
@@ -529,7 +773,7 @@ function BlockCard({
             {car ? ` · ${car}` : ""}
           </p>
           <p className="mt-0.5 text-xs text-muted">
-            {block.status === "scheduled" ? "Scheduled" : block.status === "in_progress" ? "In class" : "Done"}
+            {block.status === "scheduled" ? "Scheduled" : block.status === "in_progress" ? "In class" : block.status === "cancelled" ? "Cancelled" : "Done"}
             {block.booked_via === "portal" ? " · booked online by the client" : ""}
           </p>
         </div>

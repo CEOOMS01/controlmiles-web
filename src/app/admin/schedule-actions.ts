@@ -18,6 +18,10 @@ export type ScheduleEvent = {
   is_new: boolean;
   /** The person who made the change is the instructor the change is about. */
   by_instructor: boolean;
+  /** Traffic light: red = act now, amber = pay attention, green = information or already fixed. */
+  severity: "red" | "amber" | "green";
+  /** An alert about a situation that has been fixed since (the class started, got an instructor...). */
+  resolved: boolean;
   payload: {
     date?: string;
     start?: string;
@@ -32,6 +36,7 @@ export type ScheduleEvent = {
     note?: string | null;
     late_minutes?: number;
     minutes_left?: number;
+    minutes_after?: number;
   };
 };
 
@@ -43,6 +48,12 @@ export async function getScheduleEvents(orgId: string): Promise<ScheduleEvents> 
   if (error || !data) return { unread: 0, events: [] };
   const d = data as { unread: number; events: ScheduleEvent[] | null };
   return { unread: Number(d.unread) || 0, events: d.events ?? [] };
+}
+
+/** Hides events from this person's panel only (the log is untouched). No ids = everything they can see. */
+export async function dismissScheduleEvents(orgId: string, ids?: string[]): Promise<void> {
+  const supabase = await createClient();
+  await supabase.rpc("dismiss_schedule_events", { p_org: orgId, p_ids: ids && ids.length > 0 ? ids : null });
 }
 
 export async function markScheduleEventsRead(orgId: string): Promise<void> {

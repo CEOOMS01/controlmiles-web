@@ -7,12 +7,14 @@ import { ShiftForm } from "./shift-form";
 import { ShiftRowActions } from "./shift-row-actions";
 import { ClassBlockForm } from "./class-block-form";
 import { ClassBlockActions } from "./class-block-actions";
+import { EditAvailability, EditBlockedHours, EditClass, EditShift, EditTimeOff } from "./inline-edit";
 import { SchoolAgenda } from "./school-agenda";
 import { BlockedHoursForm, RemoveBlocked } from "./blocked-hours";
 import { driverLabel, fleetDriverIds } from "@/lib/driver-label";
 import { requireFeature } from "@/lib/fleet-features";
 import { WEEKDAYS } from "@/lib/driving-school";
 import { AvailabilityForm, RemoveButton, TimeOffForm } from "../students/student-forms";
+import { ClearDaysOffButton, ResetCalendar } from "./reset-calendar";
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -319,7 +321,8 @@ export default async function ShiftsPage({
           .from("ds_time_off")
           .select("id, instructor_id, date_from, date_to, note")
           .eq("organization_id", orgId)
-          .gte("date_to", selectedDate)
+          // From the school's today (not the day open in the agenda), so a day off never hides from this list.
+          .gte("date_to", local.date)
           .order("date_from"),
         supabase
           .from("ds_blocked_hours")
@@ -328,8 +331,24 @@ export default async function ShiftsPage({
           .order("start_time"),
       ])
     : [{ data: [] }, { data: [] }, { data: [] }];
+  // What "Reset the calendar" would clear (same filters as the action; RLS scopes it to this location).
+  const { count: futureClasses } =
+    hasClasses && (await searchParams).tab === "availability"
+      ? await supabase
+          .from("shift_blocks")
+          .select("id", { count: "exact", head: true })
+          .eq("organization_id", orgId)
+          .eq("status", "scheduled")
+          .gte("block_date", local.date)
+      : { count: 0 };
+  const resetCounts = {
+    daysOff: (offRows ?? []).length,
+    blockedHours: (blockedRows ?? []).filter((h) => !h.on_date || h.on_date >= local.date).length,
+    availability: (availRows ?? []).length,
+    classes: futureClasses ?? 0,
+  };
   const driverName = new Map(drivers.map((d) => [d.id, d.label]));
-  const vehicleName = new Map(vehicleOptions.map((v) => [v.id, v.label]));
+  const vehicleName =new Map(vehicleOptions.map((v) => [v.id, v.label]));
   const t5 = (t: string) => t.slice(0, 5);
 
   // Grouped by driver -- one card per driver, days listed inside, instead
@@ -521,11 +540,25 @@ export default async function ShiftsPage({
                                     </span>
                                   </td>
                                   <td className="px-4 py-2.5">
-                                    <ClassBlockActions
-                                      blockId={b.id}
-                                      status={b.status}
-                                      isOneOff={b.source === "one_off"}
-                                    />
+                                    <div className="flex items-center justify-end gap-3">
+                                      {b.status === "scheduled" && (
+                                        <EditClass
+                                          blockId={b.id}
+                                          date={b.block_date}
+                                          start={b.start_time}
+                                          driverId={b.driver_id}
+                                          vehicleId={b.vehicle_id}
+                                          note={b.note}
+                                          drivers={drivers}
+                                          vehicles={vehicleOptions}
+                                        />
+                                      )}
+                                      <ClassBlockActions
+                                        blockId={b.id}
+                                        status={b.status}
+                                        isOneOff={b.source === "one_off"}
+                                      />
+                                    </div>
                                   </td>
                                 </tr>
                               );
@@ -560,15 +593,23 @@ export default async function ShiftsPage({
                             <span className="text-muted"> · {vehicleName.get(a.vehicle_id) ?? "Vehicle"}</span>
                           )}
                         </span>
-                        <RemoveButton id={a.id} kind="availability" />
+                        <span className="flex items-center gap-3">
+                          <EditAvailability id={a.id} start={a.start_time} end={a.end_time} />
+                          <RemoveButton id={a.id} kind="availability" />
+                        </span>
                       </li>
                     ))}
                   </ul>
                 )}
               </div>
               <div>
-                <h2 className="mb-1 text-base font-semibold">Time off</h2>
-                <p className="mb-3 text-sm text-muted">Days an instructor can&apos;t be booked.</p>
+                <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+                  <h2 className="text-base font-semibold">Time off</h2>
+                  <ClearDaysOffButton orgId={orgId} today={local.date} count={(offRows ?? []).length} />
+                </div>
+                <p className="mb-3 text-sm text-muted">
+                  Days an instructor can&apos;t be booked. Remove one to book them again, or remove them all.
+                </p>
                 <TimeOffForm instructors={drivers} />
                 {(offRows ?? []).length > 0 && (
                   <ul className="mt-3 divide-y divide-border rounded-xl border border-border bg-surface text-sm">
@@ -579,7 +620,10 @@ export default async function ShiftsPage({
                           {o.date_from === o.date_to ? o.date_from : `${o.date_from} to ${o.date_to}`}
                           {o.note && <span className="text-muted"> · {o.note}</span>}
                         </span>
-                        <RemoveButton id={o.id} kind="time_off" />
+                        <span className="flex items-center gap-3">
+                          <EditTimeOff id={o.id} from={o.date_from} to={o.date_to} note={o.note} />
+                          <RemoveButton id={o.id} kind="time_off" />
+                        </span>
                       </li>
                     ))}
                   </ul>
@@ -606,13 +650,17 @@ export default async function ShiftsPage({
                             · {h.instructor_id ? (driverName.get(h.instructor_id) ?? "Instructor") : "whole school"}
                           </span>
                         </span>
-                        <RemoveBlocked id={h.id} />
+                        <span className="flex items-center gap-3">
+                          <EditBlockedHours id={h.id} label={h.label ?? ""} start={h.start_time} end={h.end_time} />
+                          <RemoveBlocked id={h.id} />
+                        </span>
                       </li>
                     ))}
                   </ul>
                 )}
               </div>
             </section>
+            <ResetCalendar orgId={orgId} today={local.date} counts={resetCounts} />
           </>
         )}
 
@@ -666,7 +714,17 @@ export default async function ShiftsPage({
                                 )}
                               </td>
                               <td className="px-4 py-2.5">
-                                <ShiftRowActions shiftId={s.id} isActive={s.is_active} />
+                                <div className="flex items-center justify-end gap-3">
+                                  <EditShift
+                                    id={s.id}
+                                    start={s.start_time}
+                                    end={s.end_time}
+                                    vehicleId={s.vehicle_id}
+                                    notes={s.notes}
+                                    vehicles={vehicleOptions}
+                                  />
+                                  <ShiftRowActions shiftId={s.id} isActive={s.is_active} />
+                                </div>
                               </td>
                             </tr>
                           );

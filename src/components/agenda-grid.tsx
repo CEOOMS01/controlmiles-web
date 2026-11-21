@@ -30,6 +30,8 @@ export type AgendaShade = {
   end: number;
   kind: "closed" | "break";
   label?: string;
+  /** Where the shade comes from; with onShadeClick, a click on it reports this instead of an empty click. */
+  source?: { type: "blocked"; id: string } | { type: "availability" } | { type: "hours" };
 };
 
 const TONE: Record<AgendaTone, string> = {
@@ -102,6 +104,7 @@ export function AgendaGrid({
   hourPx = 56,
   minColPx = 84,
   onEmptyClick,
+  onShadeClick,
   onItemClick,
   onDropItem,
   maxHeight,
@@ -118,6 +121,7 @@ export function AgendaGrid({
   hourPx?: number;
   minColPx?: number;
   onEmptyClick?: (date: string, minute: number) => void;
+  onShadeClick?: (shade: AgendaShade, minute: number) => void;
   onItemClick?: (item: AgendaItem) => void;
   onDropItem?: (item: AgendaItem, date: string, minute: number) => void;
   /** Omit to show every hour (the page scrolls); only horizontal scroll on narrow screens. */
@@ -212,6 +216,14 @@ export function AgendaGrid({
                       data-shade="1"
                       className={`absolute inset-x-0 overflow-hidden px-1.5 py-0.5 text-[10px] ${s.kind === "break" ? "bg-warning/5 text-warning" : "bg-border/30 text-muted"}`}
                       style={{ top, height: h, ...HATCH }}
+                      onClick={
+                        onShadeClick && s.source
+                          ? (e) => {
+                              e.stopPropagation();
+                              onShadeClick(s, minuteAt(e, e.currentTarget.parentElement as HTMLElement));
+                            }
+                          : undefined
+                      }
                     >
                       {s.label}
                     </div>

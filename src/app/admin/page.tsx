@@ -209,10 +209,19 @@ export default async function AdminDashboardPage() {
   // Driving schools get their own dashboard (2026-10-20): lessons,
   // students and what needs attention, each block per plan.
   if (org?.industry_template === "driving_school") {
+    // Header greeting (2026-11-20): who is looking, and as what.
+    const { data: me } = await supabase
+      .from("organization_members")
+      .select("member_role")
+      .eq("organization_id", orgId)
+      .eq("user_id", user.id)
+      .maybeSingle();
     return (
       <SchoolDashboard
         orgId={orgId}
         orgName={org.name}
+        viewerName={profile?.first_name || user.email?.split("@")[0] || ""}
+        viewerRole={me?.member_role ?? null}
         timeZone={org.timezone ?? "America/New_York"}
         features={features}
         scope={scope}

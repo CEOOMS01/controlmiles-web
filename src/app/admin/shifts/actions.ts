@@ -91,6 +91,41 @@ export async function setShiftActive(shiftId: string, isActive: boolean): Promis
   return { error: null };
 }
 
+export async function updateShift(input: {
+  id: string;
+  start: string;
+  end: string;
+  vehicleId: string | null;
+  notes: string;
+}): Promise<{ error: string | null }> {
+  if (!input.start || !input.end) return { error: "Enter a start and end time." };
+  if (input.end <= input.start) return { error: "It must end after it starts." };
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("shifts")
+    .update({ start_time: input.start, end_time: input.end, vehicle_id: input.vehicleId, notes: input.notes.trim() || null })
+    .eq("id", input.id)
+    .select("id");
+  if (error) return { error: AppError.from(error).display() };
+  if (!data?.length) return { error: "Could not change it. Check your permissions." };
+  revalidatePath("/admin/shifts");
+  return { error: null };
+}
+
+export async function updateClassBlockNote(blockId: string, note: string): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("shift_blocks")
+    .update({ note: note.trim() || null })
+    .eq("id", blockId)
+    .in("status", ["scheduled", "cancelled"])
+    .select("id");
+  if (error) return { error: AppError.from(error).display() };
+  if (!data?.length) return { error: "Could not change it." };
+  revalidatePath("/admin/shifts");
+  return { error: null };
+}
+
 export async function deleteShift(shiftId: string): Promise<{ error: string | null }> {
   const supabase = await createClient();
   const { error } = await supabase.from("shifts").delete().eq("id", shiftId);

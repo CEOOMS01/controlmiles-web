@@ -28,7 +28,7 @@ export type AgendaBlock = {
   note: string | null;
   booked_via: string | null;
 };
-export type AgendaAvailability = { instructor_id: string; weekday: number; start_time: string; end_time: string };
+export type AgendaAvailability = { id: string; instructor_id: string; weekday: number; start_time: string; end_time: string };
 export type AgendaBlocked = {
   id: string;
   instructor_id: string | null;
@@ -58,7 +58,7 @@ export async function getAgendaWeek(orgId: string, from: string, days: number): 
   const toKey = to.toISOString().slice(0, 10);
   const [blocks, availability, blocked, timeOff, settings] = await Promise.all([
     supabase.rpc("get_org_shift_range", { p_org: orgId, p_from: from, p_days: days }),
-    supabase.from("ds_availability").select("instructor_id, weekday, start_time, end_time").eq("organization_id", orgId),
+    supabase.from("ds_availability").select("id, instructor_id, weekday, start_time, end_time").eq("organization_id", orgId),
     supabase
       .from("ds_blocked_hours")
       .select("id, instructor_id, weekday, on_date, start_time, end_time, label")
@@ -144,6 +144,76 @@ export async function cancelAgendaClass(blockId: string): Promise<{ error: strin
   return { error: null };
 }
 
+// ── Reset the calendar (2026-11-20) ─────────────────────────────────────────
+
+export type ResetInput = {
+  orgId: string;
+  /** The school's today (YYYY-MM-DD): only what is from today on is touched, history stays. */
+  today: string;
+  daysOff: boolean;
+  blockedHours: boolean;
+  availability: boolean;
+  /** Classes still scheduled from today on (never started, never done). */
+  classes: boolean;
+};
+export type ResetResult = { error: string | null; removed: { daysOff: number; blockedHours: number; availability: number; classes: number } };
+
+/**
+ * Cleans the calendar back to blank, piece by piece. The database decides what the caller may delete (policies:
+ * admins and operators only, their own location, and a class only while it is still "scheduled"); nothing here
+ * widens that. Days off that already ended and classes already taught are history and are left alone.
+ */
+export async function resetCalendar(input: ResetInput): Promise<ResetResult> {
+  const removed = { daysOff: 0, blockedHours: 0, availability: 0, classes: 0 };
+  if (!DATE.test(input.today)) return { error: "Bad date.", removed };
+  const supabase = await createClient();
+  try {
+    if (input.daysOff) {
+      const { data, error } = await supabase
+        .from("ds_time_off")
+        .delete()
+        .eq("organization_id", input.orgId)
+        .gte("date_to", input.today)
+        .select("id");
+      if (error) throw error;
+      removed.daysOff = data?.length ?? 0;
+    }
+    if (input.blockedHours) {
+      // One-off blocks of past dates are history; weekly / daily ones (no date) and future dates go.
+      const { data, error } = await supabase
+        .from("ds_blocked_hours")
+        .delete()
+        .eq("organization_id", input.orgId)
+        .or(`on_date.is.null,on_date.gte.${input.today}`)
+        .select("id");
+      if (error) throw error;
+      removed.blockedHours = data?.length ?? 0;
+    }
+    if (input.availability) {
+      const { data, error } = await supabase.from("ds_availability").delete().eq("organization_id", input.orgId).select("id");
+      if (error) throw error;
+      removed.availability = data?.length ?? 0;
+    }
+    if (input.classes) {
+      const { data, error } = await supabase
+        .from("shift_blocks")
+        .delete()
+        .eq("organization_id", input.orgId)
+        .eq("status", "scheduled")
+        .gte("block_date", input.today)
+        .select("id");
+      if (error) throw error;
+      removed.classes = data?.length ?? 0;
+    }
+  } catch (e) {
+    revalidatePath("/admin/shifts");
+    return { error: AppError.from(e as { message: string }).display(), removed };
+  }
+  revalidatePath("/admin/shifts");
+  revalidatePath("/admin");
+  return { error: null, removed };
+}
+
 // ── Blocked hours (lunch, breaks) ───────────────────────────────────────────
 
 export async function addBlockedHours(input: {
@@ -174,6 +244,67 @@ export async function addBlockedHours(input: {
       : [{ ...base, weekday: null, on_date: null }];
   const { error } = await supabase.from("ds_blocked_hours").insert(rows);
   if (error) return { error: AppError.from(error).display() };
+  revalidatePath("/admin/shifts");
+  return { error: null };
+}
+
+export async function updateBlockedHours(input: {
+  id: string;
+  start: string;
+  end: string;
+  label: string;
+}): Promise<{ error: string | null }> {
+  if (!input.start || !input.end) return { error: "Enter a start and end time." };
+  if (input.end <= input.start) return { error: "The block must end after it starts." };
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("ds_blocked_hours")
+    .update({ start_time: input.start, end_time: input.end, label: input.label.trim().slice(0, 60) || null })
+    .eq("id", input.id)
+    .select("id");
+  if (error) return { error: AppError.from(error).display() };
+  if (!data?.length) return { error: "Could not change it. Check your permissions." };
+  revalidatePath("/admin/shifts");
+  return { error: null };
+}
+
+// ── Instructor availability (the "Closed" shading is everything outside it) ──
+
+export async function updateAvailability(input: { id: string; start: string; end: string }): Promise<{ error: string | null }> {
+  if (!input.start || !input.end) return { error: "Enter a start and end time." };
+  if (input.end <= input.start) return { error: "The window must end after it starts." };
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("ds_availability")
+    .update({ start_time: input.start, end_time: input.end })
+    .eq("id", input.id)
+    .select("id");
+  if (error) return { error: AppError.from(error).display() };
+  if (!data?.length) return { error: "Could not change it. Check your permissions." };
+  revalidatePath("/admin/shifts");
+  return { error: null };
+}
+
+export async function updateTimeOff(input: { id: string; from: string; to: string; note: string }): Promise<{ error: string | null }> {
+  if (!DATE.test(input.from) || !DATE.test(input.to)) return { error: "Pick the dates." };
+  if (input.to < input.from) return { error: "The last day can't be before the first." };
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("ds_time_off")
+    .update({ date_from: input.from, date_to: input.to, note: input.note.trim().slice(0, 120) || null })
+    .eq("id", input.id)
+    .select("id");
+  if (error) return { error: AppError.from(error).display() };
+  if (!data?.length) return { error: "Could not change it. Check your permissions." };
+  revalidatePath("/admin/shifts");
+  return { error: null };
+}
+
+export async function deleteAvailability(id: string): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("ds_availability").delete().eq("id", id).select("id");
+  if (error) return { error: AppError.from(error).display() };
+  if (!data?.length) return { error: "Could not remove it. Check your permissions." };
   revalidatePath("/admin/shifts");
   return { error: null };
 }

@@ -11,7 +11,7 @@ import { getBranchScope } from "@/lib/branch-scope";
 import { BranchSelector } from "./branch-controls";
 import { LEGAL_TERMS_VERSION } from "@/lib/legal-version";
 import { AdminNav, type NavGroup, type NavItem } from "./admin-nav";
-import { ScheduleBell } from "./schedule-bell";
+import { ScheduleLiveRefresh } from "./needs-attention-panel";
 import { serviceProfile } from "@/lib/service-profile";
 
 export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
@@ -196,15 +196,12 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
 
   const header = (
     <div className="space-y-3">
-      <div className="flex items-center gap-2.5 px-1.5">
-        <Image src="/logo_controlmiles.png" alt="" width={26} height={26} className="rounded-md" />
-        <p className="text-sm font-semibold tracking-tight text-sidebar-strong">CM Fleet</p>
-        {/* Every schedule change by any role, live (2026-11-16); only schools with classes. */}
-        {has("classes") && (
-          <div className="ml-auto">
-            <ScheduleBell orgId={org.id} />
-          </div>
-        )}
+      <div className="flex items-end gap-2.5 px-1.5 lg:-mx-4 lg:-mt-4 lg:border-b lg:border-sidebar-border lg:px-5 lg:pt-4">
+        <Image src="/cmfleet-logo.png" alt="" width={26} height={26} className="block rounded-full ring-1 ring-border-strong" />
+        <p className="text-sm font-semibold leading-none tracking-tight text-sidebar-strong">CM Fleet</p>
+        {/* The bell is gone (2026-11-20): notifications live in the dashboard's "Needs attention" card. This
+            only keeps the class schedule page current while it is open; only schools with classes. */}
+        {has("classes") && <ScheduleLiveRefresh orgId={org.id} />}
       </div>
       <div className="hidden lg:block">
         <OrgSwitcher currentOrgId={org.id} orgs={eligibleOrgs} />

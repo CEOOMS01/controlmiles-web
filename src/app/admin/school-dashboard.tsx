@@ -10,6 +10,7 @@
 
 import Link from "next/link";
 import { InstructorNoticeCard } from "./instructor-notice-card";
+import { NeedsAttentionPanel } from "./needs-attention-panel";
 import { createClient } from "@/lib/supabase/server";
 import type { BranchScope } from "@/lib/branch-scope";
 import type { FeatureSet, FleetFeature } from "@/lib/fleet-features";
@@ -87,6 +88,8 @@ function localNow(timeZone: string) {
 export async function SchoolDashboard({
   orgId,
   orgName,
+  viewerName,
+  viewerRole,
   timeZone,
   features,
   scope,
@@ -94,6 +97,8 @@ export async function SchoolDashboard({
 }: {
   orgId: string;
   orgName: string | null;
+  viewerName: string;
+  viewerRole: string | null;
   timeZone: string;
   features: FeatureSet;
   scope: BranchScope;
@@ -125,7 +130,6 @@ export async function SchoolDashboard({
   const [
     { data: blockRows },
     { data: memberRows },
-    { data: vehicleRows },
     { data: studentRows },
     { data: progressRows },
     { data: programRows },
@@ -148,7 +152,6 @@ export async function SchoolDashboard({
       .select("user_id, member_role, profiles(first_name, last_name)")
       .eq("organization_id", orgId)
       .eq("is_active", true),
-    supabase.from("vehicles").select("id, nickname, display_id, active_session_id").eq("organization_id", orgId).eq("is_archived", false),
     students
       ? supabase.from("ds_students").select("id, first_name, last_name, status, branch_id, program_id").eq("organization_id", orgId)
       : none,
@@ -187,34 +190,14 @@ export async function SchoolDashboard({
       return [m.user_id as string, driverLabel(p, null, fleetIds.get(m.user_id) ?? "Instructor")];
     }),
   );
-  const teamCount = (memberRows ?? []).filter((m) => scope.driverIn(m.user_id)).length;
-  const vehicleName = new Map(
-    (vehicleRows ?? []).map((v) => [v.id as string, (v.nickname || v.display_id || "Vehicle") as string]),
-  );
-  const myVehicles = (vehicleRows ?? []).filter((v) => scope.vehicleIn(v.id));
-  const vehicleCount = myVehicles.length;
-  const onTheRoad = myVehicles.filter((v) => v.active_session_id != null).length;
 
   // ---- KPIs -------------------------------------------------------------
   const todays = blocks
     .filter((b) => b.block_date === today)
     .sort((a, b) => a.start_time.localeCompare(b.start_time));
   const live = todays.filter((b) => b.status !== "cancelled");
-  const doneToday = live.filter((b) => b.status === "done").length;
-  const inProgress = live.filter((b) => b.status === "in_progress").length;
 
-  const d30 = addDays(today, -30);
-  const d60 = addDays(today, -60);
-  const taught = (a: string, z: string) =>
-    blocks.filter((b) => b.status === "done" && b.block_date > a && b.block_date <= z).reduce((s, b) => s + lengthOf(b), 0);
-  const taught30 = taught(d30, today);
-  const taughtPrev = taught(d60, d30);
-  const trend = taughtPrev > 0 ? Math.round(((taught30 - taughtPrev) / taughtPrev) * 100) : null;
-  const cancelled30 = blocks.filter((b) => b.status === "cancelled" && b.block_date > d30 && b.block_date <= today);
-  const lateCancels = cancelled30.filter((b) => b.late_cancel).length;
 
-  const activeStudents = myStudents.filter((s) => s.status === "active").length;
-  const registered = myStudents.filter((s) => s.status === "registered").length;
 
   const myIds = new Set(myStudents.map((s) => s.id));
   const owedBy = new Map<string, number>();
@@ -341,17 +324,7 @@ export async function SchoolDashboard({
       };
     })
     .sort((a, b) => b.booked - a.booked);
-  const totalAvail = [...availBy.values()].reduce((s, v) => s + v, 0);
-  const totalBooked = [...bookedBy.entries()].filter(([id]) => availBy.has(id)).reduce((s, [, v]) => s + v, 0);
-  const utilization = availability && totalAvail > 0 ? Math.round((totalBooked / totalAvail) * 100) : null;
 
-  const pipeline = [
-    { key: "registered", label: "Registered", cls: "bg-accent/30" },
-    { key: "active", label: "Active", cls: "bg-accent" },
-    { key: "finished", label: "Finished", cls: "bg-success" },
-    { key: "dropped", label: "Dropped", cls: "bg-muted/40" },
-  ].map((p) => ({ ...p, count: myStudents.filter((s) => s.status === p.key).length }));
-  const pipelineTotal = pipeline.reduce((s, p) => s + p.count, 0);
 
   const longToday = new Date(`${today}T12:00:00Z`).toLocaleDateString("en-US", {
     weekday: "long",
@@ -360,169 +333,80 @@ export async function SchoolDashboard({
     timeZone: "UTC",
   });
 
+  // Greeting by the school's own clock.
+  const greeting = now.minutes < 12 * 60 ? "Good morning" : now.minutes < 18 * 60 ? "Good afternoon" : "Good evening";
+  // Role badge: owner blue, admin green, operator yellow.
+  const roleBadge =
+    {
+      owner: { label: "Owner", cls: "bg-accent/15 text-accent" },
+      admin: { label: "Admin", cls: "bg-success/15 text-success" },
+      operator: { label: "Operator", cls: "bg-[#fde047] text-[#713f12]" },
+    }[viewerRole ?? ""] ?? null;
+
   return (
-    <main className="mx-auto w-full max-w-6xl px-5 py-7 sm:px-8 lg:py-8">
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="text-xs font-medium text-muted">{orgName}</p>
-          <h1 className="text-xl font-semibold tracking-tight">
-            School dashboard{scope.current && <span className="text-muted"> · {scope.current.name}</span>}
-          </h1>
-          <p className="mt-1 text-sm text-muted">{longToday}</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {students && (
-            <Link href="/admin/students" className="rounded-lg border border-border px-4 py-2 text-sm font-medium hover:border-accent">
-              Students
-            </Link>
-          )}
-          {classes && (
-            <Link
-              href="/admin/shifts"
-              className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground hover:opacity-90"
-            >
-              Schedule a lesson
-            </Link>
-          )}
-        </div>
+    <>
+    {/* Header edge to edge of the content area, with its line across the whole width (2026-11-20). */}
+    <header className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3 border-b border-border px-5 pb-3 pt-7 sm:px-8">
+      {/* The name sits right on the line. */}
+      <h1 className="text-2xl font-semibold leading-none tracking-tight">
+        {orgName || "School dashboard"}
+        {scope.current && <span className="text-lg font-medium text-muted"> · {scope.current.name}</span>}
+      </h1>
+      <div className="text-right">
+        <p className="text-xs text-muted">{longToday}</p>
+        <p className="mt-0.5 text-sm font-medium">
+          {greeting}
+          {viewerName ? `, ${viewerName}` : ""}
+          {roleBadge && <span className={`ml-2 rounded-full px-2 py-0.5 text-xs font-medium ${roleBadge.cls}`}>{roleBadge.label}</span>}
+        </p>
       </div>
-
-      {classes && (
-        <section className="mb-6 rounded-xl border border-border bg-surface p-5">
-          <div className="mb-3 flex items-center justify-between">
-            <p className="font-semibold">School schedule · today</p>
-            <Link href="/admin/shifts" className="text-sm text-accent hover:underline">
-              Full schedule
-            </Link>
-          </div>
-          {todays.length === 0 ? (
-            <p className="py-10 text-center text-sm text-muted">No lessons today.</p>
-          ) : (
-            <ol className="divide-y divide-border">
-              {todays.map((b) => {
-                const s = b.student_id ? studentById.get(b.student_id) : undefined;
-                return (
-                  <li key={b.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 py-3 text-sm">
-                    <span className="w-36 shrink-0 font-medium tabular-nums">
-                      {time12(b.start_time)}–{time12(b.end_time)}
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      {s ? (
-                        <Link href={`/admin/students/${s.id}`} className="font-medium hover:text-accent">
-                          {studentName(s)}
-                        </Link>
-                      ) : (
-                        <span className="text-muted">Open lesson</span>
-                      )}
-                      <span className="block text-xs text-muted">
-                        {[
-                          b.driver_id ? (names.get(b.driver_id) ?? "Instructor") : "No instructor yet",
-                          b.vehicle_id ? vehicleName.get(b.vehicle_id) : "Waiting for a car",
-                        ]
-                          .filter(Boolean)
-                          .join(" · ")}
-                        {b.booked_via === "portal" && " · Booked online"}
-                      </span>
-                    </span>
-                    <StatusPill block={b} nowMinutes={now.minutes} />
-                  </li>
-                );
-              })}
-            </ol>
-          )}
-        </section>
-      )}
-
-      {classes && <InstructorNoticeCard orgId={orgId} notices={noticeRows ?? []} />}
-
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {classes ? (
-          <Kpi
-            label="Lessons today"
-            value={String(live.length)}
-            sub={
-              live.length === 0
-                ? "Nothing on the schedule"
-                : [`${doneToday} done`, inProgress ? `${inProgress} in progress` : null, `${live.length - doneToday - inProgress} to go`]
-                    .filter(Boolean)
-                    .join(" · ")
-            }
-          />
-        ) : (
-          <Kpi label="Team" value={String(teamCount)} sub="Instructors and office" />
-        )}
-        {classes ? (
-          <Kpi
-            label="Hours taught · 30 days"
-            value={`${hours(taught30)} h`}
-            sub={trend == null ? "No earlier month to compare" : `${trend >= 0 ? "+" : ""}${trend}% vs previous 30 days`}
-            tone={trend == null ? undefined : trend >= 0 ? "up" : "down"}
-          />
-        ) : (
-          <Kpi label="Vehicles" value={String(vehicleCount)} sub="In the fleet" />
-        )}
-        {students ? (
-          <Kpi label="Active students" value={String(activeStudents)} sub={`${registered} registered, not started`} />
-        ) : (
-          <Kpi
-            label="Failed inspections"
-            value={String(failedInspections ?? 0)}
-            sub="To review"
-            tone={(failedInspections ?? 0) > 0 ? "down" : undefined}
-          />
-        )}
-        {packages ? (
-          <Kpi
-            label="Balance owed"
-            value={money(owedTotal)}
-            sub={owedBy.size ? `${owedBy.size} ${owedBy.size === 1 ? "student" : "students"}` : "Everyone is paid up"}
-            tone={owedTotal > 0 ? "down" : undefined}
-          />
-        ) : classes ? (
-          <Kpi
-            label="Cancellations · 30 days"
-            value={String(cancelled30.length)}
-            sub={`${lateCancels} late`}
-            tone={lateCancels > 0 ? "down" : undefined}
-          />
-        ) : (
-          <Kpi label="Cars on the road" value={String(onTheRoad)} sub={`of ${vehicleCount} right now`} />
-        )}
-      </div>
+    </header>
+    <main className="mx-auto w-full max-w-6xl px-5 py-6 sm:px-8 lg:py-8">
 
       {(attention.length > 0 || has("dvir") || classes) && (
-        <div className="mt-6 grid gap-4 lg:grid-cols-3">
-          <section className="rounded-xl border border-border bg-surface p-5 lg:col-span-3">
-            <p className="mb-3 font-semibold">Needs attention</p>
-            {attention.length === 0 ? (
-              <div className="py-8 text-center">
-                <p className="text-sm font-medium text-success">All clear</p>
-                <p className="mt-1 text-xs text-muted">Nothing waiting on you right now.</p>
-              </div>
-            ) : (
-              <ul className="space-y-2">
-                {attention.map((a) => (
-                  <li key={a.title}>
-                    <Link
-                      href={a.href}
-                      className="flex gap-3 rounded-lg border border-border p-3 text-sm transition hover:border-accent"
-                    >
-                      <span
-                        aria-hidden="true"
-                        className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${
-                          a.tone === "danger" ? "bg-danger" : a.tone === "warning" ? "bg-warning" : "bg-accent"
-                        }`}
-                      />
-                      <span className="min-w-0">
-                        <span className="block font-medium">{a.title}</span>
-                        <span className="block truncate text-xs text-muted">{a.detail}</span>
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
+        <div className="grid gap-4 lg:grid-cols-3">
+          {classes ? (
+            // Schools with classes: the live notification panel, with the page's own items above them.
+            <NeedsAttentionPanel orgId={orgId} items={attention} />
+          ) : (
+            <section className="rounded-xl border border-border bg-surface p-5 lg:col-span-3">
+              <p className="mb-3 font-semibold">Needs attention</p>
+              {attention.length === 0 ? (
+                <div className="py-8 text-center">
+                  <p className="text-sm font-medium text-success">All clear</p>
+                  <p className="mt-1 text-xs text-muted">Nothing waiting on you right now.</p>
+                </div>
+              ) : (
+                <ul className="space-y-2">
+                  {attention.map((a) => (
+                    <li key={a.title}>
+                      <Link
+                        href={a.href}
+                        className="flex gap-3 rounded-lg border border-border p-3 text-sm transition hover:border-accent"
+                      >
+                        <span
+                          aria-hidden="true"
+                          className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${
+                            a.tone === "danger" ? "bg-danger" : a.tone === "warning" ? "bg-warning" : "bg-accent"
+                          }`}
+                        />
+                        <span className="min-w-0">
+                          <span className="block font-medium">{a.title}</span>
+                          <span className="block truncate text-xs text-muted">{a.detail}</span>
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          )}
+        </div>
+      )}
+
+      {classes && (
+        <div className="mt-6">
+          <InstructorNoticeCard orgId={orgId} notices={noticeRows ?? []} />
         </div>
       )}
 
@@ -530,79 +414,13 @@ export async function SchoolDashboard({
         <div className="mt-6 grid gap-4 lg:grid-cols-2">
           <LessonsPerWeekChart data={weeks} />
           <div className="space-y-4">
-            {utilization != null && (
-              <div className="flex items-center justify-between rounded-xl border border-border bg-surface px-5 py-4">
-                <div>
-                  <p className="font-semibold">Instructor utilization</p>
-                  <p className="text-sm text-muted">Booked hours of the available hours this week.</p>
-                </div>
-                <p className="text-3xl font-semibold tabular-nums">{utilization}%</p>
-              </div>
-            )}
             <InstructorLoadChart data={load} />
           </div>
         </div>
       )}
 
-      {students && (
-        <section className="mt-6 rounded-xl border border-border bg-surface p-5">
-          <div className="mb-3 flex items-center justify-between">
-            <p className="font-semibold">Students</p>
-            <p className="text-sm text-muted">{pipelineTotal} in total</p>
-          </div>
-          {pipelineTotal === 0 ? (
-            <p className="text-sm text-muted">No students yet.</p>
-          ) : (
-            <>
-              <div className="flex h-3 overflow-hidden rounded-full bg-border/50" role="img" aria-label="Students by status">
-                {pipeline
-                  .filter((p) => p.count > 0)
-                  .map((p) => (
-                    <div key={p.key} className={p.cls} style={{ width: `${(p.count / pipelineTotal) * 100}%` }} />
-                  ))}
-              </div>
-              <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                {pipeline.map((p) => (
-                  <Link key={p.key} href={`/admin/students?status=${p.key}`} className="rounded-lg p-2 hover:bg-border/30">
-                    <span className="flex items-center gap-2 text-xs text-muted">
-                      <span aria-hidden="true" className={`h-2 w-2 rounded-full ${p.cls}`} />
-                      {p.label}
-                    </span>
-                    <span className="mt-0.5 block text-xl font-semibold tabular-nums">{p.count}</span>
-                  </Link>
-                ))}
-              </div>
-            </>
-          )}
-        </section>
-      )}
-
       {map && <div className="mt-6">{map}</div>}
     </main>
+    </>
   );
-}
-
-function Kpi({ label, value, sub, tone }: { label: string; value: string; sub: string; tone?: "up" | "down" }) {
-  return (
-    <div className="rounded-xl border border-border bg-surface p-5">
-      <p className="text-xs font-medium text-muted">{label}</p>
-      <p className="mt-1 text-3xl font-semibold tabular-nums">{value}</p>
-      <p className={`mt-1 text-xs ${tone === "up" ? "text-success" : tone === "down" ? "text-danger" : "text-muted"}`}>{sub}</p>
-    </div>
-  );
-}
-
-function StatusPill({ block, nowMinutes }: { block: Block; nowMinutes: number }) {
-  const late = block.status === "scheduled" && nowMinutes > minutesOf(block.end_time);
-  const [text, cls] =
-    block.status === "done"
-      ? ["Done", "bg-success/15 text-success"]
-      : block.status === "in_progress"
-        ? ["In progress", "bg-accent/15 text-accent"]
-        : block.status === "cancelled"
-          ? [block.late_cancel ? "Late cancel" : "Cancelled", "bg-border/60 text-muted"]
-          : late
-            ? ["Not started", "bg-danger/15 text-danger"]
-            : ["Scheduled", "bg-border/60 text-foreground"];
-  return <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${cls}`}>{text}</span>;
 }
