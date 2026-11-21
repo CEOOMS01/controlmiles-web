@@ -29,6 +29,8 @@ export function ensurePmtilesProtocol() {
   if (protocolRegistered) return;
   const protocol = new Protocol();
   maplibregl.addProtocol("pmtiles", protocol.tile);
+  // v6 loads its worker from this file (see scripts/copy-maplibre-worker.mjs).
+  maplibregl.setWorkerUrl("/maplibre/maplibre-gl-worker.mjs");
   protocolRegistered = true;
 }
 

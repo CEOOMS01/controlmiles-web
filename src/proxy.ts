@@ -202,6 +202,6 @@ export const config = {
     // production, so Android never verified the /invite App Link.
     // api/trip-map/: public, token-checked route images; skipping the
     // session refresh keeps Set-Cookie off them so the CDN can cache them.
-    "/((?!_next/static|_next/image|favicon.ico|\\.well-known/|api/trip-map/|robots\\.txt|sitemap\\.xml|cm-book\\.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|\\.well-known/|api/trip-map/|robots\\.txt|sitemap\\.xml|cm-book\\.js|maplibre/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
