@@ -20,16 +20,16 @@ export default async function StudentsAndParentsPage() {
   if (!orgId) return null;
 
   const [{ data: schools }, { data: students }, { data: assignments }] = await Promise.all([
-    supabase.from("school_sites").select("id, name, address").eq("organization_id", orgId).order("name"),
+    supabase.from("bus_sites").select("id, name, address").eq("organization_id", orgId).order("name"),
     supabase
-      .from("students")
+      .from("bus_students")
       .select(
         "id, first_name, last_initial, grade, external_id, school_site_id, home_address, home_latitude, home_longitude, parent1_name, parent1_phone, parent2_name, parent2_phone",
       )
       .eq("organization_id", orgId)
       .eq("is_active", true)
       .order("first_name"),
-    supabase.from("student_stop_assignments").select("student_id").eq("organization_id", orgId),
+    supabase.from("bus_stop_assignments").select("student_id").eq("organization_id", orgId),
   ]);
   const schoolName = new Map((schools ?? []).map((s) => [s.id, s.name]));
   const routedCount = new Map<string, number>();

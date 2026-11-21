@@ -81,16 +81,16 @@ export default async function SchoolLivePage() {
   const [{ data: runs }, { data: stops }, { data: assignments }, { data: mapVehicles }, fleetIds] = await Promise.all([
     routeIds.length
       ? supabase
-          .from("route_runs")
+          .from("bus_route_runs")
           .select("id, route_id, status, started_at, completed_at, child_check_at, vehicle_id")
           .eq("run_date", now.date)
           .in("route_id", routeIds)
       : Promise.resolve({ data: [] }),
     routeIds.length
-      ? supabase.from("route_stops").select("id, route_id, seq, name, scheduled_time, latitude, longitude, stop_kind").in("route_id", routeIds).order("seq")
+      ? supabase.from("bus_route_stops").select("id, route_id, seq, name, scheduled_time, latitude, longitude, stop_kind").in("route_id", routeIds).order("seq")
       : Promise.resolve({ data: [] }),
     routeIds.length
-      ? supabase.from("student_stop_assignments").select("route_id, stop_id, student_id, action").in("route_id", routeIds)
+      ? supabase.from("bus_stop_assignments").select("route_id, stop_id, student_id, action").in("route_id", routeIds)
       : Promise.resolve({ data: [] }),
     supabase
       .from("vehicles")
@@ -110,10 +110,10 @@ export default async function SchoolLivePage() {
   );
   const [{ data: events }, { data: ridership }, rodeAm, notices] = await Promise.all([
     runIds.length
-      ? supabase.from("route_stop_events").select("run_id, stop_id, arrived_at, departed_at").in("run_id", runIds)
+      ? supabase.from("bus_route_stop_events").select("run_id, stop_id, arrived_at, departed_at").in("run_id", runIds)
       : Promise.resolve({ data: [] }),
     runIds.length
-      ? supabase.from("ridership_events").select("run_id, student_id, action, at").in("run_id", runIds)
+      ? supabase.from("bus_ridership_events").select("run_id, student_id, action, at").in("run_id", runIds)
       : Promise.resolve({ data: [] }),
     loadRodeAm(supabase, orgId, now.date, now.date),
     loadNotices(supabase, orgId, now.date, now.date),
@@ -178,7 +178,7 @@ export default async function SchoolLivePage() {
       id: r.id,
       name: r.name,
       type: ROUTE_TYPE_LABEL[r.route_type] ?? "",
-      // Today's substitute (route_crew_overrides) wins over the regular crew.
+      // Today's substitute (bus_route_crew_overrides) wins over the regular crew.
       ...(() => {
         const o = overrides.get(r.id);
         return {

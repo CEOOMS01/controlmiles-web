@@ -16,7 +16,7 @@ export default async function NewSchoolRoutePage() {
   if (!user || !orgId) return null;
 
   const [{ data: schools }, crew, { data: me }] = await Promise.all([
-    supabase.from("school_sites").select("id, name, address, latitude, longitude").eq("organization_id", orgId).order("name"),
+    supabase.from("bus_sites").select("id, name, address, latitude, longitude").eq("organization_id", orgId).order("name"),
     loadCrewOptions(supabase, orgId),
     supabase.from("profiles").select("time_format").eq("id", user.id).maybeSingle(),
   ]);

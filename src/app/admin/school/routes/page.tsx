@@ -42,10 +42,10 @@ export default async function SchoolRoutesPage({ searchParams }: { searchParams:
       .in("route_type", ["school_am", "school_pm"])
       .neq("status", "closed")
       .order("scheduled_start_time", { ascending: true, nullsFirst: false }),
-    supabase.from("school_sites").select("id, name, address").eq("organization_id", orgId).order("name"),
+    supabase.from("bus_sites").select("id, name, address").eq("organization_id", orgId).order("name"),
     loadCrewOptions(supabase, orgId),
-    supabase.from("route_stops").select("route_id").eq("organization_id", orgId),
-    supabase.from("student_stop_assignments").select("route_id, student_id").eq("organization_id", orgId),
+    supabase.from("bus_route_stops").select("route_id").eq("organization_id", orgId),
+    supabase.from("bus_stop_assignments").select("route_id, student_id").eq("organization_id", orgId),
     supabase.from("profiles").select("time_format").eq("id", user.id).maybeSingle(),
     fleetDriverIds(supabase, orgId),
   ]);

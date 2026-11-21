@@ -18,7 +18,7 @@ async function orgStateHint(supabase: Awaited<ReturnType<typeof createClient>>, 
   const hit = stateHints.get(orgId);
   if (hit && Date.now() - hit.at < 600_000) return hit.st;
   const { data } = await supabase
-    .from("students")
+    .from("bus_students")
     .select("home_address")
     .eq("organization_id", orgId)
     .not("home_address", "is", null)

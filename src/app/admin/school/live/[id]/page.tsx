@@ -71,15 +71,15 @@ export default async function SchoolLiveRoutePage({ params }: { params: Promise<
 
   const [{ data: run }, { data: stops }, { data: assignments }, { data: school }, fleetIds, rodeAm, overrides, crewOptions, notices] = await Promise.all([
     supabase
-      .from("route_runs")
+      .from("bus_route_runs")
       .select("id, status, started_at, completed_at, child_check_at")
       .eq("route_id", id)
       .eq("run_date", today)
       .maybeSingle(),
-    supabase.from("route_stops").select("id, seq, name").eq("route_id", id).order("seq"),
-    supabase.from("student_stop_assignments").select("stop_id, student_id, action").eq("route_id", id),
+    supabase.from("bus_route_stops").select("id, seq, name").eq("route_id", id).order("seq"),
+    supabase.from("bus_stop_assignments").select("stop_id, student_id, action").eq("route_id", id),
     route.school_site_id
-      ? supabase.from("school_sites").select("name").eq("id", route.school_site_id).maybeSingle()
+      ? supabase.from("bus_sites").select("name").eq("id", route.school_site_id).maybeSingle()
       : Promise.resolve({ data: null }),
     fleetDriverIds(supabase, orgId),
     loadRodeAm(supabase, orgId, today, today),
@@ -91,13 +91,13 @@ export default async function SchoolLiveRoutePage({ params }: { params: Promise<
   const studentIds = [...new Set((assignments ?? []).map((a) => a.student_id))];
   const [{ data: students }, { data: events }, { data: rides }] = await Promise.all([
     studentIds.length
-      ? supabase.from("students").select("id, first_name, last_initial, grade, is_active").in("id", studentIds)
+      ? supabase.from("bus_students").select("id, first_name, last_initial, grade, is_active").in("id", studentIds)
       : Promise.resolve({ data: [] }),
     run
-      ? supabase.from("route_stop_events").select("stop_id, arrived_at, departed_at").eq("run_id", run.id)
+      ? supabase.from("bus_route_stop_events").select("stop_id, arrived_at, departed_at").eq("run_id", run.id)
       : Promise.resolve({ data: [] }),
     run
-      ? supabase.from("ridership_events").select("student_id, action, at, reason, note, recorded_by").eq("run_id", run.id)
+      ? supabase.from("bus_ridership_events").select("student_id, action, at, reason, note, recorded_by").eq("run_id", run.id)
       : Promise.resolve({ data: [] }),
   ]);
   // Names: who marked each student, and today's substitute driver / bus.

@@ -87,7 +87,7 @@ export async function loadAttendance(
     routes: { name: string; route_type: string } | { name: string; route_type: string }[] | null;
   }>((a, b) => {
     let q = supabase
-      .from("route_runs")
+      .from("bus_route_runs")
       .select("id, route_id, run_date, status, routes(name, route_type)")
       .eq("organization_id", orgId)
       .gte("run_date", from)
@@ -105,22 +105,22 @@ export async function loadAttendance(
   type StudentRow = { id: string; first_name: string; last_initial: string | null; grade: string | null; external_id: string | null; school_site_id: string | null };
   const [assignments, events, reached, students, schools, stops, rodeAm, notices] = await Promise.all([
     selectAllIn<Assignment>(routeIds, (c, a, b) =>
-      supabase.from("student_stop_assignments").select("route_id, student_id, stop_id, action").in("route_id", c).order("id").range(a, b),
+      supabase.from("bus_stop_assignments").select("route_id, student_id, stop_id, action").in("route_id", c).order("id").range(a, b),
     ),
     selectAllIn<Ride>(runIds, (c, a, b) =>
-      supabase.from("ridership_events").select("run_id, student_id, stop_id, action, at, reason, note").in("run_id", c).order("id").range(a, b),
+      supabase.from("bus_ridership_events").select("run_id, student_id, stop_id, action, at, reason, note").in("run_id", c).order("id").range(a, b),
     ),
     selectAllIn<Reached>(runIds, (c, a, b) =>
-      supabase.from("route_stop_events").select("run_id, stop_id, arrived_at, departed_at").in("run_id", c).order("id").range(a, b),
+      supabase.from("bus_route_stop_events").select("run_id, stop_id, arrived_at, departed_at").in("run_id", c).order("id").range(a, b),
     ),
     selectAll<StudentRow>((a, b) =>
-      supabase.from("students").select("id, first_name, last_initial, grade, external_id, school_site_id").eq("organization_id", orgId).order("id").range(a, b),
+      supabase.from("bus_students").select("id, first_name, last_initial, grade, external_id, school_site_id").eq("organization_id", orgId).order("id").range(a, b),
     ),
     selectAll<{ id: string; name: string }>((a, b) =>
-      supabase.from("school_sites").select("id, name").eq("organization_id", orgId).order("id").range(a, b),
+      supabase.from("bus_sites").select("id, name").eq("organization_id", orgId).order("id").range(a, b),
     ),
     selectAllIn<{ id: string; name: string }>(routeIds, (c, a, b) =>
-      supabase.from("route_stops").select("id, name").in("route_id", c).order("id").range(a, b),
+      supabase.from("bus_route_stops").select("id, name").in("route_id", c).order("id").range(a, b),
     ),
     loadRodeAm(supabase, orgId, from, to),
     loadNotices(supabase, orgId, from, to),

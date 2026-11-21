@@ -68,7 +68,7 @@ export type CrewOverride = {
   reason: string | null;
 };
 
-/** The day's substitutes (route_crew_overrides) by route. */
+/** The day's substitutes (bus_route_crew_overrides) by route. */
 export async function loadCrewOverrides(
   supabase: SupabaseClient,
   routeIds: string[],
@@ -76,7 +76,7 @@ export async function loadCrewOverrides(
 ): Promise<Map<string, CrewOverride>> {
   if (!routeIds.length) return new Map();
   const { data } = await supabase
-    .from("route_crew_overrides")
+    .from("bus_bus_route_crew_overrides")
     .select("route_id, driver_id, vehicle_id, monitor_id, monitor_name, reason")
     .in("route_id", routeIds)
     .eq("service_date", date);

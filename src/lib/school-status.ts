@@ -7,7 +7,7 @@
 //   yellow = didn't ride this morning -> absent, not expected in the PM
 //   gray   = red resolved with a reason (counts as attendance)
 //   sky    = excused: a parent or the office told us the student is not riding
-//            that day (student_ride_notices, 2026-10-25) -- not an absence of
+//            that day (bus_ride_notices, 2026-10-25) -- not an absence of
 //            the bus, so no alert and out of the attendance rate
 //   expected | pending | on_board = not decided yet
 // Grace period (migration 20261009150000): a stop is only "due" -- students
@@ -145,7 +145,7 @@ export async function loadRodeAm(
 ): Promise<Set<string>> {
   const amRuns = await selectAll<{ id: string; run_date: string }>((a, b) =>
     supabase
-      .from("route_runs")
+      .from("bus_route_runs")
       .select("id, run_date, routes!inner(route_type)")
       .eq("organization_id", orgId)
       .eq("routes.route_type", "school_am")
@@ -159,7 +159,7 @@ export async function loadRodeAm(
   const dateOf = new Map(amRuns.map((r) => [r.id, r.run_date as string]));
   const boards = await selectAllIn<{ run_id: string; student_id: string }>([...dateOf.keys()], (chunk, a, b) =>
     supabase
-      .from("ridership_events")
+      .from("bus_ridership_events")
       .select("run_id, student_id")
       .in("run_id", chunk)
       .eq("action", "board")
@@ -178,7 +178,7 @@ export async function loadNotices(
 ): Promise<Map<string, RideNotice>> {
   const rows = await selectAll<RideNotice & { student_id: string; notice_date: string }>((a, b) =>
     supabase
-      .from("student_ride_notices")
+      .from("bus_ride_notices")
       .select("student_id, notice_date, part, reason, will_attend_school, note, reported_by_role")
       .eq("organization_id", orgId)
       .gte("notice_date", from)

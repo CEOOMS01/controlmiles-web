@@ -41,7 +41,7 @@ function fail(error: unknown): FormResult {
 // --- "Not riding the bus" notices -------------------------------------------
 // The office records what a parent told them (the parent's own notice comes
 // from the Fleet app through the same database function). RLS on
-// student_ride_notices has no write policy: only these functions write.
+// bus_ride_notices has no write policy: only these functions write.
 
 function noticeError(error: { message?: string }): FormResult {
   if (error.message?.includes("NOTICE_DATE_OUT_OF_RANGE")) {
@@ -94,7 +94,7 @@ async function refreshRoutePath(
   force = false,
 ): Promise<RoadPathResult> {
   const { data: stops } = await supabase
-    .from("route_stops")
+    .from("bus_route_stops")
     .select("id, seq, latitude, longitude")
     .eq("route_id", routeId)
     .order("seq");
@@ -104,7 +104,7 @@ async function refreshRoutePath(
       .from("routes")
       .update({ path_polyline: null, path_distance_m: null, path_duration_s: null, path_computed_at: null, path_signature: null })
       .eq("id", routeId);
-    await supabase.from("route_stops").update({ leg_distance_m: null, leg_duration_s: null }).eq("route_id", routeId);
+    await supabase.from("bus_route_stops").update({ leg_distance_m: null, leg_duration_s: null }).eq("route_id", routeId);
   };
   if (placed.length < 2) {
     await clear();
@@ -134,7 +134,7 @@ async function refreshRoutePath(
   await Promise.all(
     placed.map((s, i) =>
       supabase
-        .from("route_stops")
+        .from("bus_route_stops")
         .update({
           leg_distance_m: i === 0 ? null : path.legs[i - 1].distanceM,
           leg_duration_s: i === 0 ? null : path.legs[i - 1].durationS,
@@ -163,7 +163,7 @@ export async function addSchool(_: FormResult, formData: FormData): Promise<Form
   const { supabase, orgId } = await context();
   const name = text(formData, "name");
   if (!orgId || !name) return { error: "Enter the school's name." };
-  const { error } = await supabase.from("school_sites").insert({
+  const { error } = await supabase.from("bus_sites").insert({
     organization_id: orgId,
     name,
     address: text(formData, "address"),
@@ -177,7 +177,7 @@ export async function addSchool(_: FormResult, formData: FormData): Promise<Form
 
 export async function deleteSchool(id: string): Promise<FormResult> {
   const { supabase } = await context();
-  const { error } = await supabase.from("school_sites").delete().eq("id", id);
+  const { error } = await supabase.from("bus_sites").delete().eq("id", id);
   if (error) return fail(error);
   revalidatePath("/admin/school/students");
   return { error: null };
@@ -211,7 +211,7 @@ export async function addStudent(_: FormResult, formData: FormData): Promise<For
   const { supabase, orgId } = await context();
   const firstName = text(formData, "first_name");
   if (!orgId || !firstName) return { error: "Enter the student's first name." };
-  const { error } = await supabase.from("students").insert({
+  const { error } = await supabase.from("bus_students").insert({
     organization_id: orgId,
     first_name: firstName,
     ...studentFields(formData),
@@ -227,7 +227,7 @@ export async function updateStudent(_: FormResult, formData: FormData): Promise<
   const firstName = text(formData, "first_name");
   if (!id || !firstName) return { error: "Enter the student's first name." };
   const { error } = await supabase
-    .from("students")
+    .from("bus_students")
     .update({ first_name: firstName, ...studentFields(formData) })
     .eq("id", id);
   if (error) return fail(error);
@@ -238,7 +238,7 @@ export async function updateStudent(_: FormResult, formData: FormData): Promise<
 /** Students are deactivated, never deleted: past runs keep their ridership. */
 export async function deactivateStudent(id: string): Promise<FormResult> {
   const { supabase } = await context();
-  const { error } = await supabase.from("students").update({ is_active: false }).eq("id", id);
+  const { error } = await supabase.from("bus_students").update({ is_active: false }).eq("id", id);
   if (error) return fail(error);
   revalidatePath("/admin/school/students");
   return { error: null };
@@ -288,7 +288,7 @@ export async function suggestRouteStops(schoolId: string, runType: string, inclu
   if (!orgId) return { error: "Not authenticated.", ...empty };
   if (runType !== "school_am" && runType !== "school_pm") return { error: "Choose AM or PM first.", ...empty };
   const { data: school } = await supabase
-    .from("school_sites")
+    .from("bus_sites")
     .select("id, latitude, longitude")
     .eq("id", schoolId)
     .eq("organization_id", orgId)
@@ -297,7 +297,7 @@ export async function suggestRouteStops(schoolId: string, runType: string, inclu
     return { error: "That school has no mapped address. Edit the school and pick its address from the search.", ...empty };
   }
   const { data: students, error } = await supabase
-    .from("students")
+    .from("bus_students")
     .select("id, first_name, last_initial, home_address, home_latitude, home_longitude")
     .eq("organization_id", orgId)
     .eq("school_site_id", schoolId)
@@ -307,7 +307,7 @@ export async function suggestRouteStops(schoolId: string, runType: string, inclu
   // Already on a live (draft or active) route of the same run: left out.
   const action = runType === "school_am" ? "board" : "alight";
   const { data: assigned } = await supabase
-    .from("student_stop_assignments")
+    .from("bus_stop_assignments")
     .select("student_id, routes!inner(route_type, status)")
     .eq("organization_id", orgId)
     .eq("action", action)
@@ -451,7 +451,7 @@ export async function createSchoolRouteWithStops(_: FormResult, formData: FormDa
   if (error || !route) return fail(error);
 
   const { data: inserted, error: stopsError } = await supabase
-    .from("route_stops")
+    .from("bus_route_stops")
     .insert(stops.map((s, i) => ({ ...s, route_id: route.id, organization_id: orgId, seq: i + 1 })))
     .select("id, seq");
   // Students on each stop: they board there in the morning, get off there in the afternoon.
@@ -468,7 +468,7 @@ export async function createSchoolRouteWithStops(_: FormResult, formData: FormDa
       })),
     );
     if (rows.length > 0) {
-      assignError = (await supabase.from("student_stop_assignments").insert(rows)).error;
+      assignError = (await supabase.from("bus_stop_assignments").insert(rows)).error;
       // A student rides one route per run: moving them here takes them off their old one.
       if (!assignError) {
         const { data: others } = await supabase
@@ -481,7 +481,7 @@ export async function createSchoolRouteWithStops(_: FormResult, formData: FormDa
         const otherIds = (others ?? []).map((r) => r.id);
         if (otherIds.length > 0) {
           await supabase
-            .from("student_stop_assignments")
+            .from("bus_stop_assignments")
             .delete()
             .in("student_id", rows.map((r) => r.student_id))
             .eq("action", routeType === "school_am" ? "board" : "alight")
@@ -557,7 +557,7 @@ export type DeleteRouteResult = FormResult & { archived?: boolean };
 export async function deleteSchoolRoute(routeId: string): Promise<DeleteRouteResult> {
   const { supabase } = await context();
   const { count, error: runsError } = await supabase
-    .from("route_runs")
+    .from("bus_route_runs")
     .select("id", { count: "exact", head: true })
     .eq("route_id", routeId);
   if (runsError) return fail(runsError);
@@ -621,7 +621,7 @@ export async function setSubstitute(_: FormResult, formData: FormData): Promise<
   const monitorId = text(formData, "monitor_id");
   const monitor = monitorId ? null : (text(formData, "monitor_name")?.slice(0, 80) ?? null);
   if (!driverId && !vehicleId && !monitorId && !monitor) return { error: "Choose a substitute driver, bus or monitor." };
-  const { error } = await supabase.from("route_crew_overrides").upsert(
+  const { error } = await supabase.from("bus_route_crew_overrides").upsert(
     {
       organization_id: orgId,
       route_id: routeId,
@@ -643,7 +643,7 @@ export async function setSubstitute(_: FormResult, formData: FormData): Promise<
 
 export async function clearSubstitute(routeId: string, date: string): Promise<FormResult> {
   const { supabase } = await context();
-  const { error } = await supabase.from("route_crew_overrides").delete().eq("route_id", routeId).eq("service_date", date);
+  const { error } = await supabase.from("bus_route_crew_overrides").delete().eq("route_id", routeId).eq("service_date", date);
   if (error) return fail(error);
   revalidatePath(`/admin/school/live/${routeId}`);
   revalidatePath("/admin/school");
@@ -664,7 +664,7 @@ export async function addStop(_: FormResult, formData: FormData): Promise<FormRe
     return { error: "Pick the address from the suggestions so the stop has a map location." };
   }
   const { data: last } = await supabase
-    .from("route_stops")
+    .from("bus_route_stops")
     .select("seq")
     .eq("route_id", routeId)
     .order("seq", { ascending: false })
@@ -680,7 +680,7 @@ export async function addStop(_: FormResult, formData: FormData): Promise<FormRe
     const { data: route } = await supabase.from("routes").select("route_type").eq("id", routeId).maybeSingle();
     if (route?.route_type === "school_am") {
       const { data: school } = await supabase
-        .from("route_stops")
+        .from("bus_route_stops")
         .select("seq")
         .eq("route_id", routeId)
         .eq("stop_kind", "school")
@@ -689,20 +689,20 @@ export async function addStop(_: FormResult, formData: FormData): Promise<FormRe
         .maybeSingle();
       if (school) {
         const { data: tail } = await supabase
-          .from("route_stops")
+          .from("bus_route_stops")
           .select("id, seq")
           .eq("route_id", routeId)
           .gte("seq", school.seq)
           .order("seq", { ascending: false });
         for (const t of tail ?? []) {
-          const { error: e } = await supabase.from("route_stops").update({ seq: t.seq + 1 }).eq("id", t.id);
+          const { error: e } = await supabase.from("bus_route_stops").update({ seq: t.seq + 1 }).eq("id", t.id);
           if (e) return fail(e);
         }
         seq = school.seq;
       }
     }
   }
-  const { error } = await supabase.from("route_stops").insert({
+  const { error } = await supabase.from("bus_route_stops").insert({
     route_id: routeId,
     organization_id: orgId,
     seq,
@@ -726,7 +726,7 @@ export async function addStop(_: FormResult, formData: FormData): Promise<FormRe
 export async function moveStop(routeId: string, stopId: string, direction: "up" | "down"): Promise<FormResult> {
   const { supabase } = await context();
   const { data: stops, error } = await supabase
-    .from("route_stops")
+    .from("bus_route_stops")
     .select("id, seq")
     .eq("route_id", routeId)
     .order("seq");
@@ -741,7 +741,7 @@ export async function moveStop(routeId: string, stopId: string, direction: "up" 
     [b.id, a.seq],
     [a.id, b.seq],
   ] as const) {
-    const { error: e } = await supabase.from("route_stops").update({ seq }).eq("id", id);
+    const { error: e } = await supabase.from("bus_route_stops").update({ seq }).eq("id", id);
     if (e) return fail(e);
   }
   await refreshRoutePath(supabase, routeId);
@@ -752,7 +752,7 @@ export async function moveStop(routeId: string, stopId: string, direction: "up" 
 
 export async function deleteStop(routeId: string, stopId: string): Promise<FormResult> {
   const { supabase } = await context();
-  const { error } = await supabase.from("route_stops").delete().eq("id", stopId);
+  const { error } = await supabase.from("bus_route_stops").delete().eq("id", stopId);
   if (error) return fail(error);
   await refreshRoutePath(supabase, routeId);
   revalidatePath(`/admin/school/routes/${routeId}`);
@@ -771,7 +771,7 @@ export async function assignStudent(_: FormResult, formData: FormData): Promise<
   if (!orgId || !routeId || !stopId || !studentId) return { error: "Choose a student." };
   if (action !== "board" && action !== "alight") return { error: "Choose board or get off." };
   const { error } = await supabase
-    .from("student_stop_assignments")
+    .from("bus_stop_assignments")
     .upsert(
       { organization_id: orgId, route_id: routeId, stop_id: stopId, student_id: studentId, action },
       { onConflict: "student_id,route_id,action" },
@@ -783,7 +783,7 @@ export async function assignStudent(_: FormResult, formData: FormData): Promise<
 
 export async function unassignStudent(routeId: string, assignmentId: string): Promise<FormResult> {
   const { supabase } = await context();
-  const { error } = await supabase.from("student_stop_assignments").delete().eq("id", assignmentId);
+  const { error } = await supabase.from("bus_stop_assignments").delete().eq("id", assignmentId);
   if (error) return fail(error);
   revalidatePath(`/admin/school/routes/${routeId}`);
   return { error: null };

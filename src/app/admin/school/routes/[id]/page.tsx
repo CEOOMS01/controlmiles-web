@@ -58,33 +58,33 @@ export default async function SchoolRoutePage({
   const [{ data: stops }, { data: assignments }, { data: students }, { data: runs }, { data: me }, { data: school }, { data: org }, crew, { data: currentDriver }, { data: allSchools }] =
     await Promise.all([
       supabase
-        .from("route_stops")
+        .from("bus_route_stops")
         .select("id, seq, name, address, scheduled_time, stop_kind, radius_meters, leg_duration_s, leg_distance_m")
         .eq("route_id", id)
         .order("seq"),
-      supabase.from("student_stop_assignments").select("id, stop_id, student_id, action").eq("route_id", id),
+      supabase.from("bus_stop_assignments").select("id, stop_id, student_id, action").eq("route_id", id),
       supabase
-        .from("students")
+        .from("bus_students")
         .select("id, first_name, last_initial, grade")
         .eq("organization_id", orgId)
         .eq("is_active", true)
         .order("first_name"),
       supabase
-        .from("route_runs")
+        .from("bus_route_runs")
         .select("id, run_date, status, started_at, completed_at, child_check_at")
         .eq("route_id", id)
         .order("run_date", { ascending: false })
         .limit(10),
       supabase.from("profiles").select("time_format").eq("id", user.id).maybeSingle(),
       route.school_site_id
-        ? supabase.from("school_sites").select("name").eq("id", route.school_site_id).maybeSingle()
+        ? supabase.from("bus_sites").select("name").eq("id", route.school_site_id).maybeSingle()
         : Promise.resolve({ data: null }),
       supabase.from("organizations").select("timezone").eq("id", orgId).maybeSingle(),
       loadCrewOptions(supabase, orgId),
       route.assigned_driver_id
         ? supabase.from("profiles").select("first_name, last_name").eq("id", route.assigned_driver_id).maybeSingle()
         : Promise.resolve({ data: null }),
-      supabase.from("school_sites").select("id, name").eq("organization_id", orgId).order("name"),
+      supabase.from("bus_sites").select("id, name").eq("organization_id", orgId).order("name"),
     ]);
   // The assigned driver may not be a "driver" member (e.g. the owner drives).
   const driverOptions =
@@ -107,8 +107,8 @@ export default async function SchoolRoutePage({
   const viewRun = (runs ?? []).find((r) => r.run_date === viewDate) ?? null;
   const [{ data: viewEvents }, { data: viewRides }, rodeAm, notices] = viewRun
     ? await Promise.all([
-        supabase.from("route_stop_events").select("stop_id, arrived_at, departed_at").eq("run_id", viewRun.id),
-        supabase.from("ridership_events").select("student_id, action, at, reason, note").eq("run_id", viewRun.id),
+        supabase.from("bus_route_stop_events").select("stop_id, arrived_at, departed_at").eq("run_id", viewRun.id),
+        supabase.from("bus_ridership_events").select("student_id, action, at, reason, note").eq("run_id", viewRun.id),
         loadRodeAm(supabase, orgId, viewDate, viewDate),
         loadNotices(supabase, orgId, viewDate, viewDate),
       ])
