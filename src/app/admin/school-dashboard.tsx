@@ -9,6 +9,7 @@
 // school's plan includes it (fn_org_features); RLS enforces the same.
 
 import Link from "next/link";
+import { DashboardHeader } from "./dashboard-header";
 import { InstructorNoticeCard } from "./instructor-notice-card";
 import { NeedsAttentionPanel } from "./needs-attention-panel";
 import { createClient } from "@/lib/supabase/server";
@@ -326,41 +327,17 @@ export async function SchoolDashboard({
     .sort((a, b) => b.booked - a.booked);
 
 
-  const longToday = new Date(`${today}T12:00:00Z`).toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-    timeZone: "UTC",
-  });
-
-  // Greeting by the school's own clock.
-  const greeting = now.minutes < 12 * 60 ? "Good morning" : now.minutes < 18 * 60 ? "Good afternoon" : "Good evening";
-  // Role badge: owner blue, admin green, operator yellow.
-  const roleBadge =
-    {
-      owner: { label: "Owner", cls: "bg-accent/15 text-accent" },
-      admin: { label: "Admin", cls: "bg-success/15 text-success" },
-      operator: { label: "Operator", cls: "bg-[#fde047] text-[#713f12]" },
-    }[viewerRole ?? ""] ?? null;
-
   return (
     <>
-    {/* Header edge to edge of the content area, with its line across the whole width (2026-11-20). */}
-    <header className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3 border-b border-border px-5 pb-3 pt-7 sm:px-8">
-      {/* The name sits right on the line. */}
-      <h1 className="text-2xl font-semibold leading-none tracking-tight">
-        {orgName || "School dashboard"}
-        {scope.current && <span className="text-lg font-medium text-muted"> · {scope.current.name}</span>}
-      </h1>
-      <div className="text-right">
-        <p className="text-xs text-muted">{longToday}</p>
-        <p className="mt-0.5 text-sm font-medium">
-          {greeting}
-          {viewerName ? `, ${viewerName}` : ""}
-          {roleBadge && <span className={`ml-2 rounded-full px-2 py-0.5 text-xs font-medium ${roleBadge.cls}`}>{roleBadge.label}</span>}
-        </p>
-      </div>
-    </header>
+    {/* Header edge to edge of the content area (shared by every service, ./dashboard-header). */}
+    <DashboardHeader
+      title={orgName || "School dashboard"}
+      suffix={scope.current?.name ?? null}
+      date={today}
+      minutes={now.minutes}
+      viewerName={viewerName}
+      viewerRole={viewerRole}
+    />
     <main className="mx-auto w-full max-w-6xl px-5 py-6 sm:px-8 lg:py-8">
 
       {(attention.length > 0 || has("dvir") || classes) && (

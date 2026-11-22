@@ -5,6 +5,7 @@
 // map of the buses.
 
 import Link from "next/link";
+import { DashboardHeader } from "../dashboard-header";
 import { createClient } from "@/lib/supabase/server";
 import { getAuthedProfile } from "@/lib/supabase/org-context";
 import { driverLabel, fleetDriverIds } from "@/lib/driver-label";
@@ -57,9 +58,10 @@ export default async function SchoolLivePage() {
   const orgId = profile?.default_org_id;
   if (!user || !orgId) return null;
 
-  const [{ data: org }, { data: me }] = await Promise.all([
-    supabase.from("organizations").select("timezone").eq("id", orgId).maybeSingle(),
+  const [{ data: org }, { data: me }, { data: membership }] = await Promise.all([
+    supabase.from("organizations").select("name, timezone").eq("id", orgId).maybeSingle(),
     supabase.from("profiles").select("time_format").eq("id", user.id).maybeSingle(),
+    supabase.from("organization_members").select("member_role").eq("organization_id", orgId).eq("user_id", user.id).maybeSingle(),
   ]);
   const tz = org?.timezone ?? "America/New_York";
   const timeFormat: "12h" | "24h" = me?.time_format === "24h" ? "24h" : "12h";
@@ -243,12 +245,20 @@ export default async function SchoolLivePage() {
   };
 
   return (
-    <main className="space-y-6 mx-auto w-full max-w-6xl px-5 py-7 sm:px-8 lg:py-8">
+    <>
+    {/* The same start as the other services: company name, date, greeting with name and role. */}
+    <DashboardHeader
+      title={org?.name || "School bus dashboard"}
+      date={now.date}
+      minutes={now.minutes}
+      viewerName={profile?.first_name || user.email?.split("@")[0] || ""}
+      viewerRole={membership?.member_role ?? null}
+    />
+    <main className="space-y-6 mx-auto w-full max-w-6xl px-5 py-6 sm:px-8 lg:py-8">
       <AutoRefresh seconds={15} />
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight">Dashboard</h1>
-          <p className="mt-1 text-sm text-muted">
+          <p className="text-sm text-muted">
             Today&apos;s routes: {cards.length} scheduled · {counts.running} running · {counts.done} completed
             {counts.attention > 0 && <span className="text-danger"> · {counts.attention} need attention</span>}
           </p>
@@ -312,5 +322,6 @@ export default async function SchoolLivePage() {
         )}
       </div>
     </main>
+    </>
   );
 }
