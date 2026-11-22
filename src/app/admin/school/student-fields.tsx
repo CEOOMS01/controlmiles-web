@@ -6,6 +6,7 @@
 
 import { AddressAutocompleteInput } from "../routes/address-autocomplete-input";
 import { inputClass } from "./form-kit";
+import { GROUP_CHIP, NEED_GROUPS, type NeedCode } from "@/lib/school-needs";
 
 export type StudentValues = {
   id?: string;
@@ -21,11 +22,27 @@ export type StudentValues = {
   parent1_phone?: string | null;
   parent2_name?: string | null;
   parent2_phone?: string | null;
+  /** Transport needs (school bus): the codes the student has, their program and a short note. */
+  need_ids?: string[];
+  program_need_id?: string | null;
+  transport_note?: string | null;
 };
 
 const label = "mb-1.5 block text-sm font-medium";
 
-export function StudentFields({ schools, v = {} }: { schools: { id: string; name: string }[]; v?: StudentValues }) {
+export function StudentFields({
+  schools,
+  v = {},
+  catalog = [],
+}: {
+  schools: { id: string; name: string }[];
+  v?: StudentValues;
+  catalog?: NeedCode[];
+}) {
+  const have = new Set(v.need_ids ?? []);
+  // A code that was turned off is still shown while the student has it, so saving does not drop it.
+  const offered = catalog.filter((c) => c.is_active || have.has(c.id));
+  const programs = offered.filter((c) => c.grp === "program");
   return (
     <>
       {v.id && <input type="hidden" name="student_id" value={v.id} />}
@@ -69,6 +86,67 @@ export function StudentFields({ schools, v = {} }: { schools: { id: string; name
           defaultCoords={v.home_latitude != null && v.home_longitude != null ? { lat: v.home_latitude, lon: v.home_longitude } : null}
         />
       </div>
+      <fieldset className="min-w-0 sm:col-span-3">
+        <legend className="mb-1.5 text-sm font-medium">Transport needs</legend>
+        <p className="mb-2 text-xs text-muted">
+          What the driver and the aide need to know on the bus. Codes only, never a diagnosis. Edit the list in Needs codes.
+        </p>
+        {offered.length === 0 ? (
+          <p className="text-sm text-muted">No codes yet: load them in Needs codes.</p>
+        ) : (
+          <div className="space-y-3 rounded-lg border border-border p-3">
+            {NEED_GROUPS.filter((g) => g.key !== "program").map((g) => {
+              const rows = offered.filter((c) => c.grp === g.key);
+              if (rows.length === 0) return null;
+              return (
+                <div key={g.key}>
+                  <p className="mb-1 text-xs font-medium text-muted">{g.label}</p>
+                  <div className="grid gap-x-3 gap-y-1 sm:grid-cols-2 lg:grid-cols-3">
+                    {rows.map((c) => (
+                      <label key={c.id} className="flex items-start gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          name="need_ids"
+                          value={c.id}
+                          defaultChecked={have.has(c.id)}
+                          className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--accent)]"
+                        />
+                        <span>
+                          <span className={`mr-1.5 rounded px-1 py-px text-[11px] font-semibold ${GROUP_CHIP[c.grp]}`}>{c.code}</span>
+                          {c.label}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div>
+                <label className={label}>Program</label>
+                <select name="program_need_id" defaultValue={v.program_need_id ?? ""} className={inputClass}>
+                  <option value="">—</option>
+                  {programs.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.code} · {c.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="sm:col-span-2">
+                <label className={label}>Note for the driver (optional)</label>
+                <input
+                  name="transport_note"
+                  maxLength={200}
+                  placeholder="Seat belt Y, sits in the front row"
+                  defaultValue={v.transport_note ?? ""}
+                  className={inputClass}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+      </fieldset>
       <fieldset className="min-w-0 sm:col-span-3">
         <legend className="mb-1.5 text-sm font-medium">Emergency contacts</legend>
         <div className="grid gap-3 sm:grid-cols-2">

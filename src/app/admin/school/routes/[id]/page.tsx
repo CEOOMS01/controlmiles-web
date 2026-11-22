@@ -5,6 +5,8 @@
 // (each with a map location and arrival radius), the students who board or
 // get off at each stop, and the last runs.
 
+import { loadNeedCatalog, loadStudentNeeds } from "@/lib/school-needs";
+import { NeedChips } from "../../need-chips";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getAuthedProfile } from "@/lib/supabase/org-context";
@@ -65,7 +67,7 @@ export default async function SchoolRoutePage({
       supabase.from("bus_stop_assignments").select("id, stop_id, student_id, action").eq("route_id", id),
       supabase
         .from("bus_students")
-        .select("id, first_name, last_initial, grade")
+        .select("id, first_name, last_initial, grade, program_need_id, transport_note")
         .eq("organization_id", orgId)
         .eq("is_active", true)
         .order("first_name"),
@@ -99,6 +101,9 @@ export default async function SchoolRoutePage({
   const studentName = new Map(
     (students ?? []).map((s) => [s.id, `${s.first_name}${s.last_initial ? ` ${s.last_initial}.` : ""}`]),
   );
+  // Transport needs (codes) next to each rider: what the driver and the aide must know at the stop.
+  const needCatalog = await loadNeedCatalog(supabase, orgId);
+  const needsByStudent = await loadStudentNeeds(supabase, orgId, needCatalog, students ?? []);
   const byStop = new Map<string, { id: string; student_id: string; action: string }[]>();
   for (const a of assignments ?? []) byStop.set(a.stop_id, [...(byStop.get(a.stop_id) ?? []), a]);
 
@@ -325,6 +330,7 @@ export default async function SchoolRoutePage({
                       className="flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs"
                     >
                       {r.action === "board" ? "↑" : "↓"} {studentName.get(r.student_id) ?? "Student"}
+                      {needsByStudent.get(r.student_id) && <NeedChips v={needsByStudent.get(r.student_id)} showNote={false} />}
                       <RowButton onRun={unassignStudent.bind(null, id, r.id)} label="✕" />
                     </span>
                   ))}

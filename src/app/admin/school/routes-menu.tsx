@@ -7,12 +7,13 @@
 
 import Link from "next/link";
 
-type Active = "routes" | "schools" | "attendance" | "new";
+type Active = "routes" | "schools" | "attendance" | "needs" | "new";
 
 const ITEMS: { id: Exclude<Active, "new">; label: string; href: string }[] = [
   { id: "routes", label: "Routes", href: "/admin/school/routes" },
   { id: "schools", label: "Schools", href: "/admin/school/routes?tab=schools" },
   { id: "attendance", label: "Attendance", href: "/admin/school/attendance" },
+  { id: "needs", label: "Needs codes", href: "/admin/school/needs" },
 ];
 
 export function RoutesMenu({ active, count }: { active: Active; count?: { routes?: number; schools?: number } }) {

@@ -204,25 +204,51 @@ function studentFields(formData: FormData) {
     parent1_phone: text(formData, "parent1_phone")?.slice(0, 30) ?? null,
     parent2_name: text(formData, "parent2_name")?.slice(0, 120) ?? null,
     parent2_phone: text(formData, "parent2_phone")?.slice(0, 30) ?? null,
+    program_need_id: text(formData, "program_need_id"),
+    transport_note: text(formData, "transport_note")?.slice(0, 200) ?? null,
   };
+}
+
+/** The student's transport needs become exactly the codes checked in the form. */
+async function saveStudentNeeds(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  orgId: string,
+  studentId: string,
+  formData: FormData,
+): Promise<FormResult> {
+  const ids = [...new Set(formData.getAll("need_ids").map(String).filter(Boolean))];
+  const { error: delError } = await supabase.from("bus_student_needs").delete().eq("student_id", studentId);
+  if (delError) return fail(delError);
+  if (ids.length > 0) {
+    const { error } = await supabase
+      .from("bus_student_needs")
+      .insert(ids.map((need_id) => ({ organization_id: orgId, student_id: studentId, need_id })));
+    if (error) return fail(error);
+  }
+  return { error: null };
 }
 
 export async function addStudent(_: FormResult, formData: FormData): Promise<FormResult> {
   const { supabase, orgId } = await context();
   const firstName = text(formData, "first_name");
   if (!orgId || !firstName) return { error: "Enter the student's first name." };
-  const { error } = await supabase.from("bus_students").insert({
-    organization_id: orgId,
-    first_name: firstName,
-    ...studentFields(formData),
-  });
-  if (error) return fail(error);
+  const { data: created, error } = await supabase
+    .from("bus_students")
+    .insert({
+      organization_id: orgId,
+      first_name: firstName,
+      ...studentFields(formData),
+    })
+    .select("id")
+    .single();
+  if (error || !created) return fail(error);
+  const needs = await saveStudentNeeds(supabase, orgId, created.id, formData);
   revalidatePath("/admin/school/students");
-  return { error: null };
+  return needs;
 }
 
 export async function updateStudent(_: FormResult, formData: FormData): Promise<FormResult> {
-  const { supabase } = await context();
+  const { supabase, orgId } = await context();
   const id = text(formData, "student_id");
   const firstName = text(formData, "first_name");
   if (!id || !firstName) return { error: "Enter the student's first name." };
@@ -231,8 +257,10 @@ export async function updateStudent(_: FormResult, formData: FormData): Promise<
     .update({ first_name: firstName, ...studentFields(formData) })
     .eq("id", id);
   if (error) return fail(error);
+  if (!orgId) return { error: "Not signed in." };
+  const needs = await saveStudentNeeds(supabase, orgId, id, formData);
   revalidatePath("/admin/school/students");
-  return { error: null };
+  return needs;
 }
 
 /** Students are deactivated, never deleted: past runs keep their ridership. */
