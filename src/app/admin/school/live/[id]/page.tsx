@@ -26,6 +26,8 @@ import {
   type RiderState,
   type RiderStatus,
 } from "@/lib/school-status";
+import { loadNeedCatalog, loadStudentNeeds, GROUP_CHIP } from "@/lib/school-needs";
+import { NeedChips } from "../../need-chips";
 import { AutoRefresh } from "../../auto-refresh";
 import { SubstituteForm } from "../../substitute-form";
 import { NoRideSheet, UndoNoRide } from "../../no-ride-form";
@@ -91,7 +93,7 @@ export default async function SchoolLiveRoutePage({ params }: { params: Promise<
   const studentIds = [...new Set((assignments ?? []).map((a) => a.student_id))];
   const [{ data: students }, { data: events }, { data: rides }] = await Promise.all([
     studentIds.length
-      ? supabase.from("bus_students").select("id, first_name, last_initial, grade, is_active").in("id", studentIds)
+      ? supabase.from("bus_students").select("id, first_name, last_initial, grade, is_active, program_need_id, transport_note").in("id", studentIds)
       : Promise.resolve({ data: [] }),
     run
       ? supabase.from("bus_route_stop_events").select("stop_id, arrived_at, departed_at").eq("run_id", run.id)
@@ -130,6 +132,9 @@ export default async function SchoolLiveRoutePage({ params }: { params: Promise<
     rodeAm: (studentId) => rodeAm.has(`${today}:${studentId}`),
     notice: (studentId) => noticeForRun(notices, today, studentId, route.route_type),
   });
+  // Transport needs (codes) of the route's students: what the aide and the office must know.
+  const needCatalog = await loadNeedCatalog(supabase, orgId);
+  const needsByStudent = await loadStudentNeeds(supabase, orgId, needCatalog, students ?? []);
   const stopName = new Map((stops ?? []).map((s) => [s.id, `${s.seq}. ${s.name}`]));
   const none: RiderState = { status: "pending", at: null, reason: null, note: null };
 
@@ -180,6 +185,7 @@ export default async function SchoolLiveRoutePage({ params }: { params: Promise<
         id: st.id,
         name: `${st.first_name}${st.last_initial ? ` ${st.last_initial}.` : ""}`,
         grade: st.grade,
+        needs: needsByStudent.get(st.id),
         status,
         situation,
         onStop,
@@ -194,6 +200,13 @@ export default async function SchoolLiveRoutePage({ params }: { params: Promise<
     .sort((x, y) => ORDER.indexOf(x.status) - ORDER.indexOf(y.status) || x.name.localeCompare(y.name));
 
   const count = (s: RiderStatus[]) => rows.filter((r) => s.includes(r.status)).length;
+  // The codes in use on this route, with what each one means.
+  const usedNeeds = new Map<string, (typeof needCatalog)[number]>();
+  for (const r of rows) {
+    for (const n of r.needs?.needs ?? []) usedNeeds.set(n.id, n);
+    if (r.needs?.program) usedNeeds.set(r.needs.program.id, r.needs.program);
+  }
+  const usedList = [...usedNeeds.values()].sort((a, b) => a.grp.localeCompare(b.grp) || a.sort - b.sort || a.code.localeCompare(b.code));
   const p = Array.isArray(route.profiles) ? route.profiles[0] : route.profiles;
   const v = Array.isArray(route.vehicles) ? route.vehicles[0] : route.vehicles;
   const regularDriver = driverLabel(p, route.assigned_driver_id ? fleetIds.get(route.assigned_driver_id) : null, "No driver");
@@ -304,6 +317,11 @@ export default async function SchoolLiveRoutePage({ params }: { params: Promise<
                 <td className="px-4 py-3">
                   <p className="font-medium">{r.name}</p>
                   {r.grade && <p className="text-xs text-muted">Grade {r.grade}</p>}
+                  {r.needs && (
+                    <div className="mt-1">
+                      <NeedChips v={r.needs} />
+                    </div>
+                  )}
                 </td>
                 <td className="px-4 py-3">
                   <span className={`inline-block rounded-lg border px-2.5 py-1 text-xs font-semibold ${STATUS_PILL[r.status]}`}>
@@ -343,6 +361,22 @@ export default async function SchoolLiveRoutePage({ params }: { params: Promise<
           </tbody>
         </table>
       </div>
+
+      {usedList.length > 0 && (
+        <div className="rounded-xl border border-border bg-surface p-4">
+          <p className="mb-2 text-sm font-semibold">Needs codes on this route</p>
+          <div className="grid gap-x-6 gap-y-1.5 text-sm sm:grid-cols-2 lg:grid-cols-3">
+            {usedList.map((c) => (
+              <span key={c.id} className="flex items-center gap-2">
+                <span className={`w-10 shrink-0 rounded px-1.5 py-0.5 text-center text-[11px] font-semibold ${GROUP_CHIP[c.grp]}`}>
+                  {c.code}
+                </span>
+                {c.label}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="flex flex-wrap gap-3 text-xs text-muted">
         {LEGEND.map((l) => (
