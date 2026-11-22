@@ -31,6 +31,15 @@ async function finishAccept(token: string) {
 // After confirming the email (the "Email confirmed" page): finish joining the fleet
 // the user was invited to. The database finds the invite by the user's own confirmed
 // email (accept_my_pending_invite), so no link token is needed here.
+// The browser was left signed in as someone else (typical after accepting one invitation and opening the
+// next on the same phone; a driver has no admin panel, so no Sign out button anywhere). This clears the
+// session and comes straight back to the same invitation. Only the token (hex) is put in the path.
+export async function signOutAndReopenInvite(token: string) {
+  const supabase = await createClient();
+  await supabase.auth.signOut();
+  redirect(`/invite/${encodeURIComponent(token)}`);
+}
+
 export async function acceptMyPendingInvite(): Promise<InviteActionState> {
   const supabase = await createClient();
   const { error } = await supabase.rpc("accept_my_pending_invite");

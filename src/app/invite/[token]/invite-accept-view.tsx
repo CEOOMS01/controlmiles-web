@@ -6,6 +6,7 @@ import {
   acceptInviteAlreadySignedIn,
   acceptInviteExistingAccount,
   acceptInviteNewAccount,
+  signOutAndReopenInvite,
   type InviteActionState,
 } from "./actions";
 import { PasswordInput } from "@/components/password-input";
@@ -56,7 +57,7 @@ export function InviteAcceptView({
       </div>
 
       {loggedInAsOtherEmail ? (
-        <MismatchNotice inviteEmail={inviteEmail} currentUserEmail={currentUserEmail!} />
+        <MismatchNotice token={token} inviteEmail={inviteEmail} currentUserEmail={currentUserEmail!} />
       ) : loggedInAsSameEmail ? (
         <AlreadySignedInForm token={token} />
       ) : accountExists ? (
@@ -68,7 +69,16 @@ export function InviteAcceptView({
   );
 }
 
-function MismatchNotice({ inviteEmail, currentUserEmail }: { inviteEmail: string; currentUserEmail: string }) {
+function MismatchNotice({
+  token,
+  inviteEmail,
+  currentUserEmail,
+}: {
+  token: string;
+  inviteEmail: string;
+  currentUserEmail: string;
+}) {
+  const [pending, startTransition] = useTransition();
   return (
     <div className="rounded-lg border border-border bg-surface p-4 text-center">
       <p className="text-sm">
@@ -76,8 +86,16 @@ function MismatchNotice({ inviteEmail, currentUserEmail }: { inviteEmail: string
         invite was sent to <span className="font-medium">{inviteEmail}</span>.
       </p>
       <p className="mt-2 text-xs text-muted">
-        Sign out and open this link again to accept with the invited email.
+        Sign out to accept it with the invited email.
       </p>
+      <button
+        type="button"
+        onClick={() => startTransition(() => signOutAndReopenInvite(token))}
+        disabled={pending}
+        className="mt-4 w-full rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground transition hover:opacity-90 disabled:opacity-60"
+      >
+        {pending ? "Signing out…" : "Sign out and continue"}
+      </button>
     </div>
   );
 }
